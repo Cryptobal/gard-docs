@@ -30,23 +30,24 @@ export function Section01Hero({ data, payload }: Section01HeroProps) {
   
   return (
     <SectionWrapper id="s01-hero" animation="none" className="relative overflow-hidden p-0">
-      {/* Background Image con overlay gradient espectacular */}
+      {/* Background Image con overlay VISIBLE */}
       <div className="absolute inset-0 z-0">
         <Image
           src={data.background_image}
           alt="Hero background"
           fill
-          className="object-cover scale-110"
+          className="object-cover brightness-75"
           priority
           quality={95}
+          sizes="100vw"
         />
-        {/* Gradient overlay rico */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-950/95" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+        {/* Gradient overlay MÁS SUAVE para ver la imagen */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-slate-900/60 to-slate-950/80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-900/30" />
         
-        {/* Glow effects */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        {/* Glow effects MÁS FUERTES */}
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
       
       {/* Content */}

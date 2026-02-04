@@ -104,14 +104,14 @@ export function getMockPresentationPayload(): PresentationPayload {
     cta: {
       meeting_link: 'https://calendly.com/gard-security/visita-tecnica',
       whatsapp_link: 'https://wa.me/56912345678',
-      phone: '+56 2 2345 6789',
+      phone: '+56 9 8765 4321',
       email: 'comercial@gard.cl',
     },
     
     contact: {
       name: 'Carlos Irigoyen',
       email: 'carlos.irigoyen@gard.cl',
-      phone: '+56 9 1234 5678',
+      phone: '+56 9 8765 4321',
       position: 'Gerente Comercial',
     },
     

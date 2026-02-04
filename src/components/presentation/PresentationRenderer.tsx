@@ -10,6 +10,8 @@ import { ThemeProvider } from './ThemeProvider';
 import { PresentationHeader } from '../layout/PresentationHeader';
 import { PresentationFooter } from '../layout/PresentationFooter';
 import { StickyCTA } from './StickyCTA';
+import { NavigationDots } from './NavigationDots';
+import { ScrollProgress } from './ScrollProgress';
 
 // Import secciones implementadas
 import { Section01Hero } from './sections/Section01Hero';
@@ -53,6 +55,9 @@ export function PresentationRenderer({ payload }: PresentationRendererProps) {
   return (
     <ThemeProvider variant={theme}>
       <div className="presentation-container min-h-screen">
+        {/* Progress Bar Superior */}
+        <ScrollProgress />
+        
         {/* Header persistente */}
         <PresentationHeader 
           logo={assets.logo}
@@ -160,6 +165,9 @@ export function PresentationRenderer({ payload }: PresentationRendererProps) {
         
         {/* CTA Sticky (Mobile) */}
         <StickyCTA cta={cta} />
+        
+        {/* Índice de Navegación Lateral */}
+        <NavigationDots />
       </div>
     </ThemeProvider>
   );
