@@ -11,9 +11,12 @@ import { PresentationHeader } from '../layout/PresentationHeader';
 import { PresentationFooter } from '../layout/PresentationFooter';
 import { StickyCTA } from './StickyCTA';
 
-// Import placeholder sections (TODO: implementar las 29 secciones reales)
+// Import secciones implementadas
 import { Section01Hero } from './sections/Section01Hero';
 import { Section02ExecutiveSummary } from './sections/Section02ExecutiveSummary';
+import { Section19Resultados } from './sections/Section19Resultados';
+import { Section23PropuestaEconomica } from './sections/Section23PropuestaEconomica';
+import { Section25Comparacion } from './sections/Section25Comparacion';
 import { PlaceholderSection } from './sections/PlaceholderSection';
 
 interface PresentationRendererProps {
@@ -153,11 +156,7 @@ export function PresentationRenderer({ payload }: PresentationRendererProps) {
           />
           
           {/* S19 - Resultados */}
-          <PlaceholderSection 
-            id="s19" 
-            title="Resultados con Clientes"
-            data={sections.s19_resultados}
-          />
+          <Section19Resultados data={sections.s19_resultados} />
           
           {/* S20 - Clientes */}
           <PlaceholderSection 
@@ -181,11 +180,7 @@ export function PresentationRenderer({ payload }: PresentationRendererProps) {
           />
           
           {/* S23 - Propuesta Económica */}
-          <PlaceholderSection 
-            id="s23" 
-            title="Propuesta Económica"
-            data={sections.s23_propuesta_economica}
-          />
+          <Section23PropuestaEconomica data={sections.s23_propuesta_economica} />
           
           {/* S24 - Términos y Condiciones */}
           <PlaceholderSection 
@@ -195,11 +190,7 @@ export function PresentationRenderer({ payload }: PresentationRendererProps) {
           />
           
           {/* S25 - Comparación Competitiva */}
-          <PlaceholderSection 
-            id="s25" 
-            title="Comparación Competitiva"
-            data={sections.s25_comparacion}
-          />
+          <Section25Comparacion data={sections.s25_comparacion} />
           
           {/* S26 - Por Qué Nos Eligen */}
           <PlaceholderSection 
