@@ -75,7 +75,7 @@ export function mapZohoDataToPresentation(
           })
         : base.quote.valid_until,
       subject: zohoData.quote?.Subject || base.quote.subject,
-      description: zohoData.quote?.Descripcion_Al || base.quote.description,
+      description: zohoData.quote?.Descripcion_AI || base.quote.description, // Campo correcto de Zoho
       total: zohoData.quote?.Grand_Total || base.quote.total,
       subtotal: zohoData.quote?.Sub_Total || base.quote.subtotal,
       tax: zohoData.quote?.Tax || base.quote.tax,
