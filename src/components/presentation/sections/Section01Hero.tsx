@@ -41,9 +41,11 @@ export function Section01Hero({ data, payload, showTokens = false }: Section01He
           quality={90}
           sizes="100vw"
         />
-        {/* Overlay gradient FUERTE en bottom para corte limpio */}
+        {/* Overlay gradient MUY FUERTE para corte limpio */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-slate-900/60 to-slate-950/80" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent" />
+        {/* Gradient extra en bottom para corte TOTAL */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-950 to-transparent" />
         
         {/* Glows */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-pulse" />
@@ -55,32 +57,32 @@ export function Section01Hero({ data, payload, showTokens = false }: Section01He
         {/* Main Content */}
         <div className="w-full max-w-5xl">
           
-          {/* Headline - OPTIMIZADO */}
+          {/* Headline - MÁS COMPACTO */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 text-white leading-[1.1] tracking-tight text-shadow-lg"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-3 text-white leading-[1.1] tracking-tight text-shadow-lg"
           >
             {headline}
           </motion.h1>
           
-          {/* Subheadline - OPTIMIZADO */}
+          {/* Subheadline - MÁS COMPACTO */}
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-4 font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent max-w-3xl"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl mb-3 font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent max-w-3xl"
           >
             {subheadline}
           </motion.p>
           
-          {/* Microcopy - OPTIMIZADO */}
+          {/* Microcopy - MÁS COMPACTO */}
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="text-base sm:text-lg text-white/70 mb-8 max-w-3xl leading-relaxed"
+            className="text-sm sm:text-base text-white/70 mb-6 max-w-2xl leading-relaxed"
           >
             {microcopy}
           </motion.p>
@@ -112,16 +114,16 @@ export function Section01Hero({ data, payload, showTokens = false }: Section01He
             </a>
           </motion.div>
           
-          {/* Trust indicators - OPTIMIZADO */}
+          {/* Trust indicators - MÁS COMPACTO */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1, duration: 0.8 }}
-            className="flex flex-wrap items-center gap-4 mt-6 text-sm text-white/70"
+            className="flex flex-wrap items-center gap-3 mt-5 text-xs sm:text-sm text-white/70"
           >
             {['✓ Sin costo', '✓ Respuesta 24h', '✓ Visita incluida'].map((text, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
+              <div key={i} className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" style={{ animationDelay: `${i * 0.5}s` }} />
                 <span className="font-semibold">{text}</span>
               </div>
             ))}

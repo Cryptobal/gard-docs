@@ -66,6 +66,7 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
           companyName={payload.client.company_name}
           quoteName={payload.quote.subject || 'la propuesta'}
           quoteNumber={payload.quote.number}
+          showTokens={showTokens}
         />
         
         {/* Secciones S01-S29 */}

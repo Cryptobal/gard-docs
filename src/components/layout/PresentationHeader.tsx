@@ -15,6 +15,7 @@ interface PresentationHeaderProps {
   companyName?: string;
   quoteName?: string;
   quoteNumber?: string;
+  showTokens?: boolean;
   className?: string;
 }
 
@@ -25,26 +26,32 @@ export function PresentationHeader({
   companyName = 'tu empresa',
   quoteName = 'la cotización',
   quoteNumber = '',
+  showTokens = false,
   className 
 }: PresentationHeaderProps) {
   const whatsappMessage = `Hola, soy ${contactName} de ${companyName}, vi ${quoteName} y me gustaría conversar`;
   const whatsappLink = `https://wa.me/56982307771?text=${encodeURIComponent(whatsappMessage)}`;
   
+  // Mostrar tokens o datos reales
+  const displayCompany = showTokens ? '[ACCOUNT_NAME]' : companyName;
+  const displayQuoteNumber = showTokens ? '[QUOTE_NUMBER]' : quoteNumber;
+  const displayContact = showTokens ? '[CONTACT_NAME]' : contactName;
+  
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/95 border-b border-teal-500/20 shadow-2xl">
       <div className="w-full px-4 sm:px-6">
-        {/* Info propuesta - NUEVA LÍNEA */}
+        {/* Info propuesta - CON SOPORTE TOKENS */}
         {(companyName || quoteNumber) && companyName !== 'tu empresa' && (
           <div className="py-2 border-b border-white/5">
             <div className="flex items-center justify-center gap-2 text-xs text-white/70">
               <Sparkles className="w-3 h-3 text-teal-400" />
               <span>
-                Propuesta para <span className="font-bold text-white">{companyName}</span>
+                Propuesta para <span className={showTokens ? 'font-bold text-amber-300' : 'font-bold text-white'}>{displayCompany}</span>
                 {quoteNumber && (
-                  <> — <span className="font-bold text-teal-400">{quoteNumber}</span></>
+                  <> — <span className={showTokens ? 'font-bold text-amber-400' : 'font-bold text-teal-400'}>{displayQuoteNumber}</span></>
                 )}
               </span>
-              <span className="hidden sm:inline">• Preparado para {contactName}</span>
+              <span className="hidden sm:inline">• Preparado para <span className={showTokens ? 'text-amber-300' : 'text-white'}>{displayContact}</span></span>
             </div>
           </div>
         )}
