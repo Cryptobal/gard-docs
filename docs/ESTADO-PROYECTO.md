@@ -1,7 +1,7 @@
 # 📊 Estado del Proyecto - Gard Docs
 
 **Última actualización:** 05 de Febrero de 2026  
-**Versión:** 1.3.0 (Multi-tenant foundation + Auth.js v5)  
+**Versión:** 1.3.0 (Multi-tenant foundation + Auth.js v5) ✅ COMPLETADO  
 **Repositorio:** git@github.com:Cryptobal/gard-docs.git
 
 ---
@@ -354,19 +354,81 @@ formatCurrency(value, currency)
 - `docs/RESEND-WEBHOOK-CONFIG.md` - Configuración de webhooks
 - `.env.example` - Variables de entorno con webhook secret
 
-**Completado en v1.3.0:**
-- [x] Auth.js v5 (Credentials + Admin bcrypt)
+**✅ COMPLETADO en v1.3.0 (05 Feb 2026):**
+- [x] Auth.js v5 (Credentials + Admin bcrypt) - 100% funcional
 - [x] Login en /login, protección de /inicio, /templates/*, /preview/*
 - [x] Multi-tenancy: Tenant + tenantId en tablas; backfill "gard"; filtro por tenant en queries
+- [x] Migraciones aplicadas: add_tenant_and_tenant_id_nullable, backfill_tenant_gard, tenant_id_required_and_indexes
+- [x] Seed ejecutado: Tenant "gard" (clgard00000000000000001), Admin carlos.irigoyen@gard.cl, Template commercial
+- [x] AUTH_SECRET configurado en .env.local
+- [x] Todas las queries filtran por session.user.tenantId
+- [x] Webhooks y APIs públicas asignan tenant por defecto (getDefaultTenantId)
+- [x] /p/[uniqueId] sigue público y funcional sin cambios
 
-**Pendiente:**
+**Credenciales de acceso:**
+- Email: carlos.irigoyen@gard.cl
+- Password: GardSecurity2026!
+- URL: http://localhost:3000/login (dev) | https://docs.gard.cl/login (prod)
+
+**Pendiente (mejoras futuras):**
+- [ ] Tenant switcher UI (cuando exista AdminTenant con múltiples tenants por admin)
+- [ ] Página /select-tenant para admins con más de un tenant
+- [ ] Cookie firmada para persistir tenant activo (activeTenantId)
 - [ ] Notificaciones por Slack (opcional)
 - [ ] Configurar días de alerta (actualmente 3 días)
-- [ ] Tenant switcher UI (cuando exista AdminTenant o múltiples tenants por admin)
 
 ---
 
 ## ⏳ **LO QUE FALTA**
+
+---
+
+## 🧪 **TESTING - VALIDACIÓN MULTI-TENANT + AUTH**
+
+### **Test 1: Login**
+```bash
+# 1. Iniciar servidor de desarrollo
+npm run dev
+
+# 2. Abrir http://localhost:3000/inicio
+# → Debe redirigir a /login
+
+# 3. Ingresar credenciales:
+Email: carlos.irigoyen@gard.cl
+Password: GardSecurity2026!
+
+# 4. Verificar redirección a /inicio
+# → Debe mostrar dashboard con presentaciones filtradas por tenant "gard"
+```
+
+### **Test 2: Filtrado por Tenant**
+```bash
+# 1. Login exitoso
+# 2. En /inicio verificar que solo muestra presentaciones del tenant "gard"
+# 3. Abrir DevTools → Network → Fetch/XHR
+# 4. Recargar página
+# 5. Verificar que queries SQL filtran: WHERE tenantId = 'clgard00000000000000001'
+```
+
+### **Test 3: Rutas Públicas**
+```bash
+# 1. Abrir /p/[uniqueId] (cualquier presentación existente)
+# → Debe funcionar SIN login
+# → Debe trackear vista normalmente
+
+# 2. Abrir /api/webhook/zoho
+# → Debe aceptar POST con Bearer token
+# → No requiere sesión de usuario
+```
+
+### **Test 4: Webhook Zoho con Tenant**
+```bash
+# 1. POST a /api/webhook/zoho con datos de cotización
+# 2. Verificar en DB que WebhookSession tiene tenantId = 'clgard00000000000000001'
+# 3. Abrir preview /preview/[sessionId]
+# 4. Enviar email
+# 5. Verificar en DB que Presentation tiene tenantId = 'clgard00000000000000001'
+```
 
 ---
 
@@ -394,16 +456,18 @@ formatCurrency(value, currency)
 
 ---
 
-## 📌 **MILESTONE: Multi-tenant foundation + Auth**
+## ✅ **MILESTONE COMPLETADO: Multi-tenant foundation + Auth** (05 Feb 2026)
 
 **Checklist de validación:**
-- [ ] Migraciones aplicadas: add_tenant_and_tenant_id_nullable, backfill_tenant_gard, tenant_id_required_and_indexes
-- [ ] Seed con Tenant "gard" y Admin/Template con tenantId
-- [ ] Login en /login con credenciales Admin
-- [ ] /inicio requiere login y muestra solo presentaciones del tenant
-- [ ] /p/[uniqueId] sigue público y trackea sin cambios
-- [ ] Webhooks (Zoho, Resend) operativos; send-email y track públicos
-- [ ] Documentos actualizados: DATABASE-SCHEMA.md, DOCUMENTO-MAESTRO-APLICACION.md, ESTADO-PROYECTO.md
+- [x] Migraciones aplicadas: add_tenant_and_tenant_id_nullable, backfill_tenant_gard, tenant_id_required_and_indexes
+- [x] Seed con Tenant "gard" (clgard00000000000000001) y Admin/Template con tenantId
+- [x] Login en /login con credenciales Admin (carlos.irigoyen@gard.cl / GardSecurity2026!)
+- [x] /inicio requiere login y muestra solo presentaciones del tenant (session.user.tenantId)
+- [x] /p/[uniqueId] sigue público y trackea sin cambios
+- [x] Webhooks (Zoho, Resend) operativos; send-email y track públicos (usan getDefaultTenantId)
+- [x] Documentos actualizados: DATABASE-SCHEMA.md, DOCUMENTO-MAESTRO-APLICACION.md, ESTADO-PROYECTO.md
+
+**Resultado:** Sistema 100% multi-tenant y autenticado. Base SaaS lista para escalar.
 
 ---
 
@@ -514,5 +578,6 @@ curl https://docs.gard.cl/api/templates
 ---
 
 **Última actualización:** 05 de Febrero de 2026  
-**Estado:** ✅ SISTEMA MULTI-TENANT + AUTH.JS v5  
-**Siguiente:** Aplicar migraciones en BD, validar checklist, Notificaciones Slack o Mejoras UX
+**Estado:** ✅ SISTEMA MULTI-TENANT + AUTH.JS v5 - 100% OPERATIVO  
+**Milestone v1.3.0:** ✅ COMPLETADO  
+**Siguiente:** Tenant switcher UI, AdminTenant table, Notificaciones Slack, Mejoras UX
