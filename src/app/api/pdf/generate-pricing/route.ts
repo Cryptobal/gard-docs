@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
     
     await browser.close();
     
-    // Devolver el PDF
+    // Devolver el PDF - Convertir Buffer a Uint8Array para NextResponse
     const fileName = `Propuesta_${clientName?.replace(/\s+/g, '_') || 'Cliente'}_${quoteNumber || 'COT'}.pdf`;
     
-    return new NextResponse(pdf, {
+    return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${fileName}"`,
