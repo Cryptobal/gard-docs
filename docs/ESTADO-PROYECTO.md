@@ -207,19 +207,44 @@ formatCurrency(value, currency)
 
 ## ⏳ **LO QUE FALTA**
 
-### **PASO C: Envío por Email (2-3 horas)**
+### **PASO C: Envío por Email con Tracking (3-4 horas)**
 
-**Objetivo:** Hacer funcional el botón "📧 Enviar por Email"
+**Objetivo:** Sistema completo de envío de emails con tracking avanzado
 
-**Tareas:**
+**Funcionalidades requeridas:**
+
+**Email Sending:**
 - [ ] Instalar Resend + React Email
-- [ ] Crear template de email profesional
+- [ ] Crear template de email profesional con preview integrado
+- [ ] Campo CC (copias adicionales) en UI de envío
 - [ ] Endpoint `/api/presentations/send-email`
-- [ ] Guardar presentación definitiva en BD
+- [ ] Guardar presentación definitiva en BD con uniqueId
 - [ ] Enviar email con link público: `/p/[uniqueId]`
 - [ ] Actualizar status: draft → sent
+- [ ] Registrar: emailSentAt, recipientEmail, ccEmails
 - [ ] Confirmación de envío en UI
 - [ ] Habilitar botón WhatsApp post-envío
+
+**Email Tracking (Resend Webhooks):**
+- [ ] Webhook endpoint para eventos de Resend
+- [ ] Tracking de apertura (email.opened)
+- [ ] Tracking de clicks en links (email.clicked)
+- [ ] Tracking de entregas (email.delivered)
+- [ ] Guardar eventos en tabla EmailEvent o PresentationView
+- [ ] Timestamps: sentAt, deliveredAt, firstOpenedAt, lastOpenedAt
+
+**Preview de Email:**
+- [ ] Ruta `/admin/emails/preview/[template]` para ver templates
+- [ ] O pestaña "Email" en sidebar de preview existente
+- [ ] Preview con datos reales de la sesión
+- [ ] Toggle desktop/mobile
+- [ ] Botón "Enviar email de prueba a mi correo"
+
+**Dashboard (para visualizar tracking):**
+- [ ] Vista de emails enviados con status
+- [ ] Indicadores: Enviado, Entregado, Abierto, Click
+- [ ] Timestamps de cada evento
+- [ ] Tasa de apertura por presentación
 
 ---
 
