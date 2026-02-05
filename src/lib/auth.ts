@@ -49,13 +49,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = String(credentials.password);
 
         const admin = await prisma.admin.findUnique({
-          where: { email, status: 'active' },
+          where: { email },
           include: { tenant: true },
         });
-        if (!admin) return null;
+        
+        // Verificar que existe y está activo
+        if (!admin || admin.status !== 'active') return null;
 
         const valid = await bcrypt.compare(password, admin.password);
         if (!valid) return null;
+
+        // Actualizar último login
+        await prisma.admin.update({
+          where: { id: admin.id },
+          data: { lastLoginAt: new Date() },
+        });
 
         return {
           id: admin.id,
