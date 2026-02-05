@@ -66,36 +66,59 @@ export function Section28Cierre({ data, contactEmail = 'carlos.irigoyen@gard.cl'
             {data.microcopy}
           </motion.p>
           
-          {/* CTAs - RESPONSIVE */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-12 px-4"
-          >
-            <a
+          {/* CTAs - MINIMALISTAS con animaciones ESPECTACULARES */}
+          <div className="flex flex-col sm:flex-row gap-5 justify-center mb-12 px-4">
+            {/* CTA 1: Agendar */}
+            <motion.a
               href={data.cta_primary.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-premium group inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl text-base sm:text-lg md:text-xl font-black text-white bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 transition-all duration-300 hover:scale-105 shadow-2xl shadow-teal-500/50 border-2 sm:border-4 border-teal-400/50 glow-teal-strong"
+              initial={{ opacity: 0, x: -100, scale: 0.8 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ 
+                delay: 0.3, 
+                duration: 0.8,
+                type: 'spring',
+                stiffness: 100
+              }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="group relative overflow-hidden inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl text-lg font-bold text-white bg-white/5 backdrop-blur-xl border-2 border-teal-400/50 hover:border-teal-400 transition-all shadow-xl hover:shadow-2xl hover:shadow-teal-500/50"
             >
-              <Sparkles className="w-4 sm:w-5 h-4 sm:h-5 animate-pulse" />
-              <Calendar className="w-5 sm:w-6 h-5 sm:h-6" />
-              <span className="whitespace-nowrap text-sm sm:text-base md:text-lg">{data.cta_primary.text}</span>
-              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-2 transition-transform" />
-            </a>
+              {/* Glow background on hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-teal-500/0 via-teal-500/20 to-teal-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              {/* Content */}
+              <Calendar className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform relative z-10" />
+              <span className="relative z-10">{data.cta_primary.text}</span>
+              <ArrowRight className="w-5 h-5 text-teal-400 group-hover:translate-x-2 transition-transform relative z-10" />
+            </motion.a>
             
-            <a
+            {/* CTA 2: WhatsApp */}
+            <motion.a
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl text-base sm:text-lg md:text-xl font-black text-white bg-green-600 hover:bg-green-500 border-2 sm:border-4 border-green-500/50 hover:border-green-400 transition-all duration-300 hover:scale-105 shadow-2xl shadow-green-600/30"
+              initial={{ opacity: 0, x: 100, scale: 0.8 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ 
+                delay: 0.5, 
+                duration: 0.8,
+                type: 'spring',
+                stiffness: 100
+              }}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className="group relative overflow-hidden inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl text-lg font-bold text-white bg-white/5 backdrop-blur-xl border-2 border-green-500/50 hover:border-green-500 transition-all shadow-xl hover:shadow-2xl hover:shadow-green-500/50"
             >
-              <MessageCircle className="w-5 sm:w-6 h-5 sm:h-6" />
-              <span className="whitespace-nowrap text-sm sm:text-base md:text-lg">Hablar por WhatsApp</span>
-            </a>
-          </motion.div>
+              {/* Glow background on hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-green-500/20 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              {/* Content */}
+              <MessageCircle className="w-6 h-6 text-green-400 group-hover:scale-110 transition-transform relative z-10" />
+              <span className="relative z-10">Hablar por WhatsApp</span>
+            </motion.a>
+          </div>
           
           {/* Trust indicators - RESPONSIVE */}
           <motion.div
