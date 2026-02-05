@@ -35,7 +35,7 @@ import { Section18KPIs } from './sections/Section18KPIs';
 import { Section19Resultados } from './sections/Section19Resultados';
 import { Section20Clientes } from './sections/Section20Clientes';
 import { Section21Sectores } from './sections/Section21Sectores';
-import { Section22TCO } from './sections/Section22TCO';
+// Section22TCO eliminada - funcionalidad fusionada con Section06CostoReal
 import { Section23PropuestaEconomica } from './sections/Section23PropuestaEconomica';
 import { Section24TerminosCondiciones } from './sections/Section24TerminosCondiciones';
 import { Section25Comparacion } from './sections/Section25Comparacion';
@@ -146,8 +146,8 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
           {/* S21 - Sectores */}
           <Section21Sectores data={sections.s21_sectores} />
           
-          {/* S22 - TCO */}
-          <Section22TCO data={sections.s22_tco} />
+          {/* S22 - TCO - ELIMINADA: Funcionalidad fusionada con S06 (Costo Real) */}
+          {/* La comparación de costos TCO ahora se muestra en Section06CostoReal con valores en UF y modal interactivo */}
           
           {/* S23 - Propuesta Económica */}
           <Section23PropuestaEconomica 

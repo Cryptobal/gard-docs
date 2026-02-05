@@ -306,6 +306,15 @@ export function TemplateSidebar({
             
             {/* Footer FIJO - SIN SCROLL */}
             <div className="flex-shrink-0 p-3 border-t border-white/10 space-y-2">
+              {/* Botón Volver al Dashboard - DESTACADO */}
+              <a
+                href="/inicio"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 transition-all text-sm font-bold text-white shadow-lg shadow-blue-500/30"
+              >
+                <FileText className="w-4 h-4" />
+                Volver al Dashboard
+              </a>
+              
               <button
                 onClick={copyLink}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-semibold text-white/80"

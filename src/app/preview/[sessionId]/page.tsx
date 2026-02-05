@@ -89,8 +89,16 @@ export default async function PreviewPage({ params, searchParams }: PreviewPageP
       {/* Banner de preview */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-black py-3 px-4 text-center font-semibold text-sm shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            📋 PREVIEW DE BORRADOR - Cliente: {presentationData.client.company_name}
+          <div className="flex items-center gap-3">
+            <a
+              href="/inicio"
+              className="px-3 py-1.5 rounded-lg bg-black/10 hover:bg-black/20 transition-colors text-xs font-bold"
+            >
+              ← Dashboard
+            </a>
+            <div>
+              📋 PREVIEW DE BORRADOR - Cliente: {presentationData.client.company_name}
+            </div>
           </div>
           <div className="text-xs">
             Expira: {webhookSession.expiresAt.toLocaleString('es-CL')}

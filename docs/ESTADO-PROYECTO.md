@@ -1,7 +1,7 @@
 # 📊 Estado del Proyecto - Gard Docs
 
-**Última actualización:** 05 de Febrero de 2026, 10:00 hrs  
-**Versión:** 1.0.0 (Sistema de Email 100% Funcional en Producción)  
+**Última actualización:** 05 de Febrero de 2026, 18:00 hrs  
+**Versión:** 1.2.0 (Dashboard Simplificado + Sistema de Notificaciones)  
 **Repositorio:** git@github.com:Cryptobal/gard-docs.git
 
 ---
@@ -26,6 +26,12 @@
 - ✅ **Modal de envío**: Destinatario editable + CC (hasta 5 emails)
 - ✅ **WhatsApp share**: Compartir directo al número del contacto de Zoho
 - ✅ **Logo de Gard**: Integrado en template de email
+- ✅ **Dashboard Admin Simplificado**: Panel en /inicio (v2.0)
+- ✅ **Sistema de Notificaciones**: Campana con alertas de presentaciones pendientes
+- ✅ **Tracking de Email**: Estados en español (Enviado, Entregado, Abierto, Clicked)
+- ✅ **Filtros Avanzados**: Vistas, Estado Email, Fecha
+- ✅ **Navegación unificada**: Botones para volver al dashboard desde templates
+- ✅ **Vista Mobile-First**: 100% responsive sin scroll horizontal
 
 ---
 
@@ -279,32 +285,95 @@ formatCurrency(value, currency)
 
 ---
 
+## ✅ **PASO D COMPLETADO: Dashboard Admin v2.0 Simplificado**
+
+### **Dashboard Administrativo Ultra Simplificado** 🎉
+
+**URL:** `/inicio`
+
+**Versión 2.0 - Rediseño Completo:**
+- ✅ **Eliminados elementos confusos**: KPIs complejos y embudo de conversión
+- ✅ **Sistema de Notificaciones**: Campana con alertas inteligentes
+- ✅ **Filtros Optimizados**: 4 filtros claros y específicos
+- ✅ **Estados en Español**: Mejor comprensión del tracking
+- ✅ **Vista Limpia**: Solo información esencial sin duplicados
+
+**Features Implementadas:**
+
+**1. Header Simplificado:**
+- Logo Gard Security
+- 🔔 Campana de Notificaciones (con badge de alertas)
+- Botón "Ver Templates"
+
+**2. Sistema de Notificaciones:**
+- Detecta presentaciones enviadas hace +3 días sin vistas
+- Badge rojo con cantidad de alertas
+- Panel lateral con lista de pendientes
+- Link directo a cada presentación
+
+**3. Filtros Avanzados (4 en Grid):**
+- **Búsqueda**: Por empresa, contacto, asunto, email
+- **Vistas**: Todas / Vistas / No vistas / Borradores
+- **Estado Email**: Todos / Enviado / Entregado / Abierto / Clicked
+- **Fecha**: Todas / Hoy / Semana / Mes / Trimestre
+
+**4. Lista de Presentaciones:**
+- Vista horizontal compacta
+- Información clara sin duplicados
+- Badge de estado email en español
+- Contador de vistas con ícono
+- Botones: Ver, Copiar, WhatsApp
+
+**5. Email Status Tracking:**
+- Estados en español: Enviado, Entregado, Abierto, Clicked, Bounced, Borrador
+- Colores distintivos por estado
+- Tooltips explicativos
+- Prioridad automática (muestra el estado más relevante)
+
+**Componentes Creados/Actualizados:**
+1. `/app/inicio/page.tsx` - Página simplificada
+2. `/components/admin/DashboardContent.tsx` - Wrapper client component
+3. `/components/admin/DashboardHeader.tsx` - Header + Notificaciones
+4. `/components/admin/PresentationsList.tsx` - Lista con filtros mejorados
+5. `/components/admin/EmailStatusBadge.tsx` - Badge de estado email
+
+**Documentación Adicional:**
+- `docs/RESEND-WEBHOOK-CONFIG.md` - Configuración de webhooks
+- `.env.example` - Variables de entorno con webhook secret
+
+**Pendiente:**
+- [ ] NextAuth.js configuración
+- [ ] Login admin protegido
+- [ ] Notificaciones por Slack (opcional)
+- [ ] Configurar días de alerta (actualmente 3 días)
+
+---
+
 ## ⏳ **LO QUE FALTA**
 
 ---
 
-### **PASO D: Dashboard Admin (3-4 horas)**
+### **PASO E: Autenticación (2-3 horas)**
 
-**Objetivo:** Panel de control para gestionar presentaciones
+**Objetivo:** Proteger el dashboard con login
 
 **Tareas:**
 - [ ] NextAuth.js configuración
-- [ ] Login admin protegido
-- [ ] Dashboard con estadísticas
-- [ ] Lista de presentaciones enviadas
-- [ ] Analytics de vistas
-- [ ] Gestión de templates
+- [ ] Login page
+- [ ] Protección de rutas admin
+- [ ] Session management
 
 ---
 
-### **PASO E: Mejoras Adicionales (2-3 horas)**
+### **PASO F: Mejoras Adicionales (2-3 horas)**
 
 **Opcionales:**
 - [ ] Logo automático del cliente (Clearbit/Brandfetch)
 - [ ] Modal de selección de templates
 - [ ] Export a PDF mejorado
 - [ ] Notificaciones cuando se ve presentación
-- [ ] Compartir por WhatsApp con tracking
+- [ ] Gráficos avanzados (Chart.js o Recharts)
+- [ ] Exportar datos a CSV/Excel
 
 ---
 
@@ -414,6 +483,6 @@ curl https://docs.gard.cl/api/templates
 
 ---
 
-**Última actualización:** 05 de Febrero de 2026, 10:00 hrs  
-**Estado:** ✅ MVP 100% FUNCIONAL EN PRODUCCIÓN  
-**Siguiente:** Dashboard Admin para analytics (opcional)
+**Última actualización:** 05 de Febrero de 2026, 18:00 hrs  
+**Estado:** ✅ SISTEMA COMPLETO CON DASHBOARD v2.0 + NOTIFICACIONES  
+**Siguiente:** Autenticación, Notificaciones Slack, o Mejoras UX

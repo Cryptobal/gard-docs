@@ -4,6 +4,214 @@ Todos los cambios notables del proyecto están documentados aquí.
 
 ---
 
+## [1.2.0] - 2026-02-05 🔔
+
+### 🚀 DASHBOARD v2.0 - REDISEÑO COMPLETO + NOTIFICACIONES
+
+**Dashboard ultra simplificado con sistema de notificaciones inteligentes.**
+
+#### ✅ Features Implementadas
+
+**1. Sistema de Notificaciones:**
+- ✅ Campana en header con badge de alertas
+- ✅ Detecta presentaciones sin vistas después de 3 días
+- ✅ Panel lateral con lista de pendientes
+- ✅ Link directo a cada presentación alertada
+- ✅ Configurable (días ajustables)
+
+**2. Simplificación del Dashboard:**
+- ❌ Eliminados KPIs confusos (6 cards)
+- ❌ Eliminado embudo de conversión
+- ❌ Removido badge "sent" duplicado
+- ✅ Vista limpia con solo información esencial
+- ✅ Mobile-first optimizado
+
+**3. Filtros Mejorados:**
+- ✅ Grid de 4 filtros (Búsqueda, Vistas, Estado Email, Fecha)
+- ✅ Filtro de Vistas: Todas / Vistas / No vistas / Borradores
+- ✅ Filtro de Estado Email: Enviado / Entregado / Abierto / Clicked
+- ✅ Filtro de Fecha: Hoy / Semana / Mes / Trimestre
+
+**4. Estados en Español:**
+- ✅ "Enviado" (antes: Sent)
+- ✅ "Entregado" (antes: Delivered)
+- ✅ "Abierto" (antes: Opened)
+- ✅ "Clicked" (se mantiene en inglés)
+- ✅ "Borrador" (antes: Draft)
+
+**5. Email Status Badge:**
+- ✅ Componente dedicado para mostrar estado del email
+- ✅ Colores distintivos por estado
+- ✅ Tooltips explicativos
+- ✅ Prioridad automática (muestra el estado más avanzado)
+
+**6. Tracking Mejorado:**
+- ✅ Contador de vistas con ícono verde
+- ✅ Badge de estado email al lado
+- ✅ Vista compacta sin duplicados
+
+#### 📁 Archivos Creados/Modificados
+
+**Nuevos:**
+- `src/components/admin/EmailStatusBadge.tsx` - Badge de estado email
+- `src/components/admin/DashboardContent.tsx` - Wrapper client
+- `docs/RESEND-WEBHOOK-CONFIG.md` - Configuración webhooks
+- `.env.example` - Variables de entorno
+
+**Modificados:**
+- `src/app/inicio/page.tsx` - Simplificado
+- `src/components/admin/DashboardHeader.tsx` - + Notificaciones
+- `src/components/admin/PresentationsList.tsx` - + Filtros mejorados
+- Eliminados: `StatsCards.tsx`, `ConversionChart.tsx`
+
+#### 🎯 UX/UI
+
+**Antes:**
+- Dashboard sobrecargado con 6 KPIs
+- Embudo de conversión confuso
+- Información duplicada
+- Métricas no claras
+
+**Ahora:**
+- Vista limpia y directa
+- Solo información esencial
+- Notificaciones proactivas
+- Filtros específicos y claros
+
+#### 🔧 Configuración
+
+**Webhook de Resend:**
+- Secret agregado a `.env.example`
+- Documentación completa en `RESEND-WEBHOOK-CONFIG.md`
+- Estados: delivered, opened, clicked, bounced
+
+**Notificaciones:**
+- Configurable en `DashboardHeader.tsx`
+- Por defecto: 3 días sin vistas
+- Badge rojo en campana
+
+---
+
+## [1.1.0] - 2026-02-05 🎛️
+
+### 🚀 DASHBOARD ADMINISTRATIVO COMPLETO
+
+**Panel de control profesional para gestionar presentaciones.**
+
+#### ✅ Features Implementadas
+
+**Dashboard Principal (`/inicio`):**
+- ✅ Header con logo y botón para templates
+- ✅ 6 cards de estadísticas principales:
+  - Total de presentaciones
+  - Enviadas
+  - Vistas (con total de vistas)
+  - Emails abiertos (con total de aperturas)
+  - Clicks (con total de clicks)
+  - Tasa de conversión
+- ✅ Gráfico de embudo de conversión
+- ✅ Insights de tasas (vista, apertura, click)
+
+**Lista de Presentaciones:**
+- ✅ Vista de todas las presentaciones enviadas
+- ✅ Filtros por status (todos, enviados, vistos, borradores)
+- ✅ Búsqueda por empresa, contacto o asunto
+- ✅ Analytics inline para cada presentación
+- ✅ Botones de acción:
+  - Ver presentación pública
+  - Copiar link al portapapeles
+  - Compartir por WhatsApp
+
+**UX/UI:**
+- ✅ **Mobile-first**: 100% responsive
+- ✅ **Sin scroll horizontal en mobile**
+- ✅ Layout compacto y moderno
+- ✅ Gradientes y efectos visuales premium
+- ✅ Animaciones suaves en hover
+
+**Navegación Unificada:**
+- ✅ Botón "Volver al Dashboard" en template previews
+- ✅ Botón "Volver al Dashboard" en preview de borradores
+- ✅ Dashboard como hub central de la aplicación
+
+#### 📁 Archivos Creados
+
+**Páginas:**
+- `src/app/inicio/page.tsx` - Dashboard principal
+
+**Componentes:**
+- `src/components/admin/DashboardHeader.tsx` - Header del dashboard
+- `src/components/admin/StatsCards.tsx` - Tarjetas de estadísticas
+- `src/components/admin/ConversionChart.tsx` - Gráfico de embudo
+- `src/components/admin/PresentationsList.tsx` - Lista con filtros
+
+**Modificaciones:**
+- `src/components/admin/TemplateSidebar.tsx` - Agregado botón dashboard
+- `src/app/preview/[sessionId]/page.tsx` - Agregado botón dashboard
+
+#### 📊 Estadísticas Mostradas
+
+**Cards:**
+1. Total Presentaciones
+2. Enviadas
+3. Vistas (+ total de vistas)
+4. Emails Abiertos (+ total de aperturas)
+5. Clicks (+ total de clicks)
+6. Tasa de Conversión (%)
+
+**Embudo de Conversión:**
+1. Enviadas (100%)
+2. Vistas (% de conversión)
+3. Abiertas (% de apertura)
+4. Con Clicks (% de click)
+
+**Insights:**
+- Tasa de Vista: vistas / enviadas
+- Tasa de Apertura: aperturas / enviadas
+- Tasa de Click: clicks / aperturas
+
+#### 🎨 Diseño
+
+**Colores por Métrica:**
+- Azul: Total presentaciones
+- Morado: Enviadas
+- Verde: Vistas
+- Amarillo: Aperturas
+- Naranja: Clicks
+- Rosa: Conversión
+
+**Layout:**
+- Grid 2 columnas en mobile
+- Grid 3 columnas en tablet
+- Grid 6 columnas en desktop
+- Espaciado consistente (sm:gap-4)
+- Padding adaptativo (px-4 sm:px-6 lg:px-8)
+
+#### 🔄 Flujo de Navegación
+
+```
+/inicio (Dashboard)
+  ↓
+  ├─→ /templates/commercial/preview (Ver Templates)
+  │     └─→ Botón "Volver al Dashboard"
+  │
+  ├─→ /p/[uniqueId] (Ver Presentación Pública)
+  │
+  └─→ /preview/[sessionId] (Preview Borrador)
+        └─→ Botón "Volver al Dashboard"
+```
+
+#### 💡 Características Técnicas
+
+- **Server Component**: Datos en servidor, sin estados del cliente
+- **Prisma Include**: Relaciones con views y template
+- **date-fns**: Formato de fechas relativas
+- **Responsive**: Mobile-first con Tailwind
+- **Sin paginación**: Por ahora muestra todas (agregar después)
+- **Filtros locales**: useState + useMemo para rendimiento
+
+---
+
 ## [1.0.0] - 2026-02-05 🎉
 
 ### 🚀 VERSIÓN 1.0 - MVP COMPLETO EN PRODUCCIÓN
