@@ -39,12 +39,15 @@ Documentación técnica de la arquitectura del sistema:
 - Flujo de login
 - Protección de rutas
 - Seguridad y JWT
+- 🆕 **Sistema de invitación de usuarios**
+- 🆕 **RBAC y gestión de roles**
 
 📄 **[Multi-Tenancy](./01-architecture/multitenancy.md)**
 - Modelo SaaS
 - Aislamiento de datos
 - Filtrado por tenant
 - Tenant switcher
+- 🆕 **Gestión de usuarios multi-tenant**
 
 ### Architecture Decision Records (ADR)
 
@@ -76,6 +79,13 @@ Detalles de implementación, estado del proyecto y guías técnicas:
 - Estado en base de datos
 - Validaciones pendientes
 - Testing
+
+📄 **🆕 [Sistema de Usuarios y Roles](./02-implementation/usuarios-roles.md)**
+- Gestión de usuarios internos
+- Invitación por email
+- RBAC (Role-Based Access Control)
+- Flujo completo de activación
+- Dark mode design system
 
 ---
 
@@ -131,14 +141,15 @@ docs/
 │
 ├── 01-architecture/                   ← Arquitectura técnica
 │   ├── overview.md
-│   ├── auth.md
-│   ├── multitenancy.md
+│   ├── auth.md                        (🆕 incluye RBAC)
+│   ├── multitenancy.md                (🆕 gestión usuarios)
 │   └── adr/                           ← Architecture Decision Records
 │
 ├── 02-implementation/                 ← Implementación y desarrollo
 │   ├── database-schema.md
 │   ├── estado-proyecto.md
-│   └── checklist-multitenant.md
+│   ├── checklist-multitenant.md
+│   └── usuarios-roles.md              (🆕 NEW)
 │
 ├── 03-integrations/                   ← Integraciones externas
 │   ├── zoho-integration.md
@@ -160,6 +171,7 @@ docs/
 2. Revisa la **[Arquitectura General](./01-architecture/overview.md)** para conocer el stack
 3. Consulta el **[Database Schema](./02-implementation/database-schema.md)** para conocer el modelo de datos
 4. Verifica el **[Estado del Proyecto](./02-implementation/estado-proyecto.md)** para saber qué está implementado
+5. 🆕 **[Sistema de Usuarios](./02-implementation/usuarios-roles.md)** para gestión de accesos
 
 ### Para Product Managers
 
@@ -184,19 +196,27 @@ Para dudas o actualizaciones de la documentación:
 
 ---
 
-## 🔄 Historial de Reorganización
+## 🔄 Historial de Actualizaciones
 
-**Fecha:** 05 de Febrero de 2026
+### v2.0 - 05 de Febrero de 2026
 
-Esta documentación fue reorganizada para crear una fuente de verdad clara y navegable. Los documentos originales fueron movidos a sus ubicaciones lógicas y se crearon stubs de compatibilidad.
+**Nuevas Funcionalidades:**
+- ✅ Sistema de gestión de usuarios
+- ✅ Invitación por email con tokens seguros
+- ✅ RBAC (4 roles: owner, admin, editor, viewer)
+- ✅ Cambio de roles inline desde tabla
+- ✅ Auditoría completa de acciones
+- ✅ Dark mode design system
+- ✅ Documentación completa en `usuarios-roles.md`
 
-### Cambios Principales
+### v1.0 - 05 de Febrero de 2026
 
+**Reorganización Inicial:**
 - ✅ Creada estructura de carpetas por categoría
 - ✅ Descompuesto DOCUMENTO-MAESTRO-APLICACION.md en arquitectura
-- ✅ Movidos documentos a sus ubicaciones lógicas
+- ✅ Movidos documentos a ubicaciones lógicas
 - ✅ Creados stubs de compatibilidad
-- ✅ Creado índice general (este archivo)
+- ✅ Creado índice general
 
 ---
 
