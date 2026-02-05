@@ -18,6 +18,8 @@ interface SendEmailModalProps {
 }
 
 export function SendEmailModal({ sessionId, companyName, contactName, contactEmail, onClose, onSuccess }: SendEmailModalProps) {
+  const [recipientEmail, setRecipientEmail] = useState(contactEmail);
+  const [recipientName, setRecipientName] = useState(contactName);
   const [ccEmails, setCcEmails] = useState<string[]>(['']);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,13 @@ export function SendEmailModal({ sessionId, companyName, contactName, contactEma
     setIsSending(true);
     setError(null);
 
+    // Validar que haya un email destinatario
+    if (!recipientEmail || !recipientEmail.trim() || !recipientEmail.includes('@')) {
+      setError('Por favor ingresa un email válido para el destinatario');
+      setIsSending(false);
+      return;
+    }
+
     try {
       // Filtrar emails vacíos y validar formato básico
       const validCcEmails = ccEmails
@@ -53,6 +62,8 @@ export function SendEmailModal({ sessionId, companyName, contactName, contactEma
         },
         body: JSON.stringify({
           sessionId,
+          recipientEmail: recipientEmail.trim(),
+          recipientName: recipientName.trim(),
           ccEmails: validCcEmails,
         }),
       });
@@ -90,11 +101,27 @@ export function SendEmailModal({ sessionId, companyName, contactName, contactEma
 
         {/* Body */}
         <div className="p-6 space-y-4">
-          {/* Info del destinatario */}
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-            <p className="text-white/70 text-sm mb-1">📨 Destinatario principal:</p>
-            <p className="text-white font-semibold">{contactName}</p>
-            <p className="text-white/60 text-sm mt-1">{contactEmail}</p>
+          {/* Destinatario principal (editable) */}
+          <div>
+            <label className="text-white font-semibold mb-2 block">
+              📨 Destinatario principal
+            </label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                placeholder="Nombre del destinatario"
+                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <input
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="email@ejemplo.cl"
+                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
           </div>
 
           {/* CC Emails */}

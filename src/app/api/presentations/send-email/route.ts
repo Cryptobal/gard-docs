@@ -16,7 +16,7 @@ import { render } from '@react-email/render';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sessionId, ccEmails = [] } = body;
+    const { sessionId, recipientEmail: customEmail, recipientName: customName, ccEmails = [] } = body;
 
     // 1. Validar sessionId
     if (!sessionId) {
@@ -49,16 +49,17 @@ export async function POST(req: NextRequest) {
     const zohoData = webhookSession.zohoData as any;
 
     // 3. Extraer datos del contacto y cotización
-    const contactEmail = zohoData.contact?.Email;
-    const contactName = `${zohoData.contact?.First_Name || ''} ${zohoData.contact?.Last_Name || ''}`.trim();
+    // Usar el email custom si viene del modal, si no usar el de Zoho
+    const recipientEmail = customEmail || zohoData.contact?.Email;
+    const recipientName = customName || `${zohoData.contact?.First_Name || ''} ${zohoData.contact?.Last_Name || ''}`.trim();
     const companyName = zohoData.account?.Account_Name || 'Cliente';
     const quoteSubject = zohoData.quote?.Subject || 'Propuesta de Servicios';
     const quoteNumber = zohoData.quote?.Quote_Number || '';
     const validUntil = zohoData.quote?.Valid_Till;
 
-    if (!contactEmail) {
+    if (!recipientEmail) {
       return NextResponse.json(
-        { error: 'Email del contacto no disponible en los datos de Zoho' },
+        { error: 'Email del destinatario es requerido' },
         { status: 400 }
       );
     }
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Preparar datos del email
     const emailProps = {
-      recipientName: contactName || 'Estimado/a',
+      recipientName: recipientName || 'Estimado/a',
       companyName,
       subject: quoteSubject,
       presentationUrl,
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
     // 8. Enviar email con Resend
     const emailResponse = await resend.emails.send({
       from: EMAIL_CONFIG.from,
-      to: contactEmail,
+      to: recipientEmail,
       cc: ccEmails.filter((email: string) => email && email.trim()),
       replyTo: EMAIL_CONFIG.replyTo,
       subject: emailSubject,
@@ -127,8 +128,8 @@ export async function POST(req: NextRequest) {
         templateId: template.id,
         clientData: zohoData,
         status: 'sent',
-        recipientEmail: contactEmail,
-        recipientName: contactName,
+        recipientEmail,
+        recipientName,
         ccEmails: ccEmails.filter((email: string) => email && email.trim()),
         emailSentAt: new Date(),
         emailProvider: 'resend',
@@ -156,7 +157,8 @@ export async function POST(req: NextRequest) {
         entity: 'presentation',
         entityId: presentation.id,
         details: {
-          recipientEmail: contactEmail,
+          recipientEmail,
+          recipientName,
           ccEmails,
           companyName,
           quoteNumber,
@@ -175,7 +177,7 @@ export async function POST(req: NextRequest) {
       },
       email: {
         messageId: emailResponse.data?.id,
-        sentTo: contactEmail,
+        sentTo: recipientEmail,
         cc: ccEmails,
       },
     });
