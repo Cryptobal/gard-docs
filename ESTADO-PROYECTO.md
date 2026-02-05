@@ -1,24 +1,34 @@
 # 📊 Estado del Proyecto - Gard Docs
 
-**Última actualización:** 05 de Febrero de 2026 (Noche)  
-**Versión:** 0.3.0 (MVP Visual + PDF Generation)  
+**Última actualización:** 05 de Febrero de 2026, 22:30 hrs  
+**Versión:** 0.3.0 (MVP Visual + Backend Funcional)  
 **Repositorio:** git@github.com:Cryptobal/gard-docs.git
-**Último commit:** ffcb3a7 - Playwright PDF generation
 
 ---
 
 ## 🎯 **RESUMEN EJECUTIVO**
 
-**Gard Docs** es un sistema de presentaciones comerciales tipo Qwilr para Gard Security. Actualmente tiene el **MVP visual 100% funcional** con 24 secciones implementadas, diseño premium con glassmorphism, animaciones avanzadas, y modo preview para administradores.
+**Gard Docs** es un sistema de presentaciones comerciales tipo Qwilr para Gard Security.
 
-### Estado Actual
+### ✅ **LO QUE ESTÁ FUNCIONANDO**
+
 - ✅ **Frontend completo**: 24/24 secciones implementadas
 - ✅ **Modo admin**: Vista previa con sidebar navegación
-- ✅ **PDF Generation**: Playwright - PDFs idénticos al preview web
 - ✅ **Diseño premium**: Glassmorphism, contadores animados, glow effects
 - ✅ **Responsive 100%**: Mobile-first design
-- ⏳ **Backend**: Pendiente (Prisma + PostgreSQL + API)
-- ⏳ **Integración Zoho**: Pendiente (webhook)
+- ✅ **Backend + Base de Datos**: Prisma + Neon PostgreSQL funcionando
+- ✅ **API Endpoints**: CRUD completo de presentaciones y templates
+- ✅ **Tracking**: Sistema de vistas implementado
+- ✅ **Documentación**: Tokens disponibles documentados
+
+### ⏳ **LO QUE FALTA**
+
+- ⏳ **Webhook Zoho**: Recibir datos del CRM
+- ⏳ **Modal selección template**: UI para elegir template
+- ⏳ **Preview borrador**: Vista previa con datos de Zoho
+- ⏳ **Envío email**: Integración con Resend
+- ⏳ **Dashboard admin**: UI de administración
+- ⏳ **Autenticación**: NextAuth.js
 
 ---
 
@@ -26,64 +36,112 @@
 
 | Métrica | Valor |
 |---------|-------|
-| **Commits GitHub** | 30 commits |
-| **Líneas de código** | ~17,750 líneas |
-| **Archivos creados** | 149 archivos |
-| **Secciones** | 24/24 (100%) |
+| **Commits GitHub** | 32 commits |
+| **Líneas de código** | ~19,400 líneas |
+| **Archivos creados** | 162 archivos |
+| **Secciones Frontend** | 24/24 (100%) |
 | **Componentes UI** | 18 reutilizables |
-| **Videos incrustados** | 3 YouTube |
-| **Logos clientes** | 15 logos |
+| **Tablas BD** | 7 modelos |
+| **API Endpoints** | 5 rutas |
 | **Build time** | ~15 segundos |
 | **Bundle size** | 191 KB |
-| **Playwright/Chromium** | 253 MB |
+
+---
+
+## 🗄️ **BASE DE DATOS (Neon PostgreSQL)**
+
+### **Estado:** ✅ Configurada y funcionando
+
+**ORM:** Prisma v6.19.2  
+**Provider:** PostgreSQL (Neon)  
+**Migración:** `20260205051011_init` aplicada
+
+### **Modelos Implementados (7 tablas):**
+
+1. **`Presentation`** - Presentaciones generadas
+   - ID único, template, clientData, status, tracking
+   - **Índices:** uniqueId, status, createdAt, templateId
+
+2. **`Template`** - Templates disponibles
+   - Nombre, slug, tipo, activo, uso
+   - **Dato semilla:** Template "Commercial" creado
+
+3. **`WebhookSession`** - Sesiones temporales de Zoho
+   - sessionId, zohoData, status, expira en 24h
+
+4. **`PresentationView`** - Tracking de vistas
+   - IP, userAgent, país, dispositivo, timestamp
+
+5. **`Admin`** - Usuarios administradores
+   - Email, password (bcrypt), rol, activo
+   - **Dato semilla:** carlos.irigoyen@gard.cl creado
+
+6. **`AuditLog`** - Registro de auditoría
+   - Quién, qué, cuándo, detalles
+
+7. **`Setting`** - Configuración global
+   - Key-value store, categorías
+
+**Documentación completa:** Ver `DATABASE-SCHEMA.md`
+
+---
+
+## 🚀 **API ENDPOINTS FUNCIONANDO**
+
+### **Presentaciones:**
+
+```typescript
+GET    /api/presentations              // Listar (paginación, filtros)
+POST   /api/presentations              // Crear nueva
+GET    /api/presentations/[id]         // Ver una
+PATCH  /api/presentations/[id]         // Actualizar
+DELETE /api/presentations/[id]         // Eliminar
+POST   /api/presentations/[id]/track   // Registrar vista
+```
+
+**Ejemplo de uso:**
+```bash
+# Listar templates
+curl http://localhost:3000/api/templates
+
+# Crear presentación
+curl -X POST http://localhost:3000/api/presentations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateId": "cml901f1a0000yx56tkeertrd",
+    "clientData": {"name": "Polpaico S.A."},
+    "recipientEmail": "rgonzalez@polpaico.cl"
+  }'
+```
+
+### **Templates:**
+
+```typescript
+GET    /api/templates                  // Listar templates
+POST   /api/templates                  // Crear template
+```
 
 ---
 
 ## 🌐 **RUTAS FUNCIONALES**
 
-### 1. Modo Admin/Preview (Para edición)
+### **1. Modo Admin/Preview (Para edición)**
+
 ```
 http://localhost:3000/templates/commercial/preview?admin=true
 ```
 
 **Características:**
-- ✅ Sidebar navegación lateral con 10 grupos de secciones
-- ✅ Toggle "Mostrar tokens" (ver `[ACCOUNT_NAME]` literal vs datos)
-- ✅ Scroll-spy automático (resalta sección activa)
-- ✅ Botón flotante teal (esquina inferior izquierda)
+- ✅ Sidebar navegación lateral con 10 grupos
+- ✅ Toggle "Mostrar tokens"
+- ✅ Scroll-spy automático
+- ✅ Botón flotante teal
 - ✅ Cerrar con ESC, click afuera, o botón X
-- ✅ "Ver como cliente" (link a vista pública)
-- ✅ "Copiar link" de preview
-
-**Grupos de navegación:**
-1. INICIO (S01)
-2. PROPUESTA DE VALOR (S02-S04)
-3. PROBLEMA (S05-S06)
-4. SOLUCIÓN (S07-S09)
-5. OPERACIÓN (S10-S12)
-6. CREDENCIALES (S13-S16)
-7. GARANTÍAS (S17-S18)
-8. PRUEBA SOCIAL (S19-S21)
-9. COMERCIAL (S22-S25)
-10. CIERRE (S26-S28)
 
 ---
 
-### 2. Preview Formato Propuesta Económica (Para revisar PDF)
-```
-http://localhost:3000/templates/pricing-format?admin=true
-```
+### **2. Modo Cliente (Presentación pública)**
 
-**Características:**
-- ✅ Vista previa del formato PDF de propuesta económica
-- ✅ Logo Gard Security en blanco
-- ✅ Header con gradiente teal-azul
-- ✅ Diseño idéntico al PDF que se descarga
-- ✅ Acceso desde sidebar con botón "Ver formato propuesta"
-
----
-
-### 3. Modo Cliente (Presentación pública)
 ```
 http://localhost:3000/p/[uniqueId]
 ```
@@ -96,148 +154,119 @@ http://localhost:3000/p/demo-polpaico-2026-02
 **Características:**
 - ✅ Vista limpia sin elementos de admin
 - ✅ Tokens reemplazados con datos reales
-- ✅ Progress bar superior (gradiente teal)
-- ✅ Navigation dots laterales (desktop >1280px)
+- ✅ Progress bar superior
+- ✅ Navigation dots laterales (desktop)
 - ✅ Header sticky con glassmorphism
-- ✅ Footer con contacto y redes sociales
-- ✅ StickyCTA mobile (bottom fixed)
+- ✅ Footer con contacto y redes
 
 ---
 
 ## 🎨 **SECCIONES IMPLEMENTADAS (24/24)**
 
-### ✅ Todas las secciones completas
+**TODAS LAS SECCIONES COMPLETADAS:**
 
-**INICIO:**
-- S01 - Hero (portada con CTAs, KPIs overlay)
+✅ S01 - Hero  
+✅ S02 - Executive Summary  
+✅ S03 - Transparencia  
+✅ S04 - El Riesgo Real  
+✅ S05 - Fallas del Modelo  
+✅ S06 - Costo Real  
+✅ S07 - Sistema de Capas  
+✅ S08 - 4 Pilares  
+✅ S09 - Cómo Operamos  
+✅ S10 - Supervisión  
+✅ S11 - Reportabilidad  
+✅ S12 - Cumplimiento  
+✅ S13 - Certificaciones  
+✅ S14 - Tecnología  
+✅ S15 - Selección  
+✅ S16 - Nuestra Gente  
+✅ S17 - Continuidad  
+✅ S18 - KPIs  
+✅ S19 - Resultados  
+✅ S20 - Clientes  
+✅ S21 - Sectores  
+✅ S22 - TCO  
+✅ S23 - Propuesta Económica  
+✅ S24 - Términos y Condiciones  
+✅ S25 - Comparación  
+✅ S26 - Por Qué Eligen  
+✅ S27 - Implementación  
+✅ S28 - Cierre + CTA
 
-**PROPUESTA DE VALOR:**
-- S02 - Executive Summary (diferenciadores + KPIs)
-- S03 - Transparencia (protocolo respuesta incidentes)
-- S04 - El Riesgo Real (síntomas control deficiente)
-
-**PROBLEMA:**
-- S05 - Fallas del Modelo (tabla causa→impacto)
-- S06 - Costo Real (cards costos ocultos)
-
-**SOLUCIÓN:**
-- S07 - Sistema de Capas (pirámide 5 niveles)
-- S08 - 4 Pilares (framework del modelo)
-- S09 - Cómo Operamos (proceso 7 etapas)
-
-**OPERACIÓN:**
-- S10 - Supervisión (4 niveles + timeline nocturno)
-- S11 - Reportabilidad (3 niveles: diario/semanal/mensual)
-- S12 - Cumplimiento (riesgos vs garantías)
-
-**CREDENCIALES:**
-- S13 - Certificaciones (OS-10 + Ley Karin + screening)
-- S14 - Tecnología (herramientas de control)
-- S15 - Selección (funnel 100→12 + criterios)
-- S16 - Nuestra Gente (fotos + valores)
-
-**GARANTÍAS:**
-- S17 - Continuidad (4 escenarios contingencia)
-- S18 - KPIs (6 indicadores con targets)
-
-**PRUEBA SOCIAL:**
-- S19 - Resultados (4 casos de éxito con métricas)
-- S20 - Clientes (15 logos + stats)
-- S21 - Sectores (6 industrias)
-
-**COMERCIAL:**
-- S22 - TCO (costo bajo vs controlado)
-- S23 - Propuesta Económica (tabla pricing completa)
-- S24 - Términos (requisitos vs servicio incluido)
-- S25 - Comparación (tabla mercado vs GARD)
-
-**CIERRE:**
-- S26 - Por Qué Eligen (razones + tasa renovación)
-- S27 - Implementación (timeline 4 semanas)
-- S28 - CTA Final (cierre + acción)
-
-**NOTA:** S29 fue eliminada (redundante con Footer)
+**Nota:** S29 (Contacto) fue eliminada por redundancia con Footer
 
 ---
 
 ## 🧩 **COMPONENTES UI REUTILIZABLES**
 
-### Componentes de Presentación
+### **Componentes de Presentación:**
 1. **KpiCard** - Métricas con valor, label, delta
 2. **AnimatedStat** - Contadores animados (CountUp)
-3. **ComparisonTable** - Tabla mercado vs GARD (desktop)
-4. **ComparisonCards** - Versión mobile de comparación
+3. **ComparisonTable** - Tabla mercado vs GARD
+4. **ComparisonCards** - Versión mobile
 5. **Timeline** - Timeline horizontal/vertical
-6. **ProcessSteps** - Etapas numeradas con entregables
-7. **PricingTable** - Tabla de cotización (desktop)
-8. **PricingCards** - Versión mobile de pricing
-9. **CaseStudyCard** - Caso de éxito con métricas
-10. **TrustBadges** - Badges de confianza (OS-10, SLA)
-11. **PhotoMosaic** - Grid de fotos responsive
-12. **YouTubeEmbed** - Videos con glassmorphism
+6. **ProcessSteps** - Etapas numeradas
+7. **PricingTable** - Tabla cotización
+8. **PricingCards** - Versión mobile
+9. **CaseStudyCard** - Casos de éxito
+10. **TrustBadges** - Badges confianza
+11. **PhotoMosaic** - Grid fotos
+12. **YouTubeEmbed** - Videos
 13. **SectionHeader** - Títulos responsive
 
-### Componentes Admin
-14. **TemplateSidebar** - Navegación lateral acordeón (con link a pricing-format)
-15. **PreviewModeToggle** - Botón flotante teal
+### **Componentes Admin:**
+14. **TemplateSidebar** - Navegación lateral
+15. **PreviewModeToggle** - Botón flotante
 16. **TemplatePreviewWrapper** - Wrapper con estado
 
-### Componentes PDF
-17. **DownloadPricingButtonV2** - Genera PDF con Playwright (fidelidad 100%)
-18. **PricingPDF** - Template PDF legacy (@react-pdf/renderer - deprecated)
-
-### Componentes Layout
-19. **PresentationHeader** - Header sticky con glassmorphism
-20. **PresentationFooter** - Footer con contacto y redes
-21. **StickyCTA** - CTA fixed mobile bottom
-22. **ScrollProgress** - Progress bar superior
-23. **NavigationDots** - Dots laterales (desktop)
+### **Componentes Layout:**
+17. **PresentationHeader** - Header sticky
+18. **PresentationFooter** - Footer con contacto
+19. **StickyCTA** - CTA mobile bottom
+20. **ScrollProgress** - Progress bar
+21. **NavigationDots** - Dots laterales
 
 ---
 
 ## 💎 **EFECTOS VISUALES PREMIUM**
 
-### Características de Diseño
-- ✨ **Glassmorphism**: `backdrop-blur-xl` + transparencias en todas las cards
-- ✨ **Glow effects**: Shadows con color (`shadow-teal-500/50`)
-- ✨ **Gradientes**: `from-teal-500 to-blue-500` en headers y CTAs
-- ✨ **Contadores animados**: CountUp desde 0 (200+, 15+, 98%)
-- ✨ **Animaciones Framer Motion**: `translateY 80px`, fade-in, slide-up
-- ✨ **Hover effects**: `scale-105`, borders brillantes
-- ✨ **Spring animations**: Bounce effects en iconos
-- ✨ **Stagger effects**: Listas con delay progresivo
-- ✨ **Scroll animations**: IntersectionObserver con `triggerOnce`
+- ✨ **Glassmorphism**: `backdrop-blur-xl` + transparencias
+- ✨ **Glow effects**: Shadows con color
+- ✨ **Gradientes**: `from-teal-500 to-blue-500`
+- ✨ **Contadores animados**: CountUp desde 0
+- ✨ **Animaciones Framer Motion**: fade-in, slide-up
+- ✨ **Hover effects**: scale-105, borders brillantes
+- ✨ **Spring animations**: Bounce effects
+- ✨ **Stagger effects**: Delay progresivo
+- ✨ **Scroll animations**: IntersectionObserver
 
 ---
 
 ## 🔧 **STACK TECNOLÓGICO**
 
-### Core
+### **Frontend:**
 - **Next.js 15** (App Router)
 - **TypeScript 5.6**
 - **React 18.3**
-
-### UI
 - **TailwindCSS 3.4**
-- **shadcn/ui** (componentes base)
-- **Framer Motion 11** (animaciones)
-- **Lucide React** (iconos)
+- **shadcn/ui**
+- **Framer Motion 11**
+- **Lucide React**
 
-### Utilities
-- **react-countup** (contadores animados)
-- **react-intersection-observer** (scroll animations)
-- **date-fns** (formateo fechas)
-- **nanoid** (IDs únicos)
-- **clsx + tailwind-merge** (className helpers)
+### **Backend:**
+- **Prisma 6.19.2** (ORM)
+- **Neon PostgreSQL** (Base de datos)
+- **Next.js API Routes**
 
-### PDF Generation
-- **Playwright** - Navegador headless para capturar HTML como PDF
-- **Chromium** - Browser engine (253MB instalado)
-- **@react-pdf/renderer** - Legacy (ya no se usa para pricing)
+### **Utilities:**
+- **react-countup** (contadores)
+- **react-intersection-observer**
+- **date-fns**
+- **nanoid**
+- **bcryptjs** (hashing passwords)
 
-### Backend (Pendiente)
-- **Prisma** (ORM)
-- **Neon PostgreSQL** (base de datos)
+### **Pendientes:**
 - **NextAuth.js v5** (autenticación)
 - **Resend** (envío emails)
 
@@ -245,44 +274,25 @@ http://localhost:3000/p/demo-polpaico-2026-02
 
 ## 📊 **SISTEMA DE TOKENS DINÁMICOS**
 
-### Tokens Implementados (+45 tokens)
+### **85+ tokens disponibles**
 
-**Cliente:**
-```
-[ACCOUNT_NAME]      → "Polpaico S.A."
-[CONTACT_NAME]      → "Roberto González Martínez"
-[CONTACT_EMAIL]     → "rgonzalez@polpaico.cl"
-[CONTACT_PHONE]     → "+56 2 2123 4567"
-[ACCOUNT_RUT]       → "96.810.370-9"
-[ACCOUNT_ADDRESS]   → "Av. Américo Vespucio 1501, Pudahuel"
-```
+Ver documentación completa en: **`TOKENS-ZOHO.md`**
 
-**Cotización:**
-```
-[QUOTE_NUMBER]      → "COT-2026-00342"
-[QUOTE_DATE]        → "4 de febrero de 2026"
-[QUOTE_TOTAL]       → "$6.307.000"
-[QUOTE_SUBTOTAL]    → "$5.300.000"
-[QUOTE_TAX]         → "$1.007.000"
-[QUOTE_VALID_UNTIL] → "4 de marzo de 2026"
-```
+**Categorías:**
+- 📊 **Quote** (11 tokens) - Cotización
+- 🏢 **Account** (12 tokens) - Empresa
+- 👤 **Contact** (9 tokens) - Contacto
+- 💼 **Deal** (9 tokens) - Negocio
+- ⚙️ **System** (4 tokens) - Sistema
+- 📋 **Pricing** (40 tokens) - Items
+- 💳 **Payment** (5 tokens) - Pago
+- 📍 **Service** (7 tokens) - Servicio
 
-**Pricing:**
+**Ejemplo:**
 ```
-[ITEM_DESCRIPTION_1] → "Guardias 24/7 (turnos 6x1)"
-[CANT] → "4"
-[P_UNIT] → "$950.000"
-[SUBTOTAL] → "$3.800.000"
-[PAYMENT_TERMS] → "Mensual"
-[BILLING_FREQ] → "Fin de mes"
-[ADJUSTMENT] → "70% IPC / 30% IMO"
-```
-
-**Sistema:**
-```
-[CURRENT_DATE]       → Fecha actual
-[CURRENT_YEAR]       → 2026
-[PRESENTATION_URL]   → URL de la presentación
+[ACCOUNT_NAME] → "Polpaico S.A."
+[QUOTE_TOTAL] → "$6.307.000"
+[CONTACT_EMAIL] → "rgonzalez@polpaico.cl"
 ```
 
 ---
@@ -291,51 +301,53 @@ http://localhost:3000/p/demo-polpaico-2026-02
 
 ```
 gard-docs/
-├── public/
-│   ├── logos/                    # 15 logos de clientes
-│   ├── images/                   # 8 fotos equipo + hero
-│   └── Logo Gard Blanco.png      # Logo blanco para PDF y preview
+├── prisma/
+│   ├── schema.prisma                    # ✅ Modelos de BD
+│   ├── seed.ts                          # ✅ Datos iniciales
+│   └── migrations/
+│       └── 20260205051011_init/         # ✅ Migración aplicada
 │
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── p/[uniqueId]/page.tsx                    # Presentación pública
-│   │   ├── api/pdf/generate-pricing/route.ts       # API Playwright PDF
-│   │   └── templates/
-│   │       ├── commercial/preview/page.tsx          # Vista preview admin
-│   │       └── pricing-format/page.tsx              # Preview formato PDF
+│   │   ├── api/                         # ✅ API Endpoints
+│   │   │   ├── presentations/
+│   │   │   │   ├── route.ts            # GET/POST
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts        # GET/PATCH/DELETE
+│   │   │   │       └── track/route.ts  # POST
+│   │   │   └── templates/
+│   │   │       └── route.ts            # GET/POST
+│   │   │
+│   │   ├── p/[uniqueId]/page.tsx       # ✅ Vista cliente
+│   │   └── templates/commercial/preview/
+│   │       └── page.tsx                # ✅ Vista admin
 │   │
 │   ├── components/
-│   │   ├── ui/                              # shadcn/ui components
-│   │   ├── layout/                          # Header, Footer
-│   │   ├── presentation/
-│   │   │   ├── PresentationRenderer.tsx         # ⭐ Orquestador principal
-│   │   │   ├── DownloadPricingButtonV2.tsx      # 🆕 Botón PDF con Playwright
-│   │   │   ├── DownloadPricingButton.tsx        # Legacy (@react-pdf - deprecated)
-│   │   │   ├── sections/                        # S01-S28
-│   │   │   └── shared/                          # Componentes reutilizables
-│   │   ├── pdf/
-│   │   │   └── PricingPDF.tsx                   # Legacy PDF template (no se usa)
-│   │   └── admin/                               # Sidebar, Toggle, Wrapper
+│   │   ├── presentation/               # ✅ 24 secciones
+│   │   ├── admin/                      # ✅ Sidebar, Toggle
+│   │   ├── layout/                     # ✅ Header, Footer
+│   │   └── ui/                         # ✅ shadcn/ui
 │   │
 │   ├── lib/
-│   │   ├── tokens.ts                       # Sistema de reemplazo
-│   │   ├── themes.ts                       # Executive theme
-│   │   ├── mock-data.ts                    # Payload Polpaico
-│   │   └── utils.ts
+│   │   ├── prisma.ts                   # ✅ Prisma Client
+│   │   ├── tokens.ts                   # ✅ Sistema tokens
+│   │   ├── themes.ts                   # ✅ Themes
+│   │   └── mock-data.ts                # ✅ Mock data
 │   │
-│   ├── types/
-│   │   ├── index.ts
-│   │   └── presentation.ts                 # PresentationPayload
-│   │
-│   └── styles/
-│       └── globals.css
+│   └── types/
+│       ├── presentation.ts             # ✅ Tipos
+│       └── index.ts
 │
-├── DOCUMENTO-MAESTRO-APLICACION.md         # 📖 Especificación técnica
-├── PRESENTACION-COMERCIAL-BASE.md          # 📖 Contenido 29 secciones
-├── ESTADO-PROYECTO.md                      # 📖 Este documento
-└── README.md                               # 📖 Readme simplificado
+├── public/
+│   ├── logos/                          # 15 logos clientes
+│   └── images/                         # 8 fotos equipo
+│
+├── DOCUMENTO-MAESTRO-APLICACION.md     # 📖 Especificación
+├── PRESENTACION-COMERCIAL-BASE.md      # 📖 Contenido
+├── DATABASE-SCHEMA.md                  # 📖 Estructura BD
+├── TOKENS-ZOHO.md                      # 📖 Tokens disponibles
+├── ESTADO-PROYECTO.md                  # 📖 Este documento
+└── README.md                           # 📖 Readme
 ```
 
 ---
@@ -343,16 +355,13 @@ gard-docs/
 ## 🎥 **VIDEOS YOUTUBE INCRUSTADOS**
 
 1. **S15 - Selección Personal**
-   - Video: Verificación de antecedentes
-   - URL: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
-
+   - Verificación de antecedentes
+   
 2. **S10 - Supervisión**
-   - Video: Control de rondas NFC
-   - URL: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
-
+   - Control de rondas NFC
+   
 3. **S14 - Tecnología**
-   - Video: Control de acceso
-   - URL: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
+   - Control de acceso
 
 ---
 
@@ -362,183 +371,139 @@ gard-docs/
 - **Teléfono:** +56 98 230 7771
 - **Email:** carlos.irigoyen@gard.cl
 - **WhatsApp:** +56 98 230 7771
-- **Calendario:** Google Calendar (link)
-- **Dirección:** Lo Fontecilla 201, Las Condes, Santiago
-- **Google Maps:** Integrado en footer
-- **Redes:**
-  - LinkedIn: /company/gard-security
-  - Instagram: @gardsecurity
-  - X (Twitter): @gardsecurity
-
----
-
-## ⏳ **PENDIENTES VISUALES (Ajustes Menores)**
-
-### Rediseños sugeridos:
-
-**S10 - Supervisión:**
-- [ ] Timeline nocturno: cambiar a diseño tipo reloj
-- [ ] SLA: mantener grid 2x2 actual (ya funciona)
-
-**S14 - Tecnología:**
-- [ ] Cambiar bloques grandes por grid 3 columnas
-- [ ] Cards tipo "feature" más compactas
-
-**S15 - Selección:**
-- [ ] Funnel: centrar y hacer más visual (tipo embudo)
-- [ ] Criterios: grid 2 columnas vs lista vertical
-
-**S18 - KPIs:**
-- [ ] Ordenar grid 3x2 más simétrico
-- [ ] O tabla minimalista tipo dashboard
-
-**Tiempo estimado:** ~40 minutos
+- **Dirección:** Lo Fontecilla 201, Las Condes
+- **Redes:** LinkedIn, Instagram, X
 
 ---
 
 ## ❌ **LO QUE FALTA IMPLEMENTAR**
 
-### Backend y Persistencia
-- [ ] Configurar Prisma + Neon PostgreSQL
-- [ ] Crear schema de base de datos
-- [ ] Modelos: `Presentation`, `Template`, `WebhookSession`, `PresentationView`, `Admin`
-- [ ] API endpoints CRUD
-- [ ] Migraciones de BD
+### **PASO B: Webhook Zoho CRM (2-3 horas)**
 
-### Integración Zoho CRM
+**Prioridad:** 🔥 Alta
+
+**Tareas:**
 - [ ] Endpoint `/api/webhook/zoho`
-- [ ] Validación de webhook secret
-- [ ] Parser de datos de Zoho
-- [ ] Tabla `webhook_sessions` temporal
+- [ ] Validación de `X-Webhook-Secret`
+- [ ] Parser de datos (quote, account, contact, deal)
+- [ ] Guardado en tabla `WebhookSession`
 - [ ] Modal de selección de template
+- [ ] Vista previa de borrador (`/preview/[sessionId]`)
+- [ ] Botón "Enviar por Email"
 
-### Autenticación y Admin
+**Resultado:** Crear presentaciones desde Zoho CRM
+
+---
+
+### **PASO C: Sistema de Envío por Email (2-3 horas)**
+
+**Prioridad:** 🔥 Media-Alta
+
+**Tareas:**
+- [ ] Integración Resend
+- [ ] Template de email (React Email)
+- [ ] Endpoint `/api/presentations/send-email`
+- [ ] Generar `uniqueId` público
+- [ ] Guardar presentación en BD
+- [ ] Actualizar `emailSentAt`
+
+**Resultado:** Envío automático de presentaciones
+
+---
+
+### **PASO D: Dashboard Admin (3-4 horas)**
+
+**Prioridad:** 🟡 Media
+
+**Tareas:**
 - [ ] NextAuth.js configuración
-- [ ] Login admin (`/admin`)
-- [ ] Middleware de protección rutas
+- [ ] Login en `/admin`
 - [ ] Dashboard principal (`/admin/dashboard`)
 - [ ] Lista de presentaciones
+- [ ] Detalle de presentación
 - [ ] Analytics básico
+- [ ] Gestión de templates
 
-### Funcionalidades Avanzadas
-- [x] **Export a PDF (Playwright)** - ✅ Implementado con fidelidad 100%
-- [ ] Sistema de envío por email (Resend)
-- [ ] Templates de email (React Email)
-- [ ] Tracking de visualizaciones (IP, user agent, timestamp)
+**Resultado:** Control total del sistema
+
+---
+
+### **PASO E: Funcionalidades Adicionales (2-3 horas)**
+
+**Prioridad:** 🟢 Baja
+
+**Tareas:**
 - [ ] Compartir por WhatsApp (URL scheme)
-- [ ] Gestión de templates admin
+- [ ] Export a PDF (Playwright)
+- [ ] Notificaciones (cuando se ve presentación)
+- [ ] Expiración automática de presentaciones
 
 ---
 
 ## 🚀 **PRÓXIMOS PASOS RECOMENDADOS**
 
-### OPCIÓN 1: Backend + Persistencia (Crítico)
-**Duración:** 3-4 horas
+### **Orden sugerido:**
 
-**Tareas:**
-1. Instalar Prisma + configurar Neon
-2. Crear schema completo
-3. Ejecutar migraciones
-4. CRUD de presentaciones
-5. Endpoints API básicos
+1. **PASO B:** Webhook Zoho (2-3h)
+   - Integración directa con CRM
+   - Flujo completo de creación
 
-**Beneficio:** Foundation para todo lo demás
+2. **PASO C:** Envío Email (2-3h)
+   - Entrega a clientes
+   - Ciclo completo funcionando
 
----
+3. **PASO D:** Dashboard Admin (3-4h)
+   - Gestión y control
+   - Analytics
 
-### OPCIÓN 2: Webhook Zoho (Funcional)
-**Duración:** 2-3 horas
+4. **PASO E:** Extras (2-3h)
+   - WhatsApp, PDF, etc.
 
-**Tareas:**
-1. Endpoint `/api/webhook/zoho`
-2. Validación de secret
-3. Parser de datos CRM
-4. Guardado en BD temporal
-5. Modal selección template
-
-**Beneficio:** Integración directa con CRM
-
----
-
-### OPCIÓN 3: Dashboard Admin (Gestión)
-**Duración:** 3-4 horas
-
-**Tareas:**
-1. NextAuth.js login
-2. Ruta `/admin` protegida
-3. Lista de presentaciones
-4. Analytics básico
-5. Gestión de templates
-
-**Beneficio:** Control total del sistema
-
----
-
-### OPCIÓN 4: Email + Tracking (Entrega)
-**Duración:** 2-3 horas
-
-**Tareas:**
-1. Integración Resend
-2. Templates de email
-3. Envío automático
-4. Tracking de vistas
-5. Notificaciones
-
-**Beneficio:** Ciclo completo de entrega
-
----
-
-## 💡 **MI RECOMENDACIÓN**
-
-**Siguiente paso:** **OPCIÓN 1 - Backend + Persistencia**
-
-**Razón:**
-- El frontend está 100% completo
-- Backend es foundation para todo
-- Una vez tengas BD puedes:
-  - Guardar presentaciones reales
-  - Crear desde Zoho
-  - Dashboard admin
-  - Tracking de vistas
+**Total estimado:** 9-13 horas de desarrollo
 
 ---
 
 ## 🎯 **PARA EMPEZAR PRÓXIMA SESIÓN**
 
-### Comandos iniciales:
+### **Comandos básicos:**
 
 ```bash
 # 1. Navegar al proyecto
 cd /Users/caco/Desktop/Cursor/gard-docs
 
-# 2. Verificar que esté corriendo
+# 2. Iniciar servidor
 npm run dev
 
-# 3. Ver presentación actual
-# Abrir: http://localhost:3000/p/demo-polpaico-2026-02
+# 3. Ver base de datos
+npx prisma studio
+# Abre en http://localhost:5555
 
-# 4. Modo preview admin
-# Abrir: http://localhost:3000/templates/commercial/preview?admin=true
+# 4. Ver presentación demo
+# http://localhost:3000/p/demo-polpaico-2026-02
+
+# 5. Modo admin
+# http://localhost:3000/templates/commercial/preview?admin=true
 ```
 
-### Para implementar Backend:
+---
+
+### **Probar API endpoints:**
 
 ```bash
-# 1. Instalar Prisma
-npm install prisma @prisma/client
+# Listar templates
+curl http://localhost:3000/api/templates
 
-# 2. Inicializar
-npx prisma init
+# Crear presentación
+curl -X POST http://localhost:3000/api/presentations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "templateId": "cml901f1a0000yx56tkeertrd",
+    "clientData": {"name": "Test Client"},
+    "recipientEmail": "test@example.com"
+  }'
 
-# 3. Configurar .env con DATABASE_URL de Neon
-
-# 4. Editar prisma/schema.prisma
-
-# 5. Crear migración
-npx prisma migrate dev --name init
-
-# 6. Generar cliente
-npx prisma generate
+# Listar presentaciones
+curl http://localhost:3000/api/presentations
 ```
 
 ---
@@ -547,23 +512,31 @@ npx prisma generate
 
 1. **ESTADO-PROYECTO.md** (este archivo)
    - Estado actual completo
-   - Rutas funcionales
-   - Componentes implementados
    - Próximos pasos
+   - Comandos útiles
 
-2. **DOCUMENTO-MAESTRO-APLICACION.md**
+2. **DATABASE-SCHEMA.md** ⭐ NUEVO
+   - Estructura completa de la BD
+   - 7 modelos detallados
+   - Relaciones y índices
+   - Comandos Prisma
+
+3. **TOKENS-ZOHO.md**
+   - 85+ tokens disponibles
+   - Ejemplos de uso
+   - Categorías organizadas
+
+4. **DOCUMENTO-MAESTRO-APLICACION.md**
    - Especificación técnica completa
    - Arquitectura del sistema
    - Flujos detallados
-   - Roadmap de implementación
 
-3. **PRESENTACION-COMERCIAL-BASE.md**
+5. **PRESENTACION-COMERCIAL-BASE.md**
    - Contenido de las 29 secciones
    - Principios de conversión
    - Variables dinámicas
-   - Componentes UI
 
-4. **README.md**
+6. **README.md**
    - Setup básico
    - Instalación
    - Comandos principales
@@ -572,7 +545,7 @@ npx prisma generate
 
 ## ✅ **CHECKLIST DE ESTADO**
 
-### Frontend
+### **Frontend**
 - [x] Setup Next.js 15 + TypeScript
 - [x] TailwindCSS + shadcn/ui
 - [x] Sistema de tipos completo
@@ -584,22 +557,22 @@ npx prisma generate
 - [x] Modo preview admin
 - [x] Header + Footer + StickyCTA
 - [x] Progress bar + Navigation dots
-- [x] **Generación PDF con Playwright** (fidelidad 100%)
-- [x] Preview formato propuesta económica
-- [x] Fix searchParams Next.js 15
 
-### Backend
-- [x] **API PDF Generation** - `/api/pdf/generate-pricing` (Playwright)
-- [ ] Prisma + Neon PostgreSQL
-- [ ] Schema de base de datos
-- [ ] API endpoints CRUD
+### **Backend**
+- [x] Prisma + Neon PostgreSQL
+- [x] Schema de base de datos (7 modelos)
+- [x] Migración inicial aplicada
+- [x] Prisma Client singleton
+- [x] API endpoints CRUD
+- [x] Seed data (template + admin + settings)
 - [ ] Webhook Zoho
-- [ ] Autenticación
+- [ ] Autenticación NextAuth.js
 - [ ] Dashboard admin
-- [ ] Envío emails
-- [ ] Tracking vistas
+- [ ] Envío emails (Resend)
+- [ ] Tracking vistas (parcial)
+- [ ] Export PDF
 
-### Deploy
+### **Deploy**
 - [ ] Variables de entorno en Vercel
 - [ ] Dominio docs.gard.cl configurado
 - [ ] Build en producción
@@ -607,35 +580,48 @@ npx prisma generate
 
 ---
 
-## 🎉 **LOGROS ACTUALES**
+## 🎉 **LOGRO ACTUAL**
 
-**✅ MVP VISUAL 100% COMPLETO**
-**✅ GENERACIÓN PDF CON FIDELIDAD 100%**
+### ✅ **MVP Visual + Backend Funcional**
 
-### Implementado hoy (05 Feb 2026 - Noche):
-- ✅ Fix crítico de searchParams en Next.js 15
-- ✅ Playwright instalado (253 MB Chromium)
-- ✅ Endpoint API `/api/pdf/generate-pricing`
-- ✅ Componente `DownloadPricingButtonV2` con Playwright
-- ✅ Preview formato propuesta económica (`/templates/pricing-format`)
-- ✅ Logo Gard Security en blanco en preview y PDF
-- ✅ PDFs idénticos al preview web (gradientes, estilos, todo)
-- ✅ Commit `ffcb3a7` subido a GitHub
+**Frontend:**
+- Template completo listo para producción
+- 24 secciones con diseño premium
+- Modo admin para edición
 
-**Listo para:**
-- ✅ Presentar a clientes finales
-- ✅ Demos profesionales con descarga PDF
-- ✅ Modo preview para editar
-- ✅ Generar PDFs profesionales de propuestas
-- ✅ Validación de diseño y contenido
+**Backend:**
+- Base de datos configurada
+- API endpoints funcionando
+- CRUD completo
+- Sistema de tracking
 
 **Siguiente hito:**
-- Backend funcional para guardar presentaciones reales
-- Integración con Zoho CRM
+- Webhook de Zoho para crear presentaciones desde CRM
 
 ---
 
-**Última actualización:** 05 de Febrero de 2026, 05:00 hrs  
-**Desarrollado con:** Cursor AI + Next.js 15 + Playwright  
-**Estado:** ✅ MVP Visual + PDF Generation completo, listo para backend  
-**Commit actual:** ffcb3a7
+## 📊 **SESIÓN ACTUAL (05 Feb 2026)**
+
+### **Lo que se implementó HOY:**
+
+✅ Instalación y configuración de Prisma  
+✅ Conexión a Neon PostgreSQL  
+✅ Schema completo de 7 modelos  
+✅ Migración inicial aplicada  
+✅ Seed con datos iniciales  
+✅ Prisma Client singleton  
+✅ 5 API endpoints (presentaciones + templates)  
+✅ Sistema de tracking de vistas  
+✅ Documentación DATABASE-SCHEMA.md  
+✅ Documentación TOKENS-ZOHO.md  
+✅ 2 commits + push a GitHub  
+
+**Tiempo:** ~2 horas  
+**Archivos nuevos:** 13 archivos  
+**Líneas agregadas:** ~1,900 líneas
+
+---
+
+**Última actualización:** 05 de Febrero de 2026, 22:30 hrs  
+**Desarrollado con:** Cursor AI + Next.js 15  
+**Estado:** ✅ Backend funcional, listo para Webhook Zoho
