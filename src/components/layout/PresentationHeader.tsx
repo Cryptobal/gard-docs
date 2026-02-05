@@ -13,7 +13,7 @@ interface PresentationHeaderProps {
   cta: CTALinks;
   contactName?: string;
   companyName?: string;
-  quoteName?: string;
+  quoteName?: string; // Asunto de la cotización (ej: "Apoyo nocturno Coronel")
   quoteNumber?: string;
   showTokens?: boolean;
   className?: string;
@@ -32,25 +32,39 @@ export function PresentationHeader({
   const whatsappMessage = `Hola, soy ${contactName} de ${companyName}, vi ${quoteName} y me gustaría conversar`;
   const whatsappLink = `https://wa.me/56982307771?text=${encodeURIComponent(whatsappMessage)}`;
   
-  const displayCompany = showTokens ? '[ACCOUNT_NAME]' : companyName;
-  const displayQuoteNumber = showTokens ? '[QUOTE_NUMBER]' : quoteNumber;
-  const displayContact = showTokens ? '[CONTACT_NAME]' : contactName;
-  
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/95 border-b border-white/10 shadow-2xl">
       <div className="w-full px-4 sm:px-6">
-        {/* Info propuesta */}
-        {(companyName || quoteNumber) && companyName !== 'tu empresa' && (
-          <div className="py-2 border-b border-white/5">
-            <div className="flex items-center justify-center gap-2 text-xs text-white/70">
-              <Sparkles className="w-3 h-3 text-teal-400" />
-              <span>
-                Propuesta para <span className={showTokens ? 'font-bold text-amber-300' : 'font-bold text-white'}>{displayCompany}</span>
+        {/* Info propuesta - DISEÑO MEJORADO */}
+        {companyName && companyName !== 'tu empresa' && (
+          <div className="py-3 border-b border-white/5">
+            <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              {/* Lado izquierdo: Propuesta para + Nombre empresa */}
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-teal-400" />
+                <span className="text-white/60">Propuesta para</span>
+                <span className="font-bold text-white">{companyName}</span>
+              </div>
+              
+              {/* Centro: Nombre de la propuesta (Subject) */}
+              {quoteName && quoteName !== 'la cotización' && (
+                <div className="hidden lg:flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-500/10 border border-teal-400/30">
+                  <span className="font-bold text-teal-400">{quoteName}</span>
+                </div>
+              )}
+              
+              {/* Lado derecho: Número + Preparado para */}
+              <div className="flex items-center gap-3 text-white/70">
                 {quoteNumber && (
-                  <> — <span className={showTokens ? 'font-bold text-amber-400' : 'font-bold text-teal-400'}>{displayQuoteNumber}</span></>
+                  <span>
+                    <span className="text-white/50">N°</span> <span className="font-semibold text-teal-400">{quoteNumber}</span>
+                  </span>
                 )}
-              </span>
-              <span className="hidden sm:inline">• Preparado para <span className={showTokens ? 'text-amber-300' : 'text-white'}>{displayContact}</span></span>
+                <span className="hidden sm:inline text-white/30">•</span>
+                <span className="hidden sm:inline">
+                  Preparado para <span className="font-semibold text-white">{contactName}</span>
+                </span>
+              </div>
             </div>
           </div>
         )}
