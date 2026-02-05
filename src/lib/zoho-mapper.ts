@@ -102,12 +102,40 @@ export function mapZohoDataToPresentation(
       phone: zohoData.contact?.Mobile || zohoData.contact?.Phone || base.cta.phone,
     },
     
-    // TODO: Mapear productos a sections.s23_propuesta_economica
-    // Por ahora usamos los productos del mock data
+    // Mapear secciones con datos reales de Zoho
     sections: {
       ...base.sections,
-      // Aquí se pueden sobrescribir secciones específicas con datos de Zoho
-      // Por ejemplo, actualizar S23 con productos reales
+      
+      // S01 - Hero: Personalizar con asunto de la cotización
+      s01_hero: {
+        ...base.sections.s01_hero,
+        personalization: zohoData.quote?.Subject && zohoData.quote?.Quote_Number
+          ? `${zohoData.quote.Subject} — ${zohoData.quote.Quote_Number}`
+          : `Propuesta para ${zohoData.account?.Account_Name || 'Cliente'} — ${zohoData.quote?.Quote_Number || ''}`,
+      },
+      
+      // S23 - Propuesta Económica: Mapear productos reales
+      s23_propuesta_economica: {
+        ...base.sections.s23_propuesta_economica,
+        pricing: {
+          ...base.sections.s23_propuesta_economica.pricing,
+          // Mapear productos de Zoho si existen
+          items: zohoData.product_details && zohoData.product_details.length > 0
+            ? zohoData.product_details.map((product: any) => ({
+                description: product.product_name || product.description || 'Servicio',
+                quantity: product.quantity || 1,
+                unit_price: product.unit_price || 0,
+                subtotal: product.subtotal || (product.quantity * product.unit_price) || 0,
+                currency: (zohoData.quote?.Currency || 'CLP') as any,
+              }))
+            : base.sections.s23_propuesta_economica.pricing.items,
+          // Usar totales de Zoho
+          subtotal: zohoData.quote?.Sub_Total || base.sections.s23_propuesta_economica.pricing.subtotal,
+          tax: zohoData.quote?.Tax || base.sections.s23_propuesta_economica.pricing.tax,
+          total: zohoData.quote?.Grand_Total || base.sections.s23_propuesta_economica.pricing.total,
+          currency: (zohoData.quote?.Currency || base.sections.s23_propuesta_economica.pricing.currency) as any,
+        },
+      },
     },
   };
 }
