@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * TemplateSidebar - Navegación lateral para modo admin/preview
- * Acordeón con grupos lógicos de secciones
+ * TemplateSidebar - MOBILE FIRST sin scroll externo
+ * Header y Footer fijos, solo navegación scrolleable
  */
 
 import { useState, useEffect } from 'react';
@@ -12,9 +12,7 @@ import {
   ChevronRight, 
   Circle, 
   CheckCircle2,
-  Palette,
   Eye,
-  Code,
   Link as LinkIcon,
   X
 } from 'lucide-react';
@@ -32,83 +30,78 @@ interface SectionGroup {
 }
 
 const SECTION_GROUPS: SectionGroup[] = [
-  {
-    name: 'INICIO',
+  { name: 'INICIO', sections: [{ id: 's01-hero', label: 'Hero' }] },
+  { 
+    name: 'PROPUESTA VALOR', 
     sections: [
-      { id: 's01-hero', label: 'Hero / Portada' },
-    ],
-  },
-  {
-    name: 'PROPUESTA DE VALOR',
-    sections: [
-      { id: 's02-executive-summary', label: 'Executive Summary' },
+      { id: 's02-executive-summary', label: 'Executive' },
       { id: 's03-transparencia', label: 'Transparencia' },
-      { id: 's04-riesgo', label: 'El Riesgo Real' },
-    ],
+      { id: 's04-riesgo', label: 'Riesgo' },
+    ] 
   },
-  {
-    name: 'PROBLEMA',
+  { 
+    name: 'PROBLEMA', 
     sections: [
-      { id: 's05-fallas-modelo', label: 'Fallas del Modelo' },
-      { id: 's06-costo-real', label: 'Costo Real' },
-    ],
+      { id: 's05-fallas-modelo', label: 'Fallas' },
+      { id: 's06-costo-real', label: 'Costo' },
+    ] 
   },
-  {
-    name: 'SOLUCIÓN',
+  { 
+    name: 'SOLUCIÓN', 
     sections: [
-      { id: 's07-sistema-capas', label: 'Sistema de Capas' },
+      { id: 's07-sistema-capas', label: 'Sistema' },
       { id: 's08-4-pilares', label: '4 Pilares' },
-      { id: 's09-como-operamos', label: 'Cómo Operamos' },
-    ],
+      { id: 's09-como-operamos', label: 'Operación' },
+    ] 
   },
-  {
-    name: 'OPERACIÓN',
+  { 
+    name: 'OPERACIÓN', 
     sections: [
       { id: 's10-supervision', label: 'Supervisión' },
-      { id: 's11-reportabilidad', label: 'Reportabilidad' },
+      { id: 's11-reportabilidad', label: 'Reportes' },
       { id: 's12-cumplimiento', label: 'Cumplimiento' },
-    ],
+    ] 
   },
-  {
-    name: 'CREDENCIALES',
+  { 
+    name: 'CREDENCIALES', 
     sections: [
       { id: 's13-certificaciones', label: 'Certificaciones' },
       { id: 's14-tecnologia', label: 'Tecnología' },
-      { id: 's15-seleccion', label: 'Selección Personal' },
-      { id: 's16-nuestra-gente', label: 'Nuestra Gente' },
-    ],
+      { id: 's15-seleccion', label: 'Selección' },
+      { id: 's16-nuestra-gente', label: 'Gente' },
+    ] 
   },
-  {
-    name: 'GARANTÍAS',
+  { 
+    name: 'GARANTÍAS', 
     sections: [
       { id: 's17-continuidad', label: 'Continuidad' },
       { id: 's18-kpis', label: 'KPIs' },
-    ],
+    ] 
   },
-  {
-    name: 'PRUEBA SOCIAL',
+  { 
+    name: 'PRUEBA SOCIAL', 
     sections: [
-      { id: 's19-resultados', label: 'Casos de Éxito' },
+      { id: 's19-resultados', label: 'Resultados' },
       { id: 's20-clientes', label: 'Clientes' },
       { id: 's21-sectores', label: 'Sectores' },
-    ],
+    ] 
   },
-  {
-    name: 'COMERCIAL',
+  { 
+    name: 'COMERCIAL', 
     sections: [
       { id: 's22-tco', label: 'TCO' },
       { id: 's23-propuesta-economica', label: 'Pricing' },
       { id: 's24-terminos-condiciones', label: 'Términos' },
       { id: 's25-comparacion', label: 'Comparación' },
-    ],
+    ] 
   },
-  {
-    name: 'CIERRE',
+  { 
+    name: 'CIERRE', 
     sections: [
-      { id: 's26-porque-eligen', label: 'Por Qué Eligen' },
-      { id: 's27-implementacion', label: 'Implementación' },
-      { id: 's28-cierre', label: 'CTA Final' },
-    ],
+      { id: 's26-porque-eligen', label: 'Por Qué' },
+      { id: 's27-implementacion', label: 'Timeline' },
+      { id: 's28-cierre', label: 'CTA' },
+    ] 
   },
 ];
 
@@ -131,7 +124,7 @@ export function TemplateSidebar({
 }: TemplateSidebarProps) {
   const [activeSection, setActiveSection] = useState('s01-hero');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(['INICIO', 'PROPUESTA DE VALOR'])
+    new Set(['INICIO', 'PROPUESTA VALOR'])
   );
   
   useEffect(() => {
@@ -171,7 +164,14 @@ export function TemplateSidebar({
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const headerOffset = 100;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
   
@@ -192,166 +192,145 @@ export function TemplateSidebar({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           />
           
-          {/* Sidebar */}
+          {/* Sidebar - SIN SCROLL EXTERNO */}
           <motion.aside
             initial={{ x: -320 }}
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed left-0 top-0 bottom-0 w-80 bg-slate-950/95 backdrop-blur-xl border-r border-white/10 z-50 flex flex-col shadow-2xl"
+            className="fixed left-0 top-0 h-screen w-80 bg-slate-950/95 backdrop-blur-xl border-r border-white/10 z-50 flex flex-col shadow-2xl overflow-hidden"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
+            {/* Header FIJO - SIN SCROLL */}
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/10">
               <div>
-                <h2 className="text-lg font-black text-white">Preview Navigator</h2>
-                <p className="text-xs text-white/50">Template: Commercial</p>
+                <h2 className="text-base font-black text-white">Preview</h2>
+                <p className="text-xs text-white/50">Commercial</p>
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-red-500/20 hover:border-red-500/50 border border-white/10 flex items-center justify-center transition-all"
               >
                 <X className="w-5 h-5 text-white/70" />
               </button>
             </div>
             
-            {/* Controls */}
-            <div className="p-4 space-y-3 border-b border-white/10">
-              {/* Toggle tokens */}
+            {/* Controls FIJOS - SIN SCROLL */}
+            <div className="flex-shrink-0 p-3 space-y-2 border-b border-white/10">
+              {/* Toggle tokens - COMPACTO */}
               <button
                 onClick={onToggleTokens}
                 className={cn(
-                  'w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all',
+                  'w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-xs font-bold',
                   showTokens 
-                    ? 'bg-amber-500/20 border border-amber-400/30' 
-                    : 'bg-teal-500/20 border border-teal-400/30'
+                    ? 'bg-amber-500/20 border border-amber-400/30 text-amber-400' 
+                    : 'bg-teal-500/20 border border-teal-400/30 text-teal-400'
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <Code className="w-4 h-4" />
-                  <span className="text-sm font-bold text-white">
-                    {showTokens ? 'Mostrar tokens' : 'Datos de ejemplo'}
-                  </span>
-                </div>
+                <span>{showTokens ? 'Ver tokens' : 'Ver datos'}</span>
                 <div className={cn(
-                  'w-10 h-6 rounded-full transition-colors relative',
+                  'w-8 h-5 rounded-full transition-colors relative',
                   showTokens ? 'bg-amber-500' : 'bg-teal-500'
                 )}>
                   <div className={cn(
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-                    showTokens ? 'left-1' : 'left-5'
+                    'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform',
+                    showTokens ? 'left-0.5' : 'left-3.5'
                   )} />
                 </div>
               </button>
               
-              {/* Theme selector */}
-              <div>
-                <label className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-2 block">
-                  Theme
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['executive', 'ops', 'trust'] as ThemeVariant[]).map((theme) => (
-                    <button
-                      key={theme}
-                      onClick={() => onThemeChange(theme)}
-                      className={cn(
-                        'px-2 py-2 rounded-lg text-xs font-bold transition-all',
-                        currentTheme === theme
-                          ? 'bg-teal-500 text-white'
-                          : 'bg-white/5 text-white/70 hover:bg-white/10'
-                      )}
-                    >
-                      {theme === 'executive' && 'Exec'}
-                      {theme === 'ops' && 'Ops'}
-                      {theme === 'trust' && 'Trust'}
-                    </button>
-                  ))}
-                </div>
+              {/* Theme selector - COMPACTO */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {(['executive', 'ops', 'trust'] as ThemeVariant[]).map((theme) => (
+                  <button
+                    key={theme}
+                    onClick={() => onThemeChange(theme)}
+                    className={cn(
+                      'px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all',
+                      currentTheme === theme
+                        ? 'bg-teal-500 text-white shadow-lg'
+                        : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/80'
+                    )}
+                  >
+                    {theme === 'executive' && 'Exec'}
+                    {theme === 'ops' && 'Ops'}
+                    {theme === 'trust' && 'Trust'}
+                  </button>
+                ))}
               </div>
-              
-              {/* Copy link */}
-              <button
-                onClick={copyLink}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-semibold text-white/80"
-              >
-                <LinkIcon className="w-4 h-4" />
-                Copiar link
-              </button>
             </div>
             
-            {/* Navigation */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {/* Navigation - SOLO ESTA PARTE TIENE SCROLL INTERNO */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
               {SECTION_GROUPS.map((group) => {
                 const isExpanded = expandedGroups.has(group.name);
                 
                 return (
                   <div key={group.name}>
-                    {/* Group header */}
+                    {/* Group header - COMPACTO */}
                     <button
                       onClick={() => toggleGroup(group.name)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 transition-colors group"
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors group"
                     >
-                      <span className="text-xs font-black text-white/70 uppercase tracking-wider">
-                        {group.name}
+                      <span className="text-[10px] font-black text-white/70 uppercase tracking-wider">
+                        {group.name} ({group.sections.length})
                       </span>
                       {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-white/50" />
+                        <ChevronDown className="w-3 h-3 text-white/50" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-white/50" />
+                        <ChevronRight className="w-3 h-3 text-white/50" />
                       )}
                     </button>
                     
                     {/* Sections */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-1 mt-1 ml-2">
-                            {group.sections.map((section) => {
-                              const isActive = activeSection === section.id;
-                              
-                              return (
-                                <button
-                                  key={section.id}
-                                  onClick={() => scrollToSection(section.id)}
-                                  className={cn(
-                                    'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left',
-                                    isActive
-                                      ? 'bg-teal-500/20 border border-teal-400/30 text-white font-bold'
-                                      : 'hover:bg-white/5 text-white/60 hover:text-white/90'
-                                  )}
-                                >
-                                  {isActive ? (
-                                    <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0" />
-                                  ) : (
-                                    <Circle className="w-4 h-4 text-white/30 flex-shrink-0" />
-                                  )}
-                                  <span className="text-sm">{section.label}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {isExpanded && (
+                      <div className="space-y-0.5 mt-0.5 ml-1">
+                        {group.sections.map((section) => {
+                          const isActive = activeSection === section.id;
+                          
+                          return (
+                            <button
+                              key={section.id}
+                              onClick={() => scrollToSection(section.id)}
+                              className={cn(
+                                'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left',
+                                isActive
+                                  ? 'bg-teal-500/20 border border-teal-400/30 text-white font-bold shadow-lg'
+                                  : 'hover:bg-white/5 text-white/60 hover:text-white/90'
+                              )}
+                            >
+                              {isActive ? (
+                                <CheckCircle2 className="w-3 h-3 text-teal-400 flex-shrink-0" />
+                              ) : (
+                                <Circle className="w-3 h-3 text-white/30 flex-shrink-0" />
+                              )}
+                              <span className="text-xs">{section.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
             
-            {/* Footer actions */}
-            <div className="p-4 border-t border-white/10 space-y-2">
+            {/* Footer FIJO - SIN SCROLL */}
+            <div className="flex-shrink-0 p-3 border-t border-white/10 space-y-2">
+              <button
+                onClick={copyLink}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-semibold text-white/80"
+              >
+                <LinkIcon className="w-3 h-3" />
+                Copiar link
+              </button>
+              
               <a
                 href="/p/demo-polpaico-2026-02"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 transition-all text-sm font-bold text-white shadow-lg"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 transition-all text-xs font-bold text-white shadow-lg"
               >
-                <Eye className="w-4 h-4" />
+                <Eye className="w-3 h-3" />
                 Ver como cliente
               </a>
             </div>

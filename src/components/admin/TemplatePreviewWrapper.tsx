@@ -35,6 +35,9 @@ export function TemplatePreviewWrapper({
   // Actualizar theme del payload
   displayPayload.theme = currentTheme;
   
+  // Key para forzar re-render cuando cambia theme o showTokens
+  const renderKey = `${currentTheme}-${showTokens}`;
+  
   return (
     <>
       {/* Sidebar de navegación */}
@@ -42,7 +45,11 @@ export function TemplatePreviewWrapper({
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentTheme={currentTheme}
-        onThemeChange={setCurrentTheme}
+        onThemeChange={(newTheme) => {
+          setCurrentTheme(newTheme);
+          // Forzar scroll top al cambiar theme para ver el cambio
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         showTokens={showTokens}
         onToggleTokens={() => setShowTokens(!showTokens)}
       />
@@ -53,37 +60,62 @@ export function TemplatePreviewWrapper({
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       
-      {/* Presentación */}
-      <PresentationRenderer payload={displayPayload} />
-      
-      {/* Indicator de modo preview */}
-      <div className="fixed top-20 right-4 z-40 px-4 py-2 rounded-full glass-card border border-amber-400/30 text-xs font-bold text-amber-400 shadow-lg">
-        🔧 PREVIEW MODE
-      </div>
+      {/* Presentación - key para forzar re-render */}
+      <PresentationRenderer key={renderKey} payload={displayPayload} />
     </>
   );
 }
 
 /**
  * Crea un payload con tokens visibles (sin reemplazar)
+ * TODOS los valores se convierten en tokens
  */
 function createTokenizedPayload(payload: PresentationPayload): PresentationPayload {
-  return {
-    ...payload,
-    client: {
-      ...payload.client,
-      company_name: '[ACCOUNT_NAME]',
-      contact_name: '[CONTACT_NAME]',
-      contact_first_name: '[CONTACT_FIRST_NAME]',
-      contact_email: '[CONTACT_EMAIL]',
-      contact_phone: '[CONTACT_PHONE]',
-    },
-    quote: {
-      ...payload.quote,
-      number: '[QUOTE_NUMBER]',
-      date: '[CURRENT_DATE]',
-      total: 0, // Se mostrará como [QUOTE_TOTAL] en el componente
-    },
-    // Los sections se mantienen igual (ya tienen los textos con tokens)
+  // Crear un nuevo payload donde TODOS los strings se convierten en tokens
+  const tokenizedPayload: PresentationPayload = JSON.parse(JSON.stringify(payload));
+  
+  // Reemplazar datos de cliente con tokens
+  tokenizedPayload.client = {
+    ...payload.client,
+    company_name: '[ACCOUNT_NAME]',
+    contact_name: '[CONTACT_NAME]',
+    contact_first_name: '[CONTACT_FIRST_NAME]',
+    contact_last_name: '[CONTACT_LAST_NAME]',
+    contact_email: '[CONTACT_EMAIL]',
+    contact_phone: '[CONTACT_PHONE]',
+    contact_mobile: '[CONTACT_MOBILE]',
+    phone: '[ACCOUNT_PHONE]',
+    rut: '[ACCOUNT_RUT]',
+    address: '[ACCOUNT_ADDRESS]',
+    city: '[ACCOUNT_CITY]',
   };
+  
+  // Reemplazar datos de cotización con tokens
+  tokenizedPayload.quote = {
+    ...payload.quote,
+    number: '[QUOTE_NUMBER]',
+    date: '[CURRENT_DATE]',
+    valid_until: '[QUOTE_VALID_UNTIL]',
+    subject: '[QUOTE_SUBJECT]',
+    description: '[QUOTE_DESCRIPTION]',
+    subtotal: 999999,
+    tax: 999999,
+    total: 999999,
+  };
+  
+  // Reemplazar valores en pricing con tokens para visual
+  if (tokenizedPayload.sections.s23_propuesta_economica) {
+    tokenizedPayload.sections.s23_propuesta_economica.pricing.items = 
+      tokenizedPayload.sections.s23_propuesta_economica.pricing.items.map(item => ({
+        ...item,
+        unit_price: 999999,
+        subtotal: 999999,
+      }));
+    
+    tokenizedPayload.sections.s23_propuesta_economica.pricing.subtotal = 999999;
+    tokenizedPayload.sections.s23_propuesta_economica.pricing.tax = 999999;
+    tokenizedPayload.sections.s23_propuesta_economica.pricing.total = 999999;
+  }
+  
+  return tokenizedPayload;
 }

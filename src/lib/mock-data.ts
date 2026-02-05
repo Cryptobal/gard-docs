@@ -122,7 +122,7 @@ export function getMockPresentationPayload(): PresentationPayload {
         headline: 'Seguridad privada diseñada para continuidad operacional',
         subheadline: 'Guardias profesionales + supervisión activa + control en tiempo real',
         microcopy: 'Protegemos personas, activos y procesos críticos en entornos empresariales exigentes.',
-        personalization: 'Propuesta para [ACCOUNT_NAME] — COT-2026-00342',
+        personalization: 'Propuesta para [ACCOUNT_NAME] — [QUOTE_NUMBER]',
         cta_primary_text: 'Agendar visita técnica sin costo',
         cta_secondary_text: 'Solicitar propuesta directa',
         background_image: '/guardia_hero.jpg',
