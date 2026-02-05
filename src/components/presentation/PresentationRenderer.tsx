@@ -62,7 +62,7 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
         <PresentationHeader 
           logo={assets.logo}
           cta={cta}
-          contactName={payload.client.contact_name} // Nombre completo (ej: "Daniel Troncoso")
+          contactName={`${payload.client.contact_first_name || ''} ${payload.client.contact_last_name || ''}`.trim() || payload.client.contact_name} // Nombre + Apellido
           companyName={payload.client.company_name}
           quoteName={payload.quote.subject || ''} // Asunto de la cotización
           quoteNumber={payload.quote.number}
