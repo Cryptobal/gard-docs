@@ -56,12 +56,20 @@ export async function POST(request: NextRequest) {
     });
 
     // 7. Construir URL de preview
-    // Usar SITE_URL primero (para API routes del servidor)
-    // Fallback a NEXT_PUBLIC_SITE_URL (para desarrollo local)
-    const baseUrl = process.env.SITE_URL || 
-                    process.env.NEXT_PUBLIC_SITE_URL || 
-                    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                    'https://docs.gard.cl';
+    // Prioridad: SITE_URL > dominio hardcoded
+    // En producción siempre usar docs.gard.cl
+    let baseUrl: string;
+    
+    if (process.env.SITE_URL) {
+      baseUrl = process.env.SITE_URL;
+    } else if (process.env.VERCEL_ENV === 'production') {
+      baseUrl = 'https://docs.gard.cl';
+    } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+      baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    } else {
+      baseUrl = 'https://docs.gard.cl';
+    }
+    
     const previewUrl = `${baseUrl}/preview/${sessionId}`;
 
     // 8. Log de éxito
