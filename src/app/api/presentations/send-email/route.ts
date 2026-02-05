@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDefaultTenantId } from '@/lib/tenant';
 import { resend, EMAIL_CONFIG } from '@/lib/resend';
 import { PresentationEmail } from '@/emails/PresentationEmail';
 import { nanoid } from 'nanoid';
@@ -70,9 +71,10 @@ export async function POST(req: NextRequest) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || 'https://docs.gard.cl';
     const presentationUrl = `${siteUrl}/p/${uniqueId}`;
 
-    // 5. Obtener template (commercial por defecto)
+    // 5. Obtener template (commercial por defecto, tenant actual)
+    const tenantId = await getDefaultTenantId();
     const template = await prisma.template.findFirst({
-      where: { slug: 'commercial', active: true },
+      where: { slug: 'commercial', active: true, tenantId },
     });
 
     if (!template) {
@@ -123,11 +125,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 9. Guardar presentación en BD
+    // 9. Guardar presentación en BD (con tenant)
     const presentation = await prisma.presentation.create({
       data: {
         uniqueId,
         templateId: template.id,
+        tenantId,
         clientData: zohoData,
         status: 'sent',
         recipientEmail,
@@ -152,9 +155,10 @@ export async function POST(req: NextRequest) {
       data: { status: 'completed' },
     });
 
-    // 12. Log en audit
+    // 12. Log en audit (con tenant opcional)
     await prisma.auditLog.create({
       data: {
+        tenantId,
         action: 'presentation_sent',
         entity: 'presentation',
         entityId: presentation.id,

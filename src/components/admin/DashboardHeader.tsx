@@ -12,7 +12,8 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { FileText, Sparkles, X, Bell } from 'lucide-react';
+import Link from 'next/link';
+import { FileText, Sparkles, X, Bell, LogOut } from 'lucide-react';
 import { Presentation, Template, PresentationView } from '@prisma/client';
 
 type PresentationWithRelations = Presentation & {
@@ -114,6 +115,14 @@ export function DashboardHeader({ presentations }: DashboardHeaderProps) {
                 <span className="hidden sm:inline">Ver Templates</span>
                 <span className="sm:hidden">Templates</span>
               </button>
+              {/* Cerrar sesión (Auth.js v5) */}
+              <Link
+                href="/api/auth/signout?callbackUrl=/login"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 text-sm transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </Link>
             </div>
           </div>
         </div>

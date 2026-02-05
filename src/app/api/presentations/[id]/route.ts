@@ -1,16 +1,21 @@
 /**
  * API Route: /api/presentations/[id]
  * 
- * GET    - Obtener una presentación por ID
- * PATCH  - Actualizar una presentación
- * DELETE - Eliminar una presentación
+ * GET/PATCH/DELETE filtrados por tenantId de sesión.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getDefaultTenantId } from '@/lib/tenant';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
+}
+
+async function getTenantId() {
+  const session = await auth();
+  return session?.user?.tenantId ?? getDefaultTenantId();
 }
 
 // GET /api/presentations/[id]
@@ -20,9 +25,10 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
+    const tenantId = await getTenantId();
 
-    const presentation = await prisma.presentation.findUnique({
-      where: { id },
+    const presentation = await prisma.presentation.findFirst({
+      where: { id, tenantId },
       include: {
         template: true,
         views: {
@@ -59,9 +65,9 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
+    const tenantId = await getTenantId();
     const body = await request.json();
 
-    // Campos actualizables
     const {
       status,
       recipientEmail,
@@ -71,21 +77,27 @@ export async function PATCH(
       expiresAt,
     } = body;
 
-    const presentation = await prisma.presentation.update({
-      where: { id },
+    const updated = await prisma.presentation.updateMany({
+      where: { id, tenantId },
       data: {
         ...(status && { status }),
-        ...(recipientEmail && { recipientEmail }),
-        ...(recipientName && { recipientName }),
+        ...(recipientEmail !== undefined && { recipientEmail }),
+        ...(recipientName !== undefined && { recipientName }),
         ...(notes !== undefined && { notes }),
         ...(tags && { tags }),
-        ...(expiresAt && { expiresAt: new Date(expiresAt) }),
-      },
-      include: {
-        template: true,
+        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
       },
     });
-
+    if (updated.count === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Presentation not found' },
+        { status: 404 }
+      );
+    }
+    const presentation = await prisma.presentation.findFirst({
+      where: { id, tenantId },
+      include: { template: true },
+    });
     return NextResponse.json({
       success: true,
       data: presentation,
@@ -106,10 +118,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
+    const tenantId = await getTenantId();
 
-    await prisma.presentation.delete({
-      where: { id },
+    const deleted = await prisma.presentation.deleteMany({
+      where: { id, tenantId },
     });
+    if (deleted.count === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Presentation not found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

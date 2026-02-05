@@ -1,27 +1,30 @@
 /**
  * API Route: /api/templates
  * 
- * GET  - Listar todos los templates
- * POST - Crear un nuevo template
+ * GET  - Listar templates del tenant
+ * POST - Crear template (tenant de sesión)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getDefaultTenantId } from '@/lib/tenant';
 
 // GET /api/templates
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    const tenantId = session?.user?.tenantId ?? await getDefaultTenantId();
+
     const { searchParams } = new URL(request.url);
     const active = searchParams.get('active');
     const type = searchParams.get('type');
 
-    const where: any = {};
-    if (active !== null) {
+    const where: { tenantId: string; active?: boolean; type?: string } = { tenantId };
+    if (active !== null && active !== undefined) {
       where.active = active === 'true';
     }
-    if (type) {
-      where.type = type;
-    }
+    if (type) where.type = type;
 
     const templates = await prisma.template.findMany({
       where,
@@ -69,7 +72,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear template
+    const session = await auth();
+    const tenantId = session?.user?.tenantId ?? await getDefaultTenantId();
     const template = await prisma.template.create({
       data: {
         name,
@@ -80,6 +84,7 @@ export async function POST(request: NextRequest) {
         active: active ?? true,
         isDefault: isDefault ?? false,
         thumbnailUrl,
+        tenantId,
       },
     });
 

@@ -2,19 +2,50 @@
 
 **Base de Datos:** Neon PostgreSQL  
 **ORM:** Prisma v6.19.2  
-**Última actualización:** 05 de Febrero de 2026
+**Última actualización:** 05 de Febrero de 2026  
+**Multi-tenancy:** Tenant + tenantId en tablas (nullable → backfill → NOT NULL)
 
 ---
 
 ## 📋 RESUMEN
 
-**Total de tablas:** 7  
+**Total de tablas:** 8 (incluye Tenant)  
 **Migración inicial:** `20260205051011_init`  
+**Migraciones multi-tenant:** `add_tenant_and_tenant_id_nullable`, `backfill_tenant_gard`, `tenant_id_required_and_indexes`  
 **Estado:** ✅ Aplicada y sincronizada
 
 ---
 
+## 🔄 MIGRACIÓN SEGURA DE TENANT ID
+
+1. **Migración 1:** Crear tabla `Tenant` y añadir `tenantId` **nullable** en Presentation, Template, WebhookSession, Admin, AuditLog, Setting.  
+2. **Migración 2 (backfill):** Crear tenant `gard` (Gard Security) y `UPDATE` todos los registros existentes con ese `tenantId`.  
+3. **Migración 3:** Convertir `tenantId` a **NOT NULL** en Template, Presentation, WebhookSession, Admin; crear índices compuestos `(tenantId, status)`, `(tenantId, createdAt)`, `(tenantId, active)`.
+
+Nunca introducir NOT NULL sin backfill previo.
+
+---
+
 ## 📊 MODELOS
+
+### 0️⃣ **Tenant** (Multi-tenancy SaaS)
+
+Organización/empresa en el modelo multi-tenant.
+
+| Campo | Tipo | Descripción | Restricciones |
+|-------|------|-------------|---------------|
+| `id` | String | ID único | PK, cuid |
+| `slug` | String | Slug único (ej. "gard") | Unique, indexed |
+| `name` | String | Nombre del tenant | Required |
+| `active` | Boolean | Si está activo | Default: true |
+| `createdAt` | DateTime | Fecha de creación | Auto |
+| `updatedAt` | DateTime | Última actualización | Auto |
+
+**Relaciones:** admins, templates, presentations, webhookSessions, auditLogs, settings.
+
+**Tenant por defecto:** slug `gard`, name "Gard Security".
+
+---
 
 ### 1️⃣ **Presentation** (Presentaciones)
 
@@ -25,6 +56,7 @@ Almacena las presentaciones generadas, ya sea desde Zoho CRM o creadas manualmen
 | `id` | String | ID único de la presentación | PK, cuid |
 | `uniqueId` | String | ID público para URL `/p/[uniqueId]` | Unique, indexed |
 | `templateId` | String | ID del template usado | FK → Template, indexed |
+| `tenantId` | String | Tenant al que pertenece | FK → Tenant, NOT NULL, indexed |
 | `clientData` | Json | Datos del cliente de Zoho (quote, account, contact, deal) | Required |
 | `renderedContent` | Json | Contenido renderizado (cache opcional) | Nullable |
 | `status` | String | Estado de la presentación | Default: "draft", indexed |
@@ -47,14 +79,13 @@ Almacena las presentaciones generadas, ya sea desde Zoho CRM o creadas manualmen
 
 **Relaciones:**
 - `template` → Template (muchos a uno)
+- `tenant` → Tenant (muchos a uno)
 - `views` → PresentationView[] (uno a muchos)
 
 **Índices:**
 - `uniqueId` (unique)
-- `status`
-- `createdAt`
-- `templateId`
-- `recipientEmail`
+- `tenantId`, `(tenantId, status)`, `(tenantId, createdAt)`
+- `status`, `createdAt`, `templateId`, `recipientEmail`
 
 **Estados posibles:**
 - `draft` - Borrador (recién creada)
@@ -82,16 +113,18 @@ Catálogo de templates disponibles para presentaciones.
 | `createdBy` | String | User ID del creador | Nullable |
 | `lastEditedBy` | String | User ID del último editor | Nullable |
 | `usageCount` | Int | Cuántas veces se ha usado | Default: 0 |
+| `tenantId` | String | Tenant al que pertenece | FK → Tenant, NOT NULL, indexed |
 | `createdAt` | DateTime | Fecha de creación | Auto |
 | `updatedAt` | DateTime | Última actualización | Auto |
 
 **Relaciones:**
+- `tenant` → Tenant (muchos a uno)
 - `presentations` → Presentation[] (uno a muchos)
 
 **Índices:**
 - `slug` (unique)
-- `active`
-- `type`
+- `tenantId`, `(tenantId, active)`
+- `active`, `type`
 
 **Tipos posibles:**
 - `presentation` - Presentación web
@@ -115,11 +148,13 @@ Almacena datos temporales recibidos de webhooks de Zoho CRM.
 | `zohoData` | Json | Datos completos del webhook | Required |
 | `status` | String | Estado de la sesión | Required, indexed |
 | `expiresAt` | DateTime | Fecha de expiración (24h) | Required |
+| `tenantId` | String | Tenant (origen del webhook) | FK → Tenant, NOT NULL, indexed |
 | `createdAt` | DateTime | Fecha de creación | Auto |
 | `updatedAt` | DateTime | Última actualización | Auto |
 
 **Índices:**
 - `sessionId` (unique)
+- `tenantId`, `(tenantId, createdAt)`
 - `status`
 
 **Estados posibles:**
@@ -184,13 +219,14 @@ Usuarios con acceso al dashboard administrativo.
 | `name` | String | Nombre completo | Required |
 | `role` | String | Rol del usuario | Default: "admin" |
 | `active` | Boolean | Si está activo | Default: true, indexed |
+| `tenantId` | String | Tenant por defecto / activo (tenant switcher) | FK → Tenant, NOT NULL, indexed |
 | `lastLoginAt` | DateTime | Último login | Nullable |
 | `createdAt` | DateTime | Fecha de creación | Auto |
 | `updatedAt` | DateTime | Última actualización | Auto |
 
 **Índices:**
 - `email` (unique)
-- `active`
+- `tenantId`, `active`
 
 **Roles posibles:**
 - `admin` - Administrador total
@@ -210,6 +246,7 @@ Log de eventos importantes del sistema.
 | Campo | Tipo | Descripción | Restricciones |
 |-------|------|-------------|---------------|
 | `id` | String | ID único | PK, cuid |
+| `tenantId` | String | Tenant (opcional) | FK → Tenant, nullable, indexed |
 | `userId` | String | ID del usuario que ejecutó la acción | Nullable, indexed |
 | `userEmail` | String | Email del usuario | Nullable |
 | `action` | String | Acción ejecutada | Required, indexed |
@@ -253,6 +290,7 @@ Configuración global del sistema (key-value).
 | `value` | String | Valor de la configuración | Required |
 | `type` | String | Tipo de dato | Required |
 | `category` | String | Categoría de la configuración | Nullable, indexed |
+| `tenantId` | String | Tenant (opcional; null = global) | FK → Tenant, nullable, indexed |
 | `createdAt` | DateTime | Fecha de creación | Auto |
 | `updatedAt` | DateTime | Última actualización | Auto |
 
@@ -283,6 +321,7 @@ session_expiry_hours: "24"
 ## 🔗 RELACIONES
 
 ```
+Tenant (1) ←→ (N) Admin, Template, Presentation, WebhookSession, AuditLog, Setting
 Template (1) ←→ (N) Presentation
 Presentation (1) ←→ (N) PresentationView
 ```

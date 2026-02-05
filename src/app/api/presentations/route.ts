@@ -1,32 +1,36 @@
 /**
  * API Route: /api/presentations
  * 
- * GET  - Listar todas las presentaciones
- * POST - Crear una nueva presentación
+ * GET  - Listar presentaciones del tenant
+ * POST - Crear presentación (tenant de sesión)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getDefaultTenantId } from '@/lib/tenant';
 import { nanoid } from 'nanoid';
 
 // GET /api/presentations
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    const tenantId = session?.user?.tenantId ?? await getDefaultTenantId();
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const where = status ? { status } : {};
+    const where: { tenantId: string; status?: string } = { tenantId };
+    if (status) where.status = status;
 
     const [presentations, total] = await Promise.all([
       prisma.presentation.findMany({
         where,
         include: {
           template: true,
-          _count: {
-            select: { views: true },
-          },
+          _count: { select: { views: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -77,11 +81,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que el template existe
-    const template = await prisma.template.findUnique({
-      where: { id: templateId },
-    });
+    const session = await auth();
+    const tenantId = session?.user?.tenantId ?? await getDefaultTenantId();
 
+    const template = await prisma.template.findFirst({
+      where: { id: templateId, tenantId },
+    });
     if (!template) {
       return NextResponse.json(
         { success: false, error: 'Template not found' },
@@ -89,14 +94,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generar uniqueId URL-friendly
     const uniqueId = `gard-${nanoid(12)}`;
 
-    // Crear presentación
+    // Crear presentación (con tenant)
     const presentation = await prisma.presentation.create({
       data: {
         uniqueId,
         templateId,
+        tenantId,
         clientData,
         recipientEmail,
         recipientName,

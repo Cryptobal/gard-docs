@@ -14,10 +14,22 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // 1. Crear template "Commercial"
+  // 0. Crear tenant "gard" si no existe
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: 'gard' },
+    update: {},
+    create: {
+      slug: 'gard',
+      name: 'Gard Security',
+      active: true,
+    },
+  });
+  console.log('✅ Tenant "gard" ready:', tenant.id);
+
+  // 1. Crear template "Commercial" (con tenantId)
   const commercialTemplate = await prisma.template.upsert({
     where: { slug: 'commercial' },
-    update: {},
+    update: { tenantId: tenant.id },
     create: {
       name: 'Propuesta Comercial',
       slug: 'commercial',
@@ -27,23 +39,25 @@ async function main() {
       active: true,
       isDefault: true,
       thumbnailUrl: null,
+      tenantId: tenant.id,
     },
   });
 
   console.log('✅ Template "Commercial" created:', commercialTemplate.id);
 
-  // 2. Crear admin user
+  // 2. Crear admin user (con tenantId)
   const hashedPassword = await bcrypt.hash('GardSecurity2026!', 10);
   
   const admin = await prisma.admin.upsert({
     where: { email: 'carlos.irigoyen@gard.cl' },
-    update: {},
+    update: { tenantId: tenant.id },
     create: {
       email: 'carlos.irigoyen@gard.cl',
       password: hashedPassword,
       name: 'Carlos Irigoyen',
       role: 'admin',
       active: true,
+      tenantId: tenant.id,
     },
   });
 

@@ -42,7 +42,7 @@ Transformar datos de Zoho CRM en presentaciones comerciales visualmente impactan
 - **Runtime:** Next.js API Routes (Edge Functions)
 - **Base de datos:** Neon PostgreSQL
 - **ORM:** Prisma
-- **Autenticación:** NextAuth.js v5 (Auth.js)
+- **Autenticación:** Auth.js v5 (NextAuth v5) con Credentials + tabla Admin (bcrypt)
 - **Email:** Resend
 - **Validación:** Zod
 
@@ -56,7 +56,7 @@ Transformar datos de Zoho CRM en presentaciones comerciales visualmente impactan
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    ZOHO CRM (Externo)                        │
+│  ZOHO CRM (ingest legacy) · Futuro: CRM OPAI                 │
 │                  Envía webhook con datos                     │
 └──────────────────────┬──────────────────────────────────────┘
                        │
@@ -105,13 +105,25 @@ Transformar datos de Zoho CRM en presentaciones comerciales visualmente impactan
 └──────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│         DASHBOARD ADMIN (/admin)                             │
-│  • Login con NextAuth.js                                     │
-│  • Lista de presentaciones enviadas                          │
+│         DASHBOARD ADMIN (/inicio)                            │
+│  • Login con Auth.js v5 (Credentials + Admin bcrypt)         │
+│  • Lista de presentaciones enviadas (filtro por tenant)        │
 │  • Analytics y trazabilidad                                  │
 │  • Gestión de templates                                      │
+│  • Tenant switcher (admins con más de un tenant)             │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🏢 MULTI-TENANCY (SaaS)
+
+- **Tenant:** Modelo `Tenant` (slug, name, active). Tenant por defecto: `gard` (Gard Security).
+- **tenantId en tablas:** Presentation, Template, WebhookSession, Admin, AuditLog (opcional), Setting (opcional). Migración segura: nullable → backfill → NOT NULL.
+- **Rutas internas:** Todas las operaciones (listar, crear, actualizar) filtran por `tenantId` de la sesión (`session.user.tenantId`).
+- **Ruta pública:** `/p/[uniqueId]` no cambia; búsqueda por `uniqueId`; el registro ya tiene `tenantId` para trazabilidad.
+- **Tenant switcher:** Admins con más de un tenant (futuro: tabla AdminTenant) pueden elegir tenant activo; por ahora `Admin.tenantId` es el tenant activo único. Cookie o DB para persistir tenant activo; expuesto en `session.user.tenantId`.
+- **Zoho:** Queda como ingest legacy; futuro origen de datos: CRM OPAI.
 
 ---
 

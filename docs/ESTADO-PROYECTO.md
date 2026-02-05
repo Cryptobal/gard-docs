@@ -1,7 +1,7 @@
 # 📊 Estado del Proyecto - Gard Docs
 
-**Última actualización:** 05 de Febrero de 2026, 18:00 hrs  
-**Versión:** 1.2.0 (Dashboard Simplificado + Sistema de Notificaciones)  
+**Última actualización:** 05 de Febrero de 2026  
+**Versión:** 1.3.0 (Multi-tenant foundation + Auth.js v5)  
 **Repositorio:** git@github.com:Cryptobal/gard-docs.git
 
 ---
@@ -33,6 +33,10 @@
 - ✅ **Modo Preview**: Vistas de admin no se contabilizan (parámetro ?preview=true)
 - ✅ **Navegación unificada**: Botones para volver al dashboard desde templates
 - ✅ **Vista Mobile-First**: 100% responsive sin scroll horizontal
+- ✅ **Multi-tenancy (SaaS)**: Modelo Tenant + tenantId en tablas (nullable → backfill → NOT NULL)
+- ✅ **Auth.js v5**: Credentials con tabla Admin (bcrypt), sesión con tenantId
+- ✅ **Protección de rutas**: /inicio, /templates/*, /preview/* requieren login; /p/* y webhooks públicos
+- ✅ **Filtro por tenant**: Queries internas filtran por session.user.tenantId
 
 ---
 
@@ -109,15 +113,16 @@
 
 ## 🗄️ **BASE DE DATOS**
 
-### **7 Tablas Activas:**
+### **8 Tablas Activas:**
 
-1. **`Presentation`** - Presentaciones guardadas
-2. **`Template`** - Templates (Commercial activo)
-3. **`WebhookSession`** - Sesiones de Zoho (expiran en 24h)
-4. **`PresentationView`** - Tracking de vistas
-5. **`Admin`** - Usuario: carlos.irigoyen@gard.cl
-6. **`AuditLog`** - Log de eventos
-7. **`Setting`** - Configuración global
+1. **`Tenant`** - Multi-tenancy (slug: gard, name: Gard Security)
+2. **`Presentation`** - Presentaciones guardadas (tenantId NOT NULL)
+3. **`Template`** - Templates (tenantId NOT NULL)
+4. **`WebhookSession`** - Sesiones de Zoho (tenantId NOT NULL)
+5. **`PresentationView`** - Tracking de vistas
+6. **`Admin`** - Usuario: carlos.irigoyen@gard.cl (tenantId NOT NULL)
+7. **`AuditLog`** - Log de eventos (tenantId opcional)
+8. **`Setting`** - Configuración global (tenantId opcional)
 
 **Comandos:**
 - Ver BD: `npx prisma studio` → http://localhost:5555
@@ -349,11 +354,15 @@ formatCurrency(value, currency)
 - `docs/RESEND-WEBHOOK-CONFIG.md` - Configuración de webhooks
 - `.env.example` - Variables de entorno con webhook secret
 
+**Completado en v1.3.0:**
+- [x] Auth.js v5 (Credentials + Admin bcrypt)
+- [x] Login en /login, protección de /inicio, /templates/*, /preview/*
+- [x] Multi-tenancy: Tenant + tenantId en tablas; backfill "gard"; filtro por tenant en queries
+
 **Pendiente:**
-- [ ] NextAuth.js configuración
-- [ ] Login admin protegido
 - [ ] Notificaciones por Slack (opcional)
 - [ ] Configurar días de alerta (actualmente 3 días)
+- [ ] Tenant switcher UI (cuando exista AdminTenant o múltiples tenants por admin)
 
 ---
 
@@ -361,15 +370,15 @@ formatCurrency(value, currency)
 
 ---
 
-### **PASO E: Autenticación (2-3 horas)**
+### **PASO E: Autenticación — COMPLETADO (v1.3.0)**
 
 **Objetivo:** Proteger el dashboard con login
 
 **Tareas:**
-- [ ] NextAuth.js configuración
-- [ ] Login page
-- [ ] Protección de rutas admin
-- [ ] Session management
+- [x] Auth.js v5 (Credentials + Admin bcrypt)
+- [x] Login page (/login)
+- [x] Protección de rutas: middleware para /inicio, /templates/*, /preview/*
+- [x] Session con tenantId; filtro por tenant en APIs y página inicio
 
 ---
 
@@ -382,6 +391,19 @@ formatCurrency(value, currency)
 - [ ] Notificaciones cuando se ve presentación
 - [ ] Gráficos avanzados (Chart.js o Recharts)
 - [ ] Exportar datos a CSV/Excel
+
+---
+
+## 📌 **MILESTONE: Multi-tenant foundation + Auth**
+
+**Checklist de validación:**
+- [ ] Migraciones aplicadas: add_tenant_and_tenant_id_nullable, backfill_tenant_gard, tenant_id_required_and_indexes
+- [ ] Seed con Tenant "gard" y Admin/Template con tenantId
+- [ ] Login en /login con credenciales Admin
+- [ ] /inicio requiere login y muestra solo presentaciones del tenant
+- [ ] /p/[uniqueId] sigue público y trackea sin cambios
+- [ ] Webhooks (Zoho, Resend) operativos; send-email y track públicos
+- [ ] Documentos actualizados: DATABASE-SCHEMA.md, DOCUMENTO-MAESTRO-APLICACION.md, ESTADO-PROYECTO.md
 
 ---
 
@@ -491,6 +513,6 @@ curl https://docs.gard.cl/api/templates
 
 ---
 
-**Última actualización:** 05 de Febrero de 2026, 18:00 hrs  
-**Estado:** ✅ SISTEMA COMPLETO CON DASHBOARD v2.0 + NOTIFICACIONES  
-**Siguiente:** Autenticación, Notificaciones Slack, o Mejoras UX
+**Última actualización:** 05 de Febrero de 2026  
+**Estado:** ✅ SISTEMA MULTI-TENANT + AUTH.JS v5  
+**Siguiente:** Aplicar migraciones en BD, validar checklist, Notificaciones Slack o Mejoras UX

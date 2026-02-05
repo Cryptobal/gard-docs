@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getDefaultTenantId } from '@/lib/tenant';
 import { nanoid } from 'nanoid';
 
 // POST /api/webhook/zoho
@@ -45,13 +46,15 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    // 6. Guardar sesión en base de datos
+    // 6. Guardar sesión en base de datos (con tenant por defecto)
+    const tenantId = await getDefaultTenantId();
     const webhookSession = await prisma.webhookSession.create({
       data: {
         sessionId,
         zohoData: body, // Guardar todo el payload
         status: 'pending',
         expiresAt,
+        tenantId,
       },
     });
 

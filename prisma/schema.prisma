@@ -1,5 +1,6 @@
 // Prisma schema for Gard Docs
 // Database: Neon PostgreSQL
+// Multi-tenant: Tenant + tenantId en tablas (nullable → backfill → NOT NULL)
 
 generator client {
   provider = "prisma-client-js"
@@ -8,6 +9,28 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ─── TENANT (multi-tenancy SaaS) ──────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  admins          Admin[]
+  templates       Template[]
+  presentations   Presentation[]
+  webhookSessions WebhookSession[]
+  auditLogs       AuditLog[]
+  settings        Setting[]
+
+  @@index([slug])
+  @@index([active])
 }
 
 // ─── WEBHOOK SESSIONS (temporal) ──────────────────────
@@ -21,8 +44,13 @@ model WebhookSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
   @@index([sessionId])
   @@index([status])
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
 }
 
 // ─── TEMPLATES ────────────────────────────────────────
@@ -47,12 +75,15 @@ model Template {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
-  // Relations
+  tenantId      String
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
   presentations Presentation[]
 
   @@index([slug])
   @@index([active])
   @@index([type])
+  @@index([tenantId])
+  @@index([tenantId, active])
 }
 
 // ─── PRESENTATIONS ────────────────────────────────────
@@ -64,6 +95,9 @@ model Presentation {
   // Template
   templateId       String
   template         Template            @relation(fields: [templateId], references: [id])
+  
+  tenantId         String
+  tenant           Tenant              @relation(fields: [tenantId], references: [id])
   
   // Client data (from Zoho)
   clientData       Json                // Todos los datos del cliente, quote, deal, contact
@@ -118,6 +152,9 @@ model Presentation {
   @@index([createdAt])
   @@index([templateId])
   @@index([recipientEmail])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
 }
 
 // ─── PRESENTATION VIEWS ───────────────────────────────
@@ -159,6 +196,9 @@ model Admin {
   role      String   @default("admin") // "admin", "editor", "viewer"
   active    Boolean  @default(true)
   
+  tenantId   String   // Tenant por defecto / activo (para tenant switcher)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  
   // Metadata
   lastLoginAt DateTime?
   createdAt   DateTime @default(now())
@@ -166,12 +206,16 @@ model Admin {
 
   @@index([email])
   @@index([active])
+  @@index([tenantId])
 }
 
 // ─── AUDIT LOG (opcional) ─────────────────────────────
 
 model AuditLog {
   id        String   @id @default(cuid())
+  
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
   
   // Who
   userId    String?
@@ -194,20 +238,25 @@ model AuditLog {
   @@index([action])
   @@index([entity])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 // ─── SETTINGS (configuración global) ──────────────────
 
 model Setting {
   id        String   @id @default(cuid())
-  key       String   @unique // "smtp_host", "default_template_id", etc.
+  key       String   @unique // "smtp_host", "default_template_id", etc. (global si tenantId null)
   value     String   // Valor de la configuración
   type      String   // "string", "number", "boolean", "json"
   category  String?  // "email", "general", "security"
+  
+  tenantId   String?  // Opcional: settings por tenant; null = global
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([key])
   @@index([category])
+  @@index([tenantId])
 }

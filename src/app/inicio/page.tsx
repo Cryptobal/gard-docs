@@ -2,29 +2,27 @@
  * Dashboard Administrativo - Gard Docs
  * 
  * Panel principal para ver y gestionar presentaciones enviadas
- * Features:
- * - Estadísticas generales
- * - Lista de presentaciones
- * - Analytics (opens, clicks, views)
- * - Filtros y búsqueda
- * - Links públicos y WhatsApp
- * 
- * Mobile first, responsive, sin scroll horizontal
+ * Protegido por Auth.js; datos filtrados por tenantId de la sesión.
  */
 
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getDefaultTenantId } from '@/lib/tenant';
 import { DashboardContent } from '@/components/admin/DashboardContent';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function DashboardPage() {
-  // Obtener todas las presentaciones con sus vistas
+  const session = await auth();
+  if (!session?.user) redirect('/login?callbackUrl=/inicio');
+  const tenantId = session.user.tenantId ?? await getDefaultTenantId();
+
   const presentations = await prisma.presentation.findMany({
+    where: { tenantId },
     include: {
-      views: {
-        orderBy: { viewedAt: 'desc' },
-      },
+      views: { orderBy: { viewedAt: 'desc' } },
       template: true,
     },
     orderBy: { createdAt: 'desc' },
