@@ -171,8 +171,11 @@ export function PricingPDF({
         <Page key={pageIndex} size="A4" style={styles.page}>
           {/* Header en cada página */}
           <View style={styles.header}>
-            {/* Logo Gard */}
-            <Text style={styles.title}>GARD SECURITY</Text>
+            {/* Logo Gard - Imagen real */}
+            <PDFImage 
+              src="/Logo Gard azul.webp"
+              style={styles.logo}
+            />
             
             <Text style={styles.title}>Propuesta Económica</Text>
             <Text style={styles.clientInfo}>Para: {clientName}</Text>
