@@ -40,7 +40,8 @@ export function Section23PropuestaEconomica({
     if (showTokens && value === 999999) {
       return '[PRECIO]';
     }
-    return pricing.currency === 'UF' ? formatUF(value) : formatCurrency(value);
+    // Usar formatCurrency que detecta automáticamente CLF/UF vs CLP
+    return formatCurrency(value, pricing.currency);
   };
   
   return (

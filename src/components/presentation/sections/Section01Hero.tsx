@@ -82,10 +82,26 @@ export function Section01Hero({ data, payload, showTokens = false }: Section01He
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="text-sm sm:text-base text-white/70 mb-6 max-w-2xl leading-relaxed"
+            className="text-sm sm:text-base text-white/70 mb-4 max-w-2xl leading-relaxed"
           >
             {microcopy}
           </motion.p>
+          
+          {/* Personalización - Propuesta para Cliente, Número, Preparado para */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.8 }}
+            className="mb-8 space-y-1"
+          >
+            <p className="text-base md:text-lg text-white/90 font-semibold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-teal-400" />
+              {personalization}
+            </p>
+            <p className="text-sm md:text-base text-white/70">
+              Preparado para <span className="text-white font-semibold">{contactName}</span>
+            </p>
+          </motion.div>
           
           {/* KPIs de Valor - REEMPLAZAN CTAs */}
           <motion.div

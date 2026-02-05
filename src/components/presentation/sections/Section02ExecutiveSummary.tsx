@@ -86,23 +86,11 @@ export function Section02ExecutiveSummary({
                 </p>
               </div>
               
-              {/* Contexto adicional */}
-              <div className="grid md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/10">
-                <div className="text-center">
-                  <div className="text-sm text-white/50 mb-1">Industria</div>
-                  <div className="text-base font-bold text-white">
-                    {showTokens ? '[INDUSTRY]' : industry}
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-white/50 mb-1">Instalaciones</div>
-                  <div className="text-base font-bold text-white">
-                    {showTokens ? '[SITES]' : `${sitesCount} sitio${sitesCount !== 1 ? 's' : ''}`}
-                  </div>
-                </div>
+              {/* Contexto adicional - Solo Cobertura */}
+              <div className="flex justify-center mt-6 pt-6 border-t border-white/10">
                 <div className="text-center">
                   <div className="text-sm text-white/50 mb-1">Cobertura</div>
-                  <div className="text-base font-bold text-white">
+                  <div className="text-lg font-black bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">
                     {showTokens ? '[COVERAGE]' : coverageHours}
                   </div>
                 </div>

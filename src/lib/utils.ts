@@ -10,23 +10,57 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Formatea números como moneda chilena (CLP)
+ * Ejemplo: 1234567 → "$1.234.567"
  */
-export function formatCurrency(value: number): string {
+export function formatCLP(value: number): string {
   return new Intl.NumberFormat('es-CL', {
     style: 'currency',
     currency: 'CLP',
     minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
 /**
- * Formatea números en UF
+ * Formatea números en UF (Unidad de Fomento)
+ * Ejemplos:
+ *   60 → "UF 60"
+ *   1234.56 → "UF 1.234,56"
+ * 
+ * Formato: punto separador de miles, coma para decimales, espacio antes de "UF"
  */
 export function formatUF(value: number): string {
-  return `UF ${new Intl.NumberFormat('es-CL', {
-    minimumFractionDigits: 2,
+  const formatted = new Intl.NumberFormat('es-CL', {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(value)}`;
+  }).format(value);
+  
+  return `UF ${formatted}`;
+}
+
+/**
+ * Formatea moneda automáticamente según el tipo
+ * @param value - Valor numérico
+ * @param currency - 'CLF' para UF, 'CLP' para pesos, 'UF' para UF, 'USD' para dólares
+ */
+export function formatCurrency(value: number, currency: string = 'CLP'): string {
+  // Normalizar currency (CLF = UF)
+  const normalizedCurrency = currency.toUpperCase();
+  
+  if (normalizedCurrency === 'CLF' || normalizedCurrency === 'UF') {
+    return formatUF(value);
+  } else if (normalizedCurrency === 'CLP') {
+    return formatCLP(value);
+  } else if (normalizedCurrency === 'USD') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+    }).format(value);
+  } else {
+    // Fallback a CLP
+    return formatCLP(value);
+  }
 }
 
 /**
