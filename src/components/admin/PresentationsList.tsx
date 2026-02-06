@@ -77,9 +77,14 @@ export function PresentationsList({ presentations, initialFilter = 'all' }: Pres
 
       // Filtro por vistas
       let matchesView = true;
-      if (viewFilter === 'viewed') {
+      if (viewFilter === 'sent') {
+        // Filtrar por enviadas (sin importar si fueron vistas o no)
+        matchesView = p.status === 'sent';
+      } else if (viewFilter === 'viewed') {
+        // Filtrar por vistas (viewCount > 0)
         matchesView = p.viewCount > 0;
-      } else if (viewFilter === 'not-viewed') {
+      } else if (viewFilter === 'pending' || viewFilter === 'not-viewed') {
+        // Filtrar por no vistas (enviadas pero sin vistas)
         matchesView = p.status === 'sent' && p.viewCount === 0;
       } else if (viewFilter === 'draft') {
         matchesView = p.status === 'draft';
