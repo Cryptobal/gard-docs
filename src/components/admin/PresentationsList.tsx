@@ -11,7 +11,7 @@
  * - Mobile-first responsive
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
@@ -45,10 +45,15 @@ interface PresentationsListProps {
 
 export function PresentationsList({ presentations, initialFilter = 'all' }: PresentationsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewFilter, setViewFilter] = useState<string>('all'); // Nuevo filtro de vistas
-  const [emailStatusFilter, setEmailStatusFilter] = useState<string>('all'); // Nuevo filtro de estado email
+  const [viewFilter, setViewFilter] = useState<string>(initialFilter); // Sincronizado con initialFilter
+  const [emailStatusFilter, setEmailStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Sincronizar viewFilter cuando cambia initialFilter (KPIs clickeables)
+  useEffect(() => {
+    setViewFilter(initialFilter);
+  }, [initialFilter]);
 
   // Filtrar presentaciones
   const filteredPresentations = useMemo(() => {
