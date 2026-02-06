@@ -79,9 +79,9 @@ function isTimestampValid(timestamp: string, maxAgeMinutes: number = 720): boole
 // POST /api/webhook/zoho
 export async function POST(request: NextRequest) {
   try {
-    // 1. Leer body primero (necesario para HMAC)
-    const body = await request.json();
-    const bodyString = JSON.stringify(body);
+    // 1. Leer body RAW (necesario para HMAC)
+    const bodyText = await request.text();
+    const body = JSON.parse(bodyText);
     
     // 2. Validar autenticación (HMAC o Bearer token)
     const secret = process.env.ZOHO_WEBHOOK_SECRET;
@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
     if (signature && timestamp) {
       console.log('🔐 Verificando HMAC signature...');
       
-      // Verificar signature (la signature es suficiente seguridad, timestamp solo para logs)
-      if (verifyHmacSignature(bodyString, timestamp, signature, secret)) {
+      // Verificar signature usando el body RAW tal como llega de Zoho
+      if (verifyHmacSignature(bodyText, timestamp, signature, secret)) {
         console.log('✅ HMAC signature válida');
         
         // Log timestamp para debug pero NO rechazar por timestamp
