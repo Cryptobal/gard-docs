@@ -156,8 +156,8 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
             clientName={payload.client.company_name}
             quoteNumber={payload.quote.number}
             quoteDate={payload.quote.date}
-            contactEmail={contact.email}
-            contactPhone={contact.phone}
+            contactEmail="comercial@gard.cl"
+            contactPhone="+56 9 8230 7771"
           />
           
           {/* S24 - Términos y Condiciones */}
@@ -175,8 +175,8 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
           {/* S28 - Cierre + CTA */}
           <Section28Cierre 
             data={sections.s28_cierre}
-            contactEmail={contact.email}
-            contactPhone={contact.phone}
+            contactEmail="comercial@gard.cl"
+            contactPhone="+56 9 8230 7771"
           />
           
           {/* S29 - Contacto ELIMINADO (redundante con Footer) */}
@@ -185,7 +185,12 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
         {/* Footer */}
         <PresentationFooter 
           logo={assets.logo}
-          contact={contact}
+          contact={{
+            name: 'Equipo Comercial',
+            email: 'comercial@gard.cl',
+            phone: '+56 9 8230 7771',
+            position: 'Gerente Comercial'
+          }}
           address={sections.s29_contacto.address}
           website={sections.s29_contacto.website}
           social_media={sections.s29_contacto.social_media}
