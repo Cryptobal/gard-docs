@@ -17,7 +17,7 @@ import { CpqQuoteCosts } from "@/components/cpq/CpqQuoteCosts";
 import { CpqPricingCalc } from "@/components/cpq/CpqPricingCalc";
 import { formatCurrency } from "@/components/cpq/utils";
 import type { CpqQuote, CpqPosition, CpqQuoteCostSummary } from "@/types/cpq";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw } from "lucide-react";
 
 interface CpqQuoteDetailProps {
   quoteId: string;
@@ -30,6 +30,7 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
   const [loading, setLoading] = useState(true);
   const [costSummary, setCostSummary] = useState<CpqQuoteCostSummary | null>(null);
   const [marginPct, setMarginPct] = useState(20);
+  const [cloning, setCloning] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -58,6 +59,23 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
   useEffect(() => {
     refresh();
   }, [quoteId]);
+
+  const handleClone = async () => {
+    setCloning(true);
+    try {
+      const response = await fetch(`/api/cpq/quotes/${quoteId}/clone`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (data.success) {
+        router.push(`/cpq/${data.data.id}`);
+      }
+    } catch (error) {
+      console.error("Error cloning quote:", error);
+    } finally {
+      setCloning(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const totalGuards = quote?.totalGuards ?? positions.reduce((sum, p) => sum + p.numGuards, 0);
@@ -106,6 +124,18 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
           <Button size="sm" variant="outline" className="gap-2" onClick={refresh}>
             <RefreshCw className="h-3 w-3" />
             <span className="hidden sm:inline">Actualizar</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={handleClone}
+            disabled={cloning}
+          >
+            <Copy className="h-3 w-3" />
+            <span className="hidden sm:inline">
+              {cloning ? "Clonando..." : "Clonar"}
+            </span>
           </Button>
           <CreatePositionModal quoteId={quoteId} onCreated={refresh} />
         </div>
