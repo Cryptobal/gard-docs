@@ -29,13 +29,14 @@ async function refreshQuoteTotals(quoteId: string) {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; positionId: string } }
+  { params }: { params: Promise<{ id: string; positionId: string }> }
 ) {
   try {
+    const { id, positionId } = await params;
     const body = await request.json();
 
     const current = await prisma.cpqPosition.findFirst({
-      where: { id: params.positionId, quoteId: params.id },
+      where: { id: positionId, quoteId: id },
     });
 
     if (!current) {
@@ -118,7 +119,7 @@ export async function PATCH(
     const monthlyPositionCost = employerCost * nextNumGuards;
 
     const position = await prisma.cpqPosition.update({
-      where: { id: params.positionId },
+      where: { id: positionId },
       data: {
         ...updateData,
         baseSalary: nextBaseSalary,
@@ -134,7 +135,7 @@ export async function PATCH(
       },
     });
 
-    await refreshQuoteTotals(params.id);
+    await refreshQuoteTotals(id);
     return NextResponse.json({ success: true, data: position });
   } catch (error) {
     console.error("Error updating CPQ position:", error);
@@ -147,11 +148,12 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string; positionId: string } }
+  { params }: { params: Promise<{ id: string; positionId: string }> }
 ) {
   try {
+    const { id, positionId } = await params;
     const existing = await prisma.cpqPosition.findFirst({
-      where: { id: params.positionId, quoteId: params.id },
+      where: { id: positionId, quoteId: id },
       select: { id: true },
     });
 
@@ -162,8 +164,8 @@ export async function DELETE(
       );
     }
 
-    await prisma.cpqPosition.delete({ where: { id: params.positionId } });
-    await refreshQuoteTotals(params.id);
+    await prisma.cpqPosition.delete({ where: { id: positionId } });
+    await refreshQuoteTotals(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
