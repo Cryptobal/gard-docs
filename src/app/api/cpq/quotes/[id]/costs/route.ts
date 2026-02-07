@@ -371,7 +371,15 @@ export async function PUT(
     );
 
       const uniformMap = new Map(
-        existingUniforms.map((item) => [item.catalogItemId, item])
+        existingUniforms.map((item) => [
+          item.catalogItemId,
+          {
+            quoteId: id,
+            catalogItemId: item.catalogItemId,
+            unitPriceOverride: item.unitPriceOverride ?? null,
+            active: item.active ?? true,
+          },
+        ])
       );
       uniforms.forEach((item: any) => {
         uniformMap.set(item.catalogItemId, {
@@ -401,7 +409,17 @@ export async function PUT(
         })),
       });
 
-      const examMap = new Map(existingExams.map((item) => [item.catalogItemId, item]));
+      const examMap = new Map(
+        existingExams.map((item) => [
+          item.catalogItemId,
+          {
+            quoteId: id,
+            catalogItemId: item.catalogItemId,
+            unitPriceOverride: item.unitPriceOverride ?? null,
+            active: item.active ?? true,
+          },
+        ])
+      );
       exams.forEach((item: any) => {
         examMap.set(item.catalogItemId, {
           ...item,
@@ -430,7 +448,21 @@ export async function PUT(
         })),
       });
 
-      const costMap = new Map(existingCostItems.map((item) => [item.catalogItemId, item]));
+      const costMap = new Map(
+        existingCostItems.map((item) => [
+          item.catalogItemId,
+          {
+            quoteId: id,
+            catalogItemId: item.catalogItemId,
+            calcMode: item.calcMode || "per_month",
+            quantity: item.quantity ?? 1,
+            unitPriceOverride: item.unitPriceOverride ?? null,
+            isEnabled: item.isEnabled ?? true,
+            visibility: item.visibility || "visible",
+            notes: item.notes ?? null,
+          },
+        ])
+      );
       costItems.forEach((item: any) => {
         costMap.set(item.catalogItemId, {
           ...item,
