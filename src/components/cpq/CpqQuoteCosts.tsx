@@ -1422,7 +1422,12 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                 <Badge variant="outline" className="text-xs">
                   Mobile-first · Los cambios se guardan al presionar "Guardar cambios"
                 </Badge>
-                <Button size="sm" onClick={handleSave} disabled={saving} className="bg-teal-600 hover:bg-teal-700">
+                <Button
+                  size="sm"
+                  onClick={() => handleSave()}
+                  disabled={saving}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
                   {saving ? "Guardando..." : "Guardar cambios"}
                 </Button>
               </div>
