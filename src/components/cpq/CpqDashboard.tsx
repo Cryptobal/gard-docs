@@ -16,14 +16,18 @@ import { formatCurrency } from "@/components/cpq/utils";
 import type { CpqQuote } from "@/types/cpq";
 import { FileText, Plus } from "lucide-react";
 
-export function CpqDashboard() {
-  const [quotes, setQuotes] = useState<CpqQuote[]>([]);
-  const [loading, setLoading] = useState(true);
+interface CpqDashboardProps {
+  initialQuotes?: CpqQuote[];
+}
+
+export function CpqDashboard({ initialQuotes }: CpqDashboardProps) {
+  const [quotes, setQuotes] = useState<CpqQuote[]>(initialQuotes || []);
+  const [loading, setLoading] = useState(!initialQuotes);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/cpq/quotes");
+      const res = await fetch("/api/cpq/quotes", { cache: "no-store" });
       const data = await res.json();
       if (data.success) setQuotes(data.data || []);
     } catch (err) {
