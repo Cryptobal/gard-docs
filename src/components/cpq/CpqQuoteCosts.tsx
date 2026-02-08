@@ -29,6 +29,7 @@ import { toast } from "sonner";
 
 interface CpqQuoteCostsProps {
   quoteId: string;
+  variant?: "modal" | "inline";
 }
 
 const DEFAULT_PARAMS: CpqQuoteParameters = {
@@ -61,10 +62,11 @@ const normalizeCostItems = (items: CpqQuoteCostItem[]) =>
     unitPriceOverride: item.unitPriceOverride ?? null,
   }));
 
-export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
+export function CpqQuoteCosts({ quoteId, variant = "modal" }: CpqQuoteCostsProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState<"directos" | "indirectos" | "financieros">("directos");
   const [catalog, setCatalog] = useState<CpqCatalogItem[]>([]);
   const [summary, setSummary] = useState<CpqQuoteCostSummary | null>(null);
   const [parameters, setParameters] = useState<CpqQuoteParameters>(DEFAULT_PARAMS);
@@ -78,6 +80,7 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
   const inputClass =
     "h-11 sm:h-9 bg-card text-foreground border-border placeholder:text-muted-foreground";
   const sectionBoxClass = "rounded-md border border-border bg-muted/20 p-3 sm:p-2";
+  const isInline = variant === "inline";
 
   const loadData = async () => {
     setLoading(true);
@@ -239,11 +242,12 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
   }, [quoteId]);
 
   useEffect(() => {
-    if (open) {
+    if (open || isInline) {
       defaultsApplied.current = false;
       loadData();
+      setActiveSection("directos");
     }
-  }, [open]);
+  }, [open, isInline]);
 
   useEffect(() => {
     defaultsApplied.current = false;
@@ -486,9 +490,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
   };
 
   useEffect(() => {
-    if (!open || !catalog.length) return;
+    if ((!open && !isInline) || !catalog.length) return;
     applyDefaults();
-  }, [open, catalog, uniforms.length, exams.length, meals.length, costItems.length]);
+  }, [open, isInline, catalog, uniforms.length, exams.length, meals.length, costItems.length]);
 
   const extraItemsCatalog = useMemo(() => {
     return catalog.filter((item) => item.type === "system");
@@ -617,13 +621,854 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
     }, 0);
   }, [meals, mealCatalog]);
 
+  const costForm = loading ? (
+    <div className="text-sm text-muted-foreground">Cargando...</div>
+  ) : (
+    <>
+      <div className="space-y-4 text-sm">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={activeSection === "directos" ? "default" : "outline"}
+            className={activeSection === "directos" ? "bg-primary/90" : "bg-transparent"}
+            onClick={() => setActiveSection("directos")}
+          >
+            Directos
+          </Button>
+          <Button
+            size="sm"
+            variant={activeSection === "indirectos" ? "default" : "outline"}
+            className={activeSection === "indirectos" ? "bg-primary/90" : "bg-transparent"}
+            onClick={() => setActiveSection("indirectos")}
+          >
+            Indirectos
+          </Button>
+          <Button
+            size="sm"
+            variant={activeSection === "financieros" ? "default" : "outline"}
+            className={activeSection === "financieros" ? "bg-primary/90" : "bg-transparent"}
+            onClick={() => setActiveSection("financieros")}
+          >
+            Financieros
+          </Button>
+        </div>
+
+        {activeSection === "directos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Uniformes
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(uniformTotal)}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  setUniforms((prev) => {
+                    const existing = prev.find((u) => u.catalogItemId === value);
+                    if (existing) {
+                      return prev.map((u) =>
+                        u.catalogItemId === value ? { ...u, active: true } : u
+                      );
+                    }
+                    const catalogItem = catalogById.get(value);
+                    if (!catalogItem) return prev;
+                    return [
+                      ...prev,
+                      {
+                        catalogItemId: value,
+                        unitPriceOverride: null,
+                        active: true,
+                        catalogItem,
+                      },
+                    ];
+                  });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {(catalogByType.uniform || [])
+                  .filter((item) => !uniforms.find((u) => u.catalogItemId === item.id && u.active))
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {(catalogByType.uniform || [])
+              .filter((item) =>
+                uniforms.find((u) => u.catalogItemId === item.id && u.active)
+              )
+              .map((item) => {
+                const selected = uniforms.find((u) => u.catalogItemId === item.id);
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() =>
+                            setUniforms((prev) =>
+                              prev.map((u) =>
+                                u.catalogItemId === item.id ? { ...u, active: false } : u
+                              )
+                            )
+                          }
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={selected?.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        setUniforms((prev) =>
+                          prev.map((u) =>
+                            u.catalogItemId === item.id
+                              ? { ...u, unitPriceOverride: toNumber(e.target.value) }
+                              : u
+                          )
+                        )
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "directos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Exámenes
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(examTotal)}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  setExams((prev) => {
+                    const existing = prev.find((u) => u.catalogItemId === value);
+                    if (existing) {
+                      return prev.map((u) =>
+                        u.catalogItemId === value ? { ...u, active: true } : u
+                      );
+                    }
+                    const catalogItem = catalogById.get(value);
+                    if (!catalogItem) return prev;
+                    return [
+                      ...prev,
+                      {
+                        catalogItemId: value,
+                        unitPriceOverride: null,
+                        active: true,
+                        catalogItem,
+                      },
+                    ];
+                  });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {(catalogByType.exam || [])
+                  .filter((item) => !exams.find((u) => u.catalogItemId === item.id && u.active))
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {(catalogByType.exam || [])
+              .filter((item) =>
+                exams.find((u) => u.catalogItemId === item.id && u.active)
+              )
+              .map((item) => {
+                const selected = exams.find((u) => u.catalogItemId === item.id);
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() =>
+                            setExams((prev) =>
+                              prev.map((u) =>
+                                u.catalogItemId === item.id ? { ...u, active: false } : u
+                              )
+                            )
+                          }
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={selected?.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        setExams((prev) =>
+                          prev.map((u) =>
+                            u.catalogItemId === item.id
+                              ? { ...u, unitPriceOverride: toNumber(e.target.value) }
+                              : u
+                          )
+                        )
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "directos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Alimentación
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(mealTotal)}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  updateMeal(value, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {mealCatalog
+                  .filter(
+                    (item) =>
+                      !meals.find(
+                        (m) =>
+                          m.mealType.toLowerCase() === item.name.toLowerCase() &&
+                          m.isEnabled
+                      )
+                  )
+                  .map((item) => (
+                    <option key={item.id} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {mealCatalog
+              .filter((item) =>
+                meals.find(
+                  (m) =>
+                    m.mealType.toLowerCase() === item.name.toLowerCase() && m.isEnabled
+                )
+              )
+              .map((item) => {
+                const meal = meals.find(
+                  (m) => m.mealType.toLowerCase() === item.name.toLowerCase()
+                );
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => updateMeal(item.name, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Comidas/día"
+                        value={meal?.mealsPerDay ?? 0}
+                        onChange={(e) =>
+                          updateMeal(item.name, { mealsPerDay: toNumber(e.target.value) })
+                        }
+                        className={inputClass}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Días/mes"
+                        value={meal?.daysOfService ?? 0}
+                        onChange={(e) =>
+                          updateMeal(item.name, { daysOfService: toNumber(e.target.value) })
+                        }
+                        className={inputClass}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Precio mensual (override)"
+                        value={meal?.priceOverride ?? ""}
+                        onChange={(e) =>
+                          updateMeal(item.name, { priceOverride: toNumber(e.target.value) })
+                        }
+                        className={`${inputClass} col-span-2`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "indirectos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Equipos operativos
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(sumCostItemsByType(["phone", "radio", "flashlight"]))}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  upsertCostItem(catalogById.get(value)!, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {operationalCatalog
+                  .filter((item) => !findCostItem(item.id)?.isEnabled)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {operationalCatalog
+              .filter((item) => findCostItem(item.id)?.isEnabled)
+              .map((item) => {
+                const costItem = findCostItem(item.id);
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => upsertCostItem(item, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={costItem?.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        upsertCostItem(item, { unitPriceOverride: toNumber(e.target.value) })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "indirectos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Costos de transporte
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(sumCostItemsByType(TRANSPORT_TYPES))}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  upsertCostItem(catalogById.get(value)!, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {transportCatalog
+                  .filter((item) => !findCostItem(item.id)?.isEnabled)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {transportCatalog
+              .filter((item) => findCostItem(item.id)?.isEnabled)
+              .map((item) => {
+                const costItem = findCostItem(item.id);
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => upsertCostItem(item, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={costItem?.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        upsertCostItem(item, { unitPriceOverride: toNumber(e.target.value) })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "indirectos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Vehículos
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(sumCostItemsByType(VEHICLE_TYPES))}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  upsertCostItem(catalogById.get(value)!, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {vehicleCatalog
+                  .filter((item) => !findCostItem(item.id)?.isEnabled)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {vehicleCatalog
+              .filter((item) => findCostItem(item.id)?.isEnabled)
+              .map((item) => {
+                const costItem = findCostItem(item.id);
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => upsertCostItem(item, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={costItem?.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        upsertCostItem(item, { unitPriceOverride: toNumber(e.target.value) })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "indirectos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Infraestructura
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(sumCostItemsByType(INFRA_TYPES))}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  upsertCostItem(catalogById.get(value)!, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {infraCatalog
+                  .filter((item) => !findCostItem(item.id)?.isEnabled)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {infraCatalog
+              .filter((item) => findCostItem(item.id)?.isEnabled)
+              .map((item) => {
+                const costItem = findCostItem(item.id);
+                return (
+                  <div key={item.id} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{item.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(item.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => upsertCostItem(item, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={costItem?.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        upsertCostItem(item, { unitPriceOverride: toNumber(e.target.value) })
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "indirectos" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Sistemas
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(sumCostItemsByType(["system"]))}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  const item = catalogById.get(value);
+                  if (!item) return;
+                  upsertCostItem(item, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {extraItemsCatalog
+                  .filter((item) => !findCostItem(item.id)?.isEnabled)
+                  .map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {otherCostItems
+              .filter((item) => item.isEnabled)
+              .map((item) => {
+                const catalogItem = catalogById.get(item.catalogItemId);
+                if (!catalogItem) return null;
+                return (
+                  <div key={item.catalogItemId} className={`${sectionBoxClass} space-y-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{catalogItem.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Base: {formatCurrency(Number(catalogItem.basePrice))}</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => upsertCostItem(catalogItem, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder="Precio mensual (override)"
+                      value={item.unitPriceOverride ?? ""}
+                      onChange={(e) =>
+                        setCostItems((prev) =>
+                          prev.map((c) =>
+                            c.catalogItemId === item.catalogItemId
+                              ? { ...c, unitPriceOverride: toNumber(e.target.value) }
+                              : c
+                          )
+                        )
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "financieros" && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
+              Costos financieros
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Total: {formatCurrency(sumCostItemsByType(["financial", "policy"]))}
+            </span>
+            <div className="flex items-center gap-2">
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground sm:w-64"
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  const item = catalogById.get(value);
+                  if (!item) return;
+                  upsertCostItem(item, { isEnabled: true });
+                }}
+              >
+                <option value="">Agregar ítem</option>
+                {financialCatalog
+                  .filter((item) => !findCostItem(item.id)?.isEnabled)
+                  .map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {financialCostItems
+              .filter((item) => item.isEnabled)
+              .map((item) => {
+                const catalogItem = catalogById.get(item.catalogItemId);
+                if (!catalogItem) return null;
+                const isPolicy = catalogItem.type === "policy";
+                return (
+                  <div
+                    key={item.catalogItemId}
+                    className={`${sectionBoxClass} space-y-2 ${isPolicy ? "sm:col-span-2 lg:col-span-3" : ""}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs sm:text-sm">{catalogItem.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Tasa base: {Number(catalogItem.basePrice)}%</span>
+                        <button
+                          type="button"
+                          className="rounded-md border border-border px-2 py-1 text-[11px]"
+                          onClick={() => upsertCostItem(catalogItem, { isEnabled: false })}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label className="text-[11px]">Tasa (%)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Override tasa"
+                          value={item.unitPriceOverride ?? ""}
+                          onChange={(e) =>
+                            setCostItems((prev) =>
+                              prev.map((c) =>
+                                c.catalogItemId === item.catalogItemId
+                                  ? { ...c, unitPriceOverride: toNumber(e.target.value) }
+                                  : c
+                              )
+                            )
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                      {isPolicy && (
+                        <>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Meses a considerar</Label>
+                            <Input
+                              type="number"
+                              value={parameters.policyContractMonths}
+                              onChange={(e) =>
+                                setParameters((prev) => ({
+                                  ...prev,
+                                  policyContractMonths: toNumber(e.target.value),
+                                }))
+                              }
+                              className={inputClass}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Porcentaje contrato (%)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={parameters.policyContractPct}
+                              onChange={(e) =>
+                                setParameters((prev) => ({
+                                  ...prev,
+                                  policyContractPct: toNumber(e.target.value),
+                                }))
+                              }
+                              className={inputClass}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+        )}
+
+        {activeSection === "financieros" && (
+        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-2">
+          <h3 className="text-[11px] font-semibold uppercase text-foreground">
+            Margen y parámetros
+          </h3>
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label className="text-[11px]">Margen (%)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={parameters.marginPct}
+                onChange={(e) =>
+                  setParameters((prev) => ({
+                    ...prev,
+                    marginPct: toNumber(e.target.value),
+                  }))
+                }
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Meses contrato</Label>
+              <Input
+                type="number"
+                value={parameters.contractMonths}
+                onChange={(e) =>
+                  setParameters((prev) => ({
+                    ...prev,
+                    contractMonths: toNumber(e.target.value),
+                  }))
+                }
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </div>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Badge variant="outline" className="text-xs">
+          Mobile-first · Los cambios se guardan al presionar "Guardar cambios"
+        </Badge>
+        <Button
+          size="sm"
+          onClick={() => handleSave()}
+          disabled={saving}
+          className="bg-teal-600 hover:bg-teal-700"
+        >
+          {saving ? "Guardando..." : "Guardar cambios"}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
-    <Card className="p-4 space-y-3">
+    <Card className="p-3 sm:p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold">Costos adicionales</h2>
           <p className="text-xs text-muted-foreground">
-            Uniformes, exámenes, alimentación y servicios adicionales.
+            Agrupa por pestañas: directos, indirectos y financieros.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -631,6 +1476,7 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
             <RefreshCw className="h-3 w-3" />
             <span className="hidden sm:inline">Actualizar</span>
           </Button>
+          {!isInline && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-2">
@@ -647,6 +1493,34 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                 <div className="text-sm text-muted-foreground">Cargando...</div>
               ) : (
                 <div className="space-y-4 text-sm">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={activeSection === "directos" ? "default" : "outline"}
+                      className={activeSection === "directos" ? "bg-primary/90" : "bg-transparent"}
+                      onClick={() => setActiveSection("directos")}
+                    >
+                      Directos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={activeSection === "indirectos" ? "default" : "outline"}
+                      className={activeSection === "indirectos" ? "bg-primary/90" : "bg-transparent"}
+                      onClick={() => setActiveSection("indirectos")}
+                    >
+                      Indirectos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={activeSection === "financieros" ? "default" : "outline"}
+                      className={activeSection === "financieros" ? "bg-primary/90" : "bg-transparent"}
+                      onClick={() => setActiveSection("financieros")}
+                    >
+                      Financieros
+                    </Button>
+                  </div>
+
+                  {activeSection === "directos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -742,7 +1616,10 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  
+                  )}
 
+                  {activeSection === "directos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -838,7 +1715,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "directos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -936,7 +1815,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "indirectos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -1000,7 +1881,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "indirectos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -1064,7 +1947,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "indirectos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -1128,7 +2013,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "indirectos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -1192,7 +2079,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "indirectos" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -1265,7 +2154,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "financieros" && (
                   <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xs sm:text-sm font-semibold uppercase text-foreground">
@@ -1378,7 +2269,9 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                         })}
                     </div>
                   </div>
+                  )}
 
+                  {activeSection === "financieros" && (
                   <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-2">
                     <h3 className="text-[11px] font-semibold uppercase text-foreground">
                       Margen y parámetros
@@ -1415,6 +2308,7 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
               )}
 
@@ -1433,8 +2327,11 @@ export function CpqQuoteCosts({ quoteId }: CpqQuoteCostsProps) {
               </div>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       </div>
+
+      {isInline && <div className="space-y-3">{costForm}</div>}
 
       {summary ? (
         <div className="space-y-2">

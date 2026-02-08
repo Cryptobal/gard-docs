@@ -259,19 +259,30 @@ export function CreatePositionModal({ quoteId, onCreated }: CreatePositionModalP
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs sm:text-sm">Días de servicio</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {WEEKDAY_ORDER.map((day) => (
-                    <label key={day} className="flex items-center gap-1.5 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={form.weekdays.includes(day)}
-                        onChange={() => toggleWeekday(day)}
-                      />
-                      {day}
-                    </label>
-                  ))}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs sm:text-sm">Días de servicio</Label>
+                  <span className="text-[10px] text-muted-foreground">Toca para activar</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAY_ORDER.map((day) => {
+                    const active = form.weekdays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWeekday(day)}
+                        aria-pressed={active}
+                        className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                          active
+                            ? "border-blue-400/70 bg-blue-600/20 text-blue-100"
+                            : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
