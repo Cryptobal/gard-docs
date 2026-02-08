@@ -53,11 +53,11 @@ export function CreateQuoteModal({ onCreated }: CreateQuoteModalProps) {
           <span className="hidden sm:inline">Nueva Cotización</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="left-0 top-0 w-screen max-w-none h-[100dvh] max-h-[100dvh] translate-x-0 translate-y-0 rounded-none overflow-y-auto p-4 sm:p-6 sm:left-[50%] sm:top-[50%] sm:w-full sm:max-w-md sm:h-auto sm:max-h-[90vh] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg">
+      <DialogContent className="left-0 top-0 w-screen max-w-none h-screen max-h-screen h-[100svh] max-h-[100svh] h-[100dvh] max-h-[100dvh] translate-x-0 translate-y-0 rounded-none overflow-hidden flex flex-col px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:left-[50%] sm:top-[50%] sm:w-full sm:max-w-md sm:h-auto sm:max-h-[90vh] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:p-6">
         <DialogHeader>
           <DialogTitle>Nueva Cotización</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="flex-1 min-h-0 space-y-3 overflow-y-auto pb-24 sm:pb-0">
           <div className="space-y-1">
             <Label className="text-xs sm:text-sm">Cliente</Label>
             <Input
