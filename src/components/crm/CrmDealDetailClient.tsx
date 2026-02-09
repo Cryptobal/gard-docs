@@ -19,9 +19,58 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, ExternalLink, Trash2, TrendingUp, FileText, Mail, Users, ChevronRight } from "lucide-react";
 import { EmailHistoryList } from "@/components/crm/EmailHistoryList";
+import { ContractEditor } from "@/components/docs/ContractEditor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/opai/EmptyState";
 import { toast } from "sonner";
+
+/** Convierte Tiptap JSON a HTML para email */
+function tiptapToEmailHtml(doc: any): string {
+  if (!doc || !doc.content) return "";
+  const renderNode = (node: any): string => {
+    if (!node) return "";
+    switch (node.type) {
+      case "doc":
+        return (node.content || []).map(renderNode).join("");
+      case "paragraph": {
+        const style = node.attrs?.textAlign ? `text-align:${node.attrs.textAlign};` : "";
+        const inner = (node.content || []).map(renderNode).join("");
+        return inner ? `<p style="margin:0 0 8px;${style}">${inner}</p>` : `<p style="margin:0 0 8px;">&nbsp;</p>`;
+      }
+      case "heading": {
+        const lvl = node.attrs?.level || 2;
+        const inner = (node.content || []).map(renderNode).join("");
+        return `<h${lvl} style="margin:0 0 8px;">${inner}</h${lvl}>`;
+      }
+      case "bulletList":
+        return `<ul style="margin:0 0 8px;padding-left:24px;">${(node.content || []).map(renderNode).join("")}</ul>`;
+      case "orderedList":
+        return `<ol style="margin:0 0 8px;padding-left:24px;">${(node.content || []).map(renderNode).join("")}</ol>`;
+      case "listItem":
+        return `<li style="margin:0 0 4px;">${(node.content || []).map(renderNode).join("")}</li>`;
+      case "text": {
+        let text = (node.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        for (const mark of node.marks || []) {
+          switch (mark.type) {
+            case "bold": text = `<strong>${text}</strong>`; break;
+            case "italic": text = `<em>${text}</em>`; break;
+            case "underline": text = `<u>${text}</u>`; break;
+            case "strike": text = `<s>${text}</s>`; break;
+            case "link": text = `<a href="${mark.attrs?.href || "#"}" style="color:#0059A3;text-decoration:underline;">${text}</a>`; break;
+            case "textStyle": if (mark.attrs?.color) text = `<span style="color:${mark.attrs.color}">${text}</span>`; break;
+          }
+        }
+        return text;
+      }
+      case "hardBreak": return "<br/>";
+      case "horizontalRule": return `<hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;"/>`;
+      case "blockquote": return `<blockquote style="border-left:3px solid #e5e7eb;padding-left:12px;margin:8px 0;color:#666;">${(node.content || []).map(renderNode).join("")}</blockquote>`;
+      case "contractToken": return `{{${node.attrs?.tokenKey || ""}}}`;
+      default: return (node.content || []).map(renderNode).join("");
+    }
+  };
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;line-height:1.6;">${renderNode(doc)}</div>`;
+}
 
 type QuoteOption = {
   id: string;
@@ -89,11 +138,29 @@ export function CrmDealDetailClient({
   const [emailOpen, setEmailOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [emailTo, setEmailTo] = useState(deal.primaryContact?.email || "");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [showCcBcc, setShowCcBcc] = useState(false);
   const [emailSubject, setEmailSubject] = useState(
     `Propuesta para ${deal.account?.name || "cliente"}`
   );
   const [emailBody, setEmailBody] = useState("");
+  const [emailTiptapContent, setEmailTiptapContent] = useState<any>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [signatureHtml, setSignatureHtml] = useState<string | null>(null);
+
+  // Cargar firma
+  useEffect(() => {
+    fetch("/api/crm/signatures?mine=true")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.data?.length > 0) {
+          const sig = data.data.find((s: any) => s.isDefault) || data.data[0];
+          if (sig?.htmlContent) setSignatureHtml(sig.htmlContent);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const router = useRouter();
 
@@ -173,6 +240,12 @@ export function CrmDealDetailClient({
     }
   };
 
+  const handleTiptapChange = useCallback((content: any) => {
+    setEmailTiptapContent(content);
+    // Convertir Tiptap JSON a HTML
+    setEmailBody(tiptapToEmailHtml(content));
+  }, []);
+
   const sendEmail = async () => {
     if (!gmailConnected) {
       toast.error("Conecta Gmail antes de enviar.");
@@ -184,14 +257,20 @@ export function CrmDealDetailClient({
     }
     setSending(true);
     try {
+      const cc = emailCc.split(",").map((s) => s.trim()).filter(Boolean);
+      const bcc = emailBcc.split(",").map((s) => s.trim()).filter(Boolean);
       const response = await fetch("/api/crm/gmail/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: emailTo,
+          cc,
+          bcc,
           subject: emailSubject,
           html: emailBody,
           dealId: deal.id,
+          accountId: deal.account?.id,
+          contactId: deal.primaryContactId,
         }),
       });
       const payload = await response.json();
@@ -200,6 +279,10 @@ export function CrmDealDetailClient({
       }
       setEmailOpen(false);
       setEmailBody("");
+      setEmailTiptapContent(null);
+      setEmailCc("");
+      setEmailBcc("");
+      setShowCcBcc(false);
       toast.success("Correo enviado exitosamente");
     } catch (error) {
       console.error(error);
@@ -440,7 +523,7 @@ export function CrmDealDetailClient({
                     Enviar correo
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Enviar correo</DialogTitle>
                     <DialogDescription>
@@ -448,8 +531,9 @@ export function CrmDealDetailClient({
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label>Template</Label>
+                    {/* Template */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Template</Label>
                       <select
                         className={selectClassName}
                         value={selectedTemplateId}
@@ -464,36 +548,88 @@ export function CrmDealDetailClient({
                         ))}
                       </select>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Para</Label>
-                        <input
-                          value={emailTo}
-                          onChange={(event) => setEmailTo(event.target.value)}
-                          className={`h-9 w-full rounded-md border px-3 text-sm ${inputClassName}`}
-                          placeholder="correo@cliente.com"
-                          disabled={sending}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Asunto</Label>
-                        <input
-                          value={emailSubject}
-                          onChange={(event) => setEmailSubject(event.target.value)}
-                          className={`h-9 w-full rounded-md border px-3 text-sm ${inputClassName}`}
-                          placeholder="Asunto del correo"
-                          disabled={sending}
-                        />
-                      </div>
-                    </div>
+
+                    {/* Para + CC/BCC */}
                     <div className="space-y-2">
-                      <Label>Mensaje</Label>
-                      <EmailComposer
-                        value={emailBody}
-                        onChange={setEmailBody}
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Para</Label>
+                        {!showCcBcc && (
+                          <button
+                            type="button"
+                            onClick={() => setShowCcBcc(true)}
+                            className="text-[11px] text-primary hover:underline"
+                          >
+                            CC / BCC
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        value={emailTo}
+                        onChange={(event) => setEmailTo(event.target.value)}
+                        className={`h-9 w-full rounded-md border px-3 text-sm ${inputClassName}`}
+                        placeholder="correo@cliente.com"
                         disabled={sending}
                       />
                     </div>
+
+                    {showCcBcc && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">CC (separados por coma)</Label>
+                          <input
+                            value={emailCc}
+                            onChange={(e) => setEmailCc(e.target.value)}
+                            className={`h-9 w-full rounded-md border px-3 text-sm ${inputClassName}`}
+                            placeholder="copia@empresa.com"
+                            disabled={sending}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">BCC (copia oculta)</Label>
+                          <input
+                            value={emailBcc}
+                            onChange={(e) => setEmailBcc(e.target.value)}
+                            className={`h-9 w-full rounded-md border px-3 text-sm ${inputClassName}`}
+                            placeholder="oculto@empresa.com"
+                            disabled={sending}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Asunto */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Asunto</Label>
+                      <input
+                        value={emailSubject}
+                        onChange={(event) => setEmailSubject(event.target.value)}
+                        className={`h-9 w-full rounded-md border px-3 text-sm ${inputClassName}`}
+                        placeholder="Asunto del correo"
+                        disabled={sending}
+                      />
+                    </div>
+
+                    {/* Editor Tiptap */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Mensaje</Label>
+                      <ContractEditor
+                        content={emailTiptapContent}
+                        onChange={handleTiptapChange}
+                        editable={!sending}
+                        placeholder="Escribe tu mensaje aquí..."
+                        filterModules={["system"]}
+                      />
+                    </div>
+
+                    {/* Firma preview */}
+                    {signatureHtml && (
+                      <div className="rounded-md border border-border/50 bg-muted/20 p-3">
+                        <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider font-medium">
+                          Firma (se agrega automáticamente)
+                        </p>
+                        <div className="text-xs opacity-70" dangerouslySetInnerHTML={{ __html: signatureHtml }} />
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setEmailOpen(false)}>
@@ -585,56 +721,3 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
-/** Mini editor rich-text para componer emails */
-function EmailComposer({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: string;
-  onChange: (html: string) => void;
-  disabled?: boolean;
-}) {
-  const [signatureHtml, setSignatureHtml] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/crm/signatures?mine=true")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success && data.data?.length > 0) {
-          const defaultSig = data.data.find((s: any) => s.isDefault) || data.data[0];
-          if (defaultSig?.htmlContent) {
-            setSignatureHtml(defaultSig.htmlContent);
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  return (
-    <div className="space-y-3">
-      <div
-        className="min-h-[200px] w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus-within:ring-1 focus-within:ring-ring"
-      >
-        <div
-          contentEditable={!disabled}
-          suppressContentEditableWarning
-          className="min-h-[160px] outline-none prose prose-sm prose-invert max-w-none"
-          onInput={(e) => {
-            onChange((e.target as HTMLDivElement).innerHTML);
-          }}
-          dangerouslySetInnerHTML={{ __html: value || "" }}
-        />
-      </div>
-      {signatureHtml && (
-        <div className="rounded-md border border-border/50 bg-muted/20 p-3">
-          <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider font-medium">Firma (se agrega automáticamente)</p>
-          <div
-            className="text-xs opacity-70"
-            dangerouslySetInnerHTML={{ __html: signatureHtml }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}

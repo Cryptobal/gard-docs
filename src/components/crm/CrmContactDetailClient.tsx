@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +33,43 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { EmailHistoryList } from "@/components/crm/EmailHistoryList";
+import { ContractEditor } from "@/components/docs/ContractEditor";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+/** Convierte Tiptap JSON a HTML para email */
+function tiptapToEmailHtml(doc: any): string {
+  if (!doc || !doc.content) return "";
+  const renderNode = (node: any): string => {
+    if (!node) return "";
+    switch (node.type) {
+      case "doc": return (node.content || []).map(renderNode).join("");
+      case "paragraph": {
+        const inner = (node.content || []).map(renderNode).join("");
+        return inner ? `<p style="margin:0 0 8px;">${inner}</p>` : `<p style="margin:0 0 8px;">&nbsp;</p>`;
+      }
+      case "heading": { const lvl = node.attrs?.level || 2; return `<h${lvl} style="margin:0 0 8px;">${(node.content || []).map(renderNode).join("")}</h${lvl}>`; }
+      case "bulletList": return `<ul style="margin:0 0 8px;padding-left:24px;">${(node.content || []).map(renderNode).join("")}</ul>`;
+      case "orderedList": return `<ol style="margin:0 0 8px;padding-left:24px;">${(node.content || []).map(renderNode).join("")}</ol>`;
+      case "listItem": return `<li style="margin:0 0 4px;">${(node.content || []).map(renderNode).join("")}</li>`;
+      case "text": {
+        let text = (node.text || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        for (const mark of node.marks || []) {
+          switch (mark.type) {
+            case "bold": text = `<strong>${text}</strong>`; break;
+            case "italic": text = `<em>${text}</em>`; break;
+            case "underline": text = `<u>${text}</u>`; break;
+            case "link": text = `<a href="${mark.attrs?.href || "#"}" style="color:#0059A3;">${text}</a>`; break;
+          }
+        }
+        return text;
+      }
+      case "hardBreak": return "<br/>";
+      default: return (node.content || []).map(renderNode).join("");
+    }
+  };
+  return `<div style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;">${renderNode(doc)}</div>`;
+}
 
 type DealRow = {
   id: string;
@@ -104,6 +139,10 @@ export function CrmContactDetailClient({
   const [sending, setSending] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailTiptapContent, setEmailTiptapContent] = useState<any>(null);
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [showCcBcc, setShowCcBcc] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [signatureHtml, setSignatureHtml] = useState<string | null>(null);
 
@@ -139,16 +178,25 @@ export function CrmContactDetailClient({
     setEmailBody(applyPlaceholders(tpl.body));
   };
 
+  const handleTiptapChange = useCallback((content: any) => {
+    setEmailTiptapContent(content);
+    setEmailBody(tiptapToEmailHtml(content));
+  }, []);
+
   const sendEmail = async () => {
     if (!contact.email) { toast.error("El contacto no tiene email."); return; }
     if (!emailSubject) { toast.error("Escribe un asunto."); return; }
     setSending(true);
     try {
+      const cc = emailCc.split(",").map((s) => s.trim()).filter(Boolean);
+      const bcc = emailBcc.split(",").map((s) => s.trim()).filter(Boolean);
       const res = await fetch("/api/crm/gmail/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: contact.email,
+          cc,
+          bcc,
           subject: emailSubject,
           html: emailBody,
           contactId: contact.id,
@@ -159,7 +207,11 @@ export function CrmContactDetailClient({
       if (!res.ok) throw new Error(data?.error || "Error enviando email");
       setEmailOpen(false);
       setEmailBody("");
+      setEmailTiptapContent(null);
       setEmailSubject("");
+      setEmailCc("");
+      setEmailBcc("");
+      setShowCcBcc(false);
       setSelectedTemplateId("");
       toast.success("Correo enviado exitosamente");
     } catch (error) {
@@ -480,7 +532,7 @@ export function CrmContactDetailClient({
 
       {/* ── Email Compose Modal ── */}
       <Dialog open={emailOpen} onOpenChange={setEmailOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Enviar correo a {contact.firstName}</DialogTitle>
             <DialogDescription>
@@ -488,8 +540,9 @@ export function CrmContactDetailClient({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-2">
-              <Label>Template</Label>
+            {/* Template */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Template</Label>
               <select
                 className={selectCn}
                 value={selectedTemplateId}
@@ -502,41 +555,79 @@ export function CrmContactDetailClient({
                 ))}
               </select>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Para</Label>
-                <input
-                  value={contact.email || ""}
-                  disabled
-                  className={`h-9 w-full rounded-md border px-3 text-sm ${inputCn} opacity-70`}
-                />
+
+            {/* Para + CC/BCC toggle */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Para</Label>
+                {!showCcBcc && (
+                  <button type="button" onClick={() => setShowCcBcc(true)} className="text-[11px] text-primary hover:underline">
+                    CC / BCC
+                  </button>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label>Asunto</Label>
-                <input
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  className={`h-9 w-full rounded-md border px-3 text-sm ${inputCn}`}
-                  placeholder="Asunto del correo"
-                  disabled={sending}
-                />
-              </div>
+              <input
+                value={contact.email || ""}
+                disabled
+                className={`h-9 w-full rounded-md border px-3 text-sm ${inputCn} opacity-70`}
+              />
             </div>
-            <div className="space-y-2">
-              <Label>Mensaje</Label>
-              <div className="min-h-[200px] w-full rounded-md border border-input bg-background px-4 py-3 text-sm text-foreground focus-within:ring-1 focus-within:ring-ring">
-                <div
-                  contentEditable={!sending}
-                  suppressContentEditableWarning
-                  className="min-h-[160px] outline-none prose prose-sm prose-invert max-w-none"
-                  onInput={(e) => setEmailBody((e.target as HTMLDivElement).innerHTML)}
-                  dangerouslySetInnerHTML={{ __html: emailBody || "" }}
-                />
+
+            {showCcBcc && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">CC (separados por coma)</Label>
+                  <input
+                    value={emailCc}
+                    onChange={(e) => setEmailCc(e.target.value)}
+                    className={`h-9 w-full rounded-md border px-3 text-sm ${inputCn}`}
+                    placeholder="copia@empresa.com"
+                    disabled={sending}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">BCC (copia oculta)</Label>
+                  <input
+                    value={emailBcc}
+                    onChange={(e) => setEmailBcc(e.target.value)}
+                    className={`h-9 w-full rounded-md border px-3 text-sm ${inputCn}`}
+                    placeholder="oculto@empresa.com"
+                    disabled={sending}
+                  />
+                </div>
               </div>
+            )}
+
+            {/* Asunto */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Asunto</Label>
+              <input
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                className={`h-9 w-full rounded-md border px-3 text-sm ${inputCn}`}
+                placeholder="Asunto del correo"
+                disabled={sending}
+              />
             </div>
+
+            {/* Editor Tiptap */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Mensaje</Label>
+              <ContractEditor
+                content={emailTiptapContent}
+                onChange={handleTiptapChange}
+                editable={!sending}
+                placeholder="Escribe tu mensaje aquí..."
+                filterModules={["system"]}
+              />
+            </div>
+
+            {/* Firma preview */}
             {signatureHtml && (
               <div className="rounded-md border border-border/50 bg-muted/20 p-3">
-                <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider font-medium">Firma (se agrega automáticamente)</p>
+                <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider font-medium">
+                  Firma (se agrega automáticamente)
+                </p>
                 <div className="text-xs opacity-70" dangerouslySetInnerHTML={{ __html: signatureHtml }} />
               </div>
             )}
