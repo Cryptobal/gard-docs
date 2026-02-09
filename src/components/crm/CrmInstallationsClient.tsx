@@ -16,6 +16,7 @@ import {
 import { AddressAutocomplete, type AddressResult } from "@/components/ui/AddressAutocomplete";
 import { Plus, Pencil, MapPin, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type InstallationRow = {
   id: string;
@@ -138,14 +139,16 @@ export function CrmInstallationsClient({
     }
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+
   const deleteInstallation = async (id: string) => {
-    if (!confirm("¿Eliminar esta instalación?")) return;
     try {
       const response = await fetch(`/api/crm/installations/${id}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error();
       setInstallations((prev) => prev.filter((i) => i.id !== id));
+      setDeleteConfirm({ open: false, id: "" });
       toast.success("Instalación eliminada");
     } catch {
       toast.error("No se pudo eliminar.");
@@ -196,7 +199,7 @@ export function CrmInstallationsClient({
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(inst)}>
                   <Pencil className="h-3 w-3" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteInstallation(inst.id)}>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteConfirm({ open: true, id: inst.id })}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
@@ -289,6 +292,14 @@ export function CrmInstallationsClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
+        title="Eliminar instalación"
+        description="La instalación será eliminada permanentemente. Esta acción no se puede deshacer."
+        onConfirm={() => deleteInstallation(deleteConfirm.id)}
+      />
     </>
   );
 }

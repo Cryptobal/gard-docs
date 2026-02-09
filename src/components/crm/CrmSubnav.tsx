@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { CrmGlobalSearch } from "./CrmGlobalSearch";
 
 export const CRM_NAV_ITEMS = [
   { href: "/crm/leads", label: "Leads" },
@@ -16,10 +17,10 @@ export const CRM_NAV_ITEMS = [
 ];
 
 /**
- * CrmSubnav - Navegación de módulos CRM.
+ * CrmSubnav - Navegación de módulos CRM con buscador global.
  *
- * Desktop: pills horizontales con scroll.
- * Móvil: dropdown compacto que muestra el módulo activo.
+ * Desktop: pills horizontales + search a la derecha.
+ * Móvil: search + dropdown compacto.
  */
 export function CrmSubnav({ className }: { className?: string }) {
   const pathname = usePathname();
@@ -43,10 +44,15 @@ export function CrmSubnav({ className }: { className?: string }) {
   }, [open]);
 
   return (
-    <nav className={cn("mb-6", className)}>
-      {/* Desktop: pills horizontales */}
-      <div className="hidden sm:block -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+    <nav className={cn("mb-6 space-y-3", className)}>
+      {/* Móvil: search arriba */}
+      <div className="sm:hidden">
+        <CrmGlobalSearch />
+      </div>
+
+      {/* Desktop: pills + search en la misma línea */}
+      <div className="hidden sm:flex sm:items-center sm:gap-3">
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
           {CRM_NAV_ITEMS.map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + "/");
@@ -66,6 +72,7 @@ export function CrmSubnav({ className }: { className?: string }) {
             );
           })}
         </div>
+        <CrmGlobalSearch className="w-64 shrink-0" />
       </div>
 
       {/* Móvil: dropdown compacto */}

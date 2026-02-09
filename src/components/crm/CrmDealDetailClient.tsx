@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, ExternalLink, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 type QuoteOption = {
@@ -89,8 +90,9 @@ export function CrmDealDetailClient({
 
   const router = useRouter();
 
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
   const deleteDeal = async () => {
-    if (!confirm("¿Eliminar este negocio? Se eliminarán las cotizaciones vinculadas y el historial.")) return;
     try {
       const res = await fetch(`/api/crm/deals/${deal.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
@@ -209,7 +211,7 @@ export function CrmDealDetailClient({
             size="sm"
             variant="outline"
             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={deleteDeal}
+            onClick={() => setDeleteConfirm(true)}
           >
             <Trash2 className="h-3.5 w-3.5 mr-1" />
             Eliminar negocio
@@ -456,6 +458,14 @@ export function CrmDealDetailClient({
           ))}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirm}
+        onOpenChange={setDeleteConfirm}
+        title="Eliminar negocio"
+        description="Se eliminarán las cotizaciones vinculadas y el historial. Esta acción no se puede deshacer."
+        onConfirm={deleteDeal}
+      />
     </div>
   );
 }

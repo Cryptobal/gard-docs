@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import { Loader2, Plus, Building2, Users, ChevronRight, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 type AccountFormState = {
@@ -91,12 +92,14 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+
   const deleteAccount = async (id: string) => {
-    if (!confirm("¿Eliminar esta cuenta? Se eliminarán también contactos, negocios e instalaciones asociados.")) return;
     try {
       const res = await fetch(`/api/crm/accounts/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setAccounts((prev) => prev.filter((a) => a.id !== id));
+      setDeleteConfirm({ open: false, id: "" });
       toast.success("Cuenta eliminada");
     } catch {
       toast.error("No se pudo eliminar");
@@ -346,7 +349,7 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => deleteAccount(account.id)}
+                  onClick={() => setDeleteConfirm({ open: true, id: account.id })}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -355,6 +358,14 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
           ))}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
+        title="Eliminar cuenta"
+        description="Se eliminarán también contactos, negocios e instalaciones asociados. Esta acción no se puede deshacer."
+        onConfirm={() => deleteAccount(deleteConfirm.id)}
+      />
     </div>
   );
 }

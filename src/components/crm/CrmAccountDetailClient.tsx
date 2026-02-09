@@ -31,6 +31,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type ContactRow = {
   id: string;
@@ -126,8 +127,10 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
     }
   };
 
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false);
+  const [deleteContactConfirm, setDeleteContactConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+
   const deleteAccount = async () => {
-    if (!confirm("¿Eliminar esta cuenta? Se eliminarán también contactos, negocios e instalaciones asociados.")) return;
     try {
       const res = await fetch(`/api/crm/accounts/${account.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
@@ -139,7 +142,6 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
   };
 
   const deleteContact = async (id: string) => {
-    if (!confirm("¿Eliminar este contacto?")) return;
     try {
       const res = await fetch(`/api/crm/contacts/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
@@ -148,6 +150,7 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
         contacts: prev.contacts.filter((c) => c.id !== id),
         _count: { ...prev._count, contacts: prev._count.contacts - 1 },
       }));
+      setDeleteContactConfirm({ open: false, id: "" });
       toast.success("Contacto eliminado");
     } catch {
       toast.error("No se pudo eliminar");
@@ -199,7 +202,7 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
                 size="sm"
                 variant="outline"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={deleteAccount}
+                onClick={() => setDeleteAccountConfirm(true)}
               >
                 <Trash2 className="h-3.5 w-3.5 mr-1" />
                 Eliminar cuenta
@@ -321,7 +324,7 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openContactEdit(contact)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteContact(contact.id)}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteContactConfirm({ open: true, id: contact.id })}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -445,6 +448,21 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={deleteAccountConfirm}
+        onOpenChange={setDeleteAccountConfirm}
+        title="Eliminar cuenta"
+        description="Se eliminarán también contactos, negocios e instalaciones asociados. Esta acción no se puede deshacer."
+        onConfirm={deleteAccount}
+      />
+      <ConfirmDialog
+        open={deleteContactConfirm.open}
+        onOpenChange={(v) => setDeleteContactConfirm({ ...deleteContactConfirm, open: v })}
+        title="Eliminar contacto"
+        description="El contacto será eliminado permanentemente. Esta acción no se puede deshacer."
+        onConfirm={() => deleteContact(deleteContactConfirm.id)}
+      />
     </div>
   );
 }

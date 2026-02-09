@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export type InstallationRow = {
   id: string;
@@ -19,7 +23,22 @@ export function CrmInstallationsListClient({
 }: {
   initialInstallations: InstallationRow[];
 }) {
-  if (initialInstallations.length === 0) {
+  const [installations, setInstallations] = useState<InstallationRow[]>(initialInstallations);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+
+  const deleteInstallation = async (id: string) => {
+    try {
+      const res = await fetch(`/api/crm/installations/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setInstallations((prev) => prev.filter((i) => i.id !== id));
+      setDeleteConfirm({ open: false, id: "" });
+      toast.success("Instalación eliminada");
+    } catch {
+      toast.error("No se pudo eliminar");
+    }
+  };
+
+  if (installations.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
         <MapPin className="mx-auto h-10 w-10 opacity-50" />
@@ -30,15 +49,17 @@ export function CrmInstallationsListClient({
   }
 
   return (
-    <div className="space-y-2">
-      {initialInstallations.map((inst) => (
-        <Link
-          key={inst.id}
-          href={`/crm/installations/${inst.id}`}
-          className="block rounded-lg border p-3 transition-colors hover:bg-accent/30"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
+    <>
+      <div className="space-y-2">
+        {installations.map((inst) => (
+          <div
+            key={inst.id}
+            className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent/30"
+          >
+            <Link
+              href={`/crm/installations/${inst.id}`}
+              className="flex-1 min-w-0"
+            >
               <p className="font-medium text-sm truncate">{inst.name}</p>
               {inst.account && (
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -56,10 +77,26 @@ export function CrmInstallationsListClient({
                   {[inst.commune, inst.city].filter(Boolean).join(", ")}
                 </p>
               )}
-            </div>
+            </Link>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+              onClick={() => setDeleteConfirm({ open: true, id: inst.id })}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
-        </Link>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
+        title="Eliminar instalación"
+        description="La instalación será eliminada permanentemente. Esta acción no se puede deshacer."
+        onConfirm={() => deleteInstallation(deleteConfirm.id)}
+      />
+    </>
   );
 }

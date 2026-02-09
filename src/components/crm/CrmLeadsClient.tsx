@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { CrmLead } from "@/types";
 import { Plus, Loader2, CheckCircle2, Clock, XCircle, AlertTriangle, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 /* ─── Form types ─── */
@@ -246,12 +247,14 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
     return parts.length > 0 ? parts.join(" ") : "Sin contacto";
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+
   const deleteLead = async (id: string) => {
-    if (!confirm("¿Eliminar este prospecto? Se desvincularán las instalaciones asociadas.")) return;
     try {
       const res = await fetch(`/api/crm/leads/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       setLeads((prev) => prev.filter((l) => l.id !== id));
+      setDeleteConfirm({ open: false, id: "" });
       toast.success("Prospecto eliminado");
     } catch {
       toast.error("No se pudo eliminar");
@@ -591,10 +594,11 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}
+                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ open: true, id: lead.id }); }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                </div>
                 </div>
 
                 {/* Dotación summary */}
@@ -676,7 +680,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => deleteLead(lead.id)}
+                  onClick={() => setDeleteConfirm({ open: true, id: lead.id })}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -685,6 +689,14 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
           ))}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
+        title="Eliminar prospecto"
+        description="Se desvincularán las instalaciones asociadas. Esta acción no se puede deshacer."
+        onConfirm={() => deleteLead(deleteConfirm.id)}
+      />
     </div>
   );
 }

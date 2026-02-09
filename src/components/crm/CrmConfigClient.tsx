@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type PipelineStage = {
   id: string;
@@ -134,6 +135,8 @@ export function CrmConfigClient({
     options: "",
     urlLabel: "",
   });
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; type: "industry" | "stage" | "field" }>({ open: false, id: "", type: "industry" });
 
   // Campos del sistema ocultos: key = "entity:fieldName"
   const [hiddenSystemFields, setHiddenSystemFields] = useState<Set<string>>(new Set());
@@ -263,7 +266,6 @@ export function CrmConfigClient({
   };
 
   const deleteIndustry = async (id: string) => {
-    if (!window.confirm("¿Desactivar esta industria?")) return;
     setLoadingId(id);
     try {
       await fetch(`/api/crm/industries/${id}`, { method: "DELETE" });
@@ -332,7 +334,6 @@ export function CrmConfigClient({
   };
 
   const deleteStage = async (stageId: string) => {
-    if (!window.confirm("¿Desactivar esta etapa?")) return;
     setLoadingId(stageId);
     try {
       const response = await fetch(`/api/crm/pipeline/${stageId}`, { method: "DELETE" });
@@ -414,7 +415,6 @@ export function CrmConfigClient({
   };
 
   const deleteField = async (fieldId: string) => {
-    if (!window.confirm("¿Eliminar este campo personalizado?")) return;
     setLoadingId(fieldId);
     try {
       const response = await fetch(`/api/crm/custom-fields/${fieldId}`, { method: "DELETE" });
@@ -615,7 +615,7 @@ export function CrmConfigClient({
                 <Button size="sm" variant="secondary" onClick={() => saveStage(stage)} disabled={loadingId === stage.id}>
                   Guardar
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => deleteStage(stage.id)} disabled={loadingId === stage.id}>
+                <Button size="sm" variant="outline" onClick={() => setDeleteConfirm({ open: true, id: stage.id, type: "stage" })} disabled={loadingId === stage.id}>
                   Desactivar
                 </Button>
               </div>
@@ -836,7 +836,7 @@ export function CrmConfigClient({
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => deleteField(field.id)}
+                          onClick={() => setDeleteConfirm({ open: true, id: field.id, type: "field" })}
                           disabled={loadingId === field.id}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -988,7 +988,7 @@ export function CrmConfigClient({
                           size="sm"
                           variant="ghost"
                           className="h-7 px-2 text-destructive hover:text-destructive"
-                          onClick={() => deleteIndustry(ind.id)}
+                          onClick={() => setDeleteConfirm({ open: true, id: ind.id, type: "industry" })}
                           disabled={loadingId === ind.id}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1001,6 +1001,31 @@ export function CrmConfigClient({
           </CardContent>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
+        title={
+          deleteConfirm.type === "industry"
+            ? "Desactivar industria"
+            : deleteConfirm.type === "stage"
+            ? "Desactivar etapa"
+            : "Eliminar campo personalizado"
+        }
+        description={
+          deleteConfirm.type === "field"
+            ? "El campo será eliminado permanentemente. Esta acción no se puede deshacer."
+            : "El elemento será desactivado. Esta acción no se puede deshacer."
+        }
+        confirmLabel={deleteConfirm.type === "field" ? "Eliminar" : "Desactivar"}
+        onConfirm={() => {
+          const { id, type } = deleteConfirm;
+          setDeleteConfirm({ open: false, id: "", type: "industry" });
+          if (type === "industry") deleteIndustry(id);
+          else if (type === "stage") deleteStage(id);
+          else deleteField(id);
+        }}
+      />
     </div>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Building2, ExternalLink, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -29,8 +31,9 @@ export function CrmInstallationDetailClient({
   const router = useRouter();
   const hasCoords = installation.lat != null && installation.lng != null;
 
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
   const deleteInstallation = async () => {
-    if (!confirm("¿Eliminar esta instalación?")) return;
     try {
       const res = await fetch(`/api/crm/installations/${installation.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
@@ -102,7 +105,7 @@ export function CrmInstallationDetailClient({
               size="sm"
               variant="outline"
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={deleteInstallation}
+              onClick={() => setDeleteConfirm(true)}
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" />
               Eliminar
@@ -147,6 +150,14 @@ export function CrmInstallationDetailClient({
           </Card>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirm}
+        onOpenChange={setDeleteConfirm}
+        title="Eliminar instalación"
+        description="La instalación será eliminada permanentemente. Esta acción no se puede deshacer."
+        onConfirm={deleteInstallation}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Loader2, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 type ContactRow = {
@@ -135,12 +136,14 @@ export function CrmContactsClient({
     setEditOpen(true);
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+
   const deleteContact = async (id: string) => {
-    if (!confirm("¿Eliminar este contacto?")) return;
     try {
       const response = await fetch(`/api/crm/contacts/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error();
       setContacts((prev) => prev.filter((c) => c.id !== id));
+      setDeleteConfirm({ open: false, id: "" });
       setEditOpen(false);
       setEditingId(null);
       toast.success("Contacto eliminado");
@@ -397,7 +400,7 @@ export function CrmContactsClient({
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => deleteContact(contact.id)}
+                  onClick={() => setDeleteConfirm({ open: true, id: contact.id })}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -406,6 +409,14 @@ export function CrmContactsClient({
           ))}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
+        title="Eliminar contacto"
+        description="El contacto será eliminado permanentemente. Esta acción no se puede deshacer."
+        onConfirm={() => deleteContact(deleteConfirm.id)}
+      />
     </div>
   );
 }
