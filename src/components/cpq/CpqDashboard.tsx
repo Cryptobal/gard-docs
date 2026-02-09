@@ -69,7 +69,7 @@ export function CpqDashboard({ initialQuotes }: CpqDashboardProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <PageHeader title="CPQ" description="Cotizador de servicios de seguridad" />
         <div className="flex items-center gap-2">
-          <CreateQuoteModal onCreated={refresh} />
+          <CreateQuoteModal onCreated={refresh} variant="quick" />
           <Link href="/cpq/config">
             <Button variant="outline" size="sm" className="gap-2 bg-slate-800/50 border-slate-600 text-slate-200 hover:bg-slate-700/50 hover:text-white">
               <Settings className="h-4 w-4" />
