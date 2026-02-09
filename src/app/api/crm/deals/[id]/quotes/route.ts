@@ -11,14 +11,15 @@ import { getDefaultTenantId } from "@/lib/tenant";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
     const tenantId = session?.user?.tenantId ?? (await getDefaultTenantId());
+    const { id } = await params;
 
     const links = await prisma.crmDealQuote.findMany({
-      where: { tenantId, dealId: params.id },
+      where: { tenantId, dealId: id },
       orderBy: { createdAt: "desc" },
     });
 
@@ -34,11 +35,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
     const tenantId = session?.user?.tenantId ?? (await getDefaultTenantId());
+    const { id } = await params;
     const body = await request.json();
 
     if (!body?.quoteId) {
@@ -51,7 +53,7 @@ export async function POST(
     const link = await prisma.crmDealQuote.create({
       data: {
         tenantId,
-        dealId: params.id,
+        dealId: id,
         quoteId: body.quoteId,
       },
     });
@@ -60,7 +62,7 @@ export async function POST(
       data: {
         tenantId,
         entityType: "deal",
-        entityId: params.id,
+        entityId: id,
         action: "deal_quote_linked",
         details: { quoteId: body.quoteId },
         createdBy: session?.user?.id || null,
