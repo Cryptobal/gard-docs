@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { revokeInvitation } from '@/app/(app)/opai/actions/users';
 import { X } from 'lucide-react';
@@ -75,7 +76,6 @@ export default function InvitationsTable({ invitations }: Props) {
                 size="sm"
                 onClick={() => handleRevoke(inv.id)}
                 disabled={loading === inv.id}
-                className="border-border bg-muted text-foreground"
               >
                 <X className="w-4 h-4 mr-1" />
                 Revocar
@@ -107,16 +107,14 @@ export default function InvitationsTable({ invitations }: Props) {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800">
+        <tbody className="divide-y divide-border">
           {invitations.map((inv) => (
             <tr key={inv.id} className="hover:bg-muted/50 transition-colors">
               <td className="px-6 py-4 font-medium text-foreground">
                 {inv.email}
               </td>
               <td className="px-6 py-4">
-                <span className="bg-amber-600 text-foreground text-xs px-2.5 py-1 rounded-full font-medium">
-                  {getRoleLabel(inv.role)}
-                </span>
+                <Badge variant="warning">{getRoleLabel(inv.role)}</Badge>
               </td>
               <td className="px-6 py-4 text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(inv.createdAt), {
@@ -136,7 +134,7 @@ export default function InvitationsTable({ invitations }: Props) {
                   size="sm"
                   onClick={() => handleRevoke(inv.id)}
                   disabled={loading === inv.id}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <X className="w-4 h-4 mr-1" />
                   Revocar

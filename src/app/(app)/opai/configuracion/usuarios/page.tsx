@@ -68,24 +68,12 @@ export default async function UsuariosConfigPage() {
               currentUserRole={session.user.role}
             />
           </CardContent>
-          <CardContent className="border-t border-border bg-muted/20">
-            <p className="text-sm font-medium mb-2">💡 Cómo gestionar usuarios:</p>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-              <li>
-                <strong>Columna ROL:</strong> Click en el rol de otro usuario para
-                cambiarlo (Visualizador, Editor, Admin, Propietario). Tu propio rol
-                no es editable.
-              </li>
-              <li>
-                <strong>Columna ACCIONES:</strong> En tu fila aparece &quot;(Tú)&quot;.
-                Para otros usuarios hay un menú (⋮) para activar/desactivar.
-              </li>
-              <li>
-                <strong>Permisos:</strong> Al cambiar el rol, los permisos se
-                actualizan automáticamente. Click en &quot;Ver permisos&quot; arriba
-                para ver la matriz completa.
-              </li>
-            </ul>
+          <CardContent className="border-t border-border">
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">Rol:</strong> haz clic en el rol para cambiarlo.{" "}
+              <strong className="text-foreground">Acciones:</strong> menú (⋮) para activar/desactivar.{" "}
+              <strong className="text-foreground">Permisos:</strong> usa &quot;Ver permisos&quot; arriba.
+            </p>
           </CardContent>
         </Card>
 
@@ -104,8 +92,7 @@ export default async function UsuariosConfigPage() {
             </CardContent>
             <CardContent className="border-t border-border">
               <p className="text-xs text-muted-foreground">
-                En <strong>Acciones</strong> puedes revocar una invitación para que el
-                enlace deje de ser válido.
+                En <strong className="text-foreground">Acciones</strong> puedes revocar una invitación para invalidar el enlace.
               </p>
             </CardContent>
           </Card>

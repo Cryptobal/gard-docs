@@ -64,14 +64,14 @@ export default function RolesHelpCard() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 bg-card border-border text-foreground hover:bg-muted hover:text-foreground">
+        <Button variant="outline" className="gap-2">
           <HelpCircle className="w-5 h-5 text-amber-400" />
           <span>Ver permisos</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border text-foreground max-w-5xl h-[95vh] flex flex-col">
+      <DialogContent className="max-w-5xl h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-foreground text-xl">Matriz de Permisos por Rol</DialogTitle>
+          <DialogTitle className="text-xl">Matriz de Permisos por Rol</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 flex-1 overflow-y-auto">

@@ -5,6 +5,28 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
+
+function parseFieldOptions(
+  type: string,
+  options: unknown,
+  urlLabel?: string
+): Prisma.JsonValue | null {
+  if (type === "select" || type === "select_multiple") {
+    if (Array.isArray(options)) return options;
+    if (typeof options === "string") {
+      return options
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return null;
+  }
+  if (type === "url" && urlLabel?.trim()) {
+    return { urlLabel: urlLabel.trim() };
+  }
+  return null;
+}
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
@@ -48,13 +70,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const options = parseFieldOptions(body.type, body.options, body.urlLabel);
     const field = await prisma.crmCustomField.create({
       data: {
         tenantId,
         name: body.name.trim(),
         entityType: body.entityType.trim(),
         type: body.type.trim(),
-        options: body.options ?? null,
+        ...(options !== null && { options }),
       },
     });
 

@@ -56,13 +56,13 @@ export default function InviteUserButton() {
           Invitar Usuario
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-border text-foreground">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-foreground">Invitar Nuevo Usuario</DialogTitle>
+          <DialogTitle>Invitar Nuevo Usuario</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email" className="text-muted-foreground">Email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -70,27 +70,27 @@ export default function InviteUserButton() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="usuario@ejemplo.com"
               required
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground mt-1.5"
+              className="mt-1.5"
             />
           </div>
 
           <div>
-            <Label htmlFor="role" className="text-muted-foreground">Rol</Label>
+            <Label htmlFor="role">Rol</Label>
             <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-              <SelectTrigger className="bg-muted border-border text-foreground mt-1.5">
+              <SelectTrigger className="mt-1.5">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-muted border-border">
-                <SelectItem value={ROLES.VIEWER} className="text-foreground hover:bg-accent">Visualizador</SelectItem>
-                <SelectItem value={ROLES.EDITOR} className="text-foreground hover:bg-accent">Editor</SelectItem>
-                <SelectItem value={ROLES.ADMIN} className="text-foreground hover:bg-accent">Administrador</SelectItem>
-                <SelectItem value={ROLES.OWNER} className="text-foreground hover:bg-accent">Propietario</SelectItem>
+              <SelectContent>
+                <SelectItem value={ROLES.VIEWER}>Visualizador</SelectItem>
+                <SelectItem value={ROLES.EDITOR}>Editor</SelectItem>
+                <SelectItem value={ROLES.ADMIN}>Administrador</SelectItem>
+                <SelectItem value={ROLES.OWNER}>Propietario</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {error && (
-            <div className="text-sm text-red-400 bg-red-900/20 border border-red-800 p-3 rounded">
+            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 p-3 rounded-md">
               {error}
             </div>
           )}
@@ -100,14 +100,12 @@ export default function InviteUserButton() {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              className="border-border text-muted-foreground hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button 
               type="submit" 
               disabled={loading}
-              className=""
             >
               {loading ? 'Enviando...' : 'Enviar Invitación'}
             </Button>

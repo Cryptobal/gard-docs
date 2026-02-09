@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
@@ -27,14 +28,24 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: "Campo no encontrado" }, { status: 404 });
     }
 
+    const newType = body?.type?.trim() ?? field.type;
+    const data: Prisma.CrmCustomFieldUpdateInput = {
+      name: body?.name?.trim() ?? field.name,
+      entityType: body?.entityType?.trim() ?? field.entityType,
+      type: newType,
+    };
+
+    if ("options" in body) {
+      if (body.options === null) {
+        data.options = Prisma.DbNull;
+      } else {
+        data.options = body.options;
+      }
+    }
+
     const updated = await prisma.crmCustomField.update({
       where: { id },
-      data: {
-        name: body?.name?.trim() ?? field.name,
-        entityType: body?.entityType?.trim() ?? field.entityType,
-        type: body?.type?.trim() ?? field.type,
-        options: body?.options ?? field.options,
-      },
+      data,
     });
 
     return NextResponse.json({ success: true, data: updated });

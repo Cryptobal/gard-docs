@@ -44,25 +44,24 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
   const [roleChanging, setRoleChanging] = useState<string | null>(null);
 
   const getRoleBadge = (role: string) => {
-    const config: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string, color: string }> = {
-      owner: { variant: 'default', label: 'Propietario', color: 'bg-purple-600' },
-      admin: { variant: 'secondary', label: 'Admin', color: 'bg-blue-600' },
-      editor: { variant: 'outline', label: 'Editor', color: 'bg-green-600' },
-      viewer: { variant: 'outline', label: 'Visualizador', color: 'bg-gray-600' },
+    const config: Record<string, { variant: 'default' | 'secondary' | 'outline'; label: string }> = {
+      owner: { variant: 'default', label: 'Propietario' },
+      admin: { variant: 'secondary', label: 'Admin' },
+      editor: { variant: 'outline', label: 'Editor' },
+      viewer: { variant: 'outline', label: 'Visualizador' },
     };
     const cfg = config[role] || config.viewer;
-    return (
-      <span className={`${cfg.color} text-foreground text-xs px-2.5 py-1 rounded-full font-medium`}>
-        {cfg.label}
-      </span>
-    );
+    return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'active') return <span className="bg-emerald-600 text-foreground text-xs px-2.5 py-1 rounded-full font-medium">Activo</span>;
-    if (status === 'disabled') return <span className="bg-red-600 text-foreground text-xs px-2.5 py-1 rounded-full font-medium">Desactivado</span>;
-    if (status === 'invited') return <span className="bg-amber-600 text-foreground text-xs px-2.5 py-1 rounded-full font-medium">Invitado</span>;
-    return <span className="bg-gray-600 text-foreground text-xs px-2.5 py-1 rounded-full font-medium">{status}</span>;
+    const config: Record<string, { variant: 'success' | 'destructive' | 'warning' | 'secondary'; label: string }> = {
+      active: { variant: 'success', label: 'Activo' },
+      disabled: { variant: 'destructive', label: 'Desactivado' },
+      invited: { variant: 'warning', label: 'Invitado' },
+    };
+    const cfg = config[status] || { variant: 'secondary' as const, label: status };
+    return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
   };
 
   const handleToggleStatus = async (userId: string) => {
@@ -116,14 +115,14 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
                         onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
                         disabled={roleChanging === user.id}
                       >
-                        <SelectTrigger className="w-[160px] bg-muted border-border text-foreground">
+                        <SelectTrigger className="w-[160px]">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-muted border-border">
-                          <SelectItem value={ROLES.VIEWER} className="text-foreground hover:bg-accent">Visualizador</SelectItem>
-                          <SelectItem value={ROLES.EDITOR} className="text-foreground hover:bg-accent">Editor</SelectItem>
-                          <SelectItem value={ROLES.ADMIN} className="text-foreground hover:bg-accent">Admin</SelectItem>
-                          <SelectItem value={ROLES.OWNER} className="text-foreground hover:bg-accent">Propietario</SelectItem>
+                        <SelectContent>
+                          <SelectItem value={ROLES.VIEWER}>Visualizador</SelectItem>
+                          <SelectItem value={ROLES.EDITOR}>Editor</SelectItem>
+                          <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
+                          <SelectItem value={ROLES.OWNER}>Propietario</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
@@ -153,15 +152,13 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
                         variant="outline"
                         size="sm"
                         disabled={loading === user.id}
-                        className="text-foreground border-border bg-muted"
                       >
                         Acciones
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-muted border-border">
+                    <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() => handleToggleStatus(user.id)}
-                        className="text-foreground hover:bg-accent cursor-pointer"
                       >
                         {user.status === 'active' ? (
                           <>
@@ -214,7 +211,7 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800">
+        <tbody className="divide-y divide-border">
           {users.map((user) => {
             const isCurrentUser = user.id === currentUserId;
             const canChangeRole = currentUserRole === 'owner' || currentUserRole === 'admin';
@@ -234,14 +231,14 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
                       onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
                       disabled={roleChanging === user.id}
                     >
-                      <SelectTrigger className="w-[140px] bg-muted border-border text-foreground">
+                      <SelectTrigger className="w-[140px]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-muted border-border">
-                        <SelectItem value={ROLES.VIEWER} className="text-foreground hover:bg-accent">Visualizador</SelectItem>
-                        <SelectItem value={ROLES.EDITOR} className="text-foreground hover:bg-accent">Editor</SelectItem>
-                        <SelectItem value={ROLES.ADMIN} className="text-foreground hover:bg-accent">Admin</SelectItem>
-                        <SelectItem value={ROLES.OWNER} className="text-foreground hover:bg-accent">Propietario</SelectItem>
+                      <SelectContent>
+                        <SelectItem value={ROLES.VIEWER}>Visualizador</SelectItem>
+                        <SelectItem value={ROLES.EDITOR}>Editor</SelectItem>
+                        <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
+                        <SelectItem value={ROLES.OWNER}>Propietario</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -270,10 +267,9 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-muted border-border">
+                      <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() => handleToggleStatus(user.id)}
-                          className="text-foreground hover:bg-accent cursor-pointer"
                         >
                           {user.status === 'active' ? (
                             <>
