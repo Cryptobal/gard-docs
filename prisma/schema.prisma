@@ -104,6 +104,7 @@ model Presentation {
   lastOpenedAt     DateTime?
   openCount        Int                @default(0)
   tenantId         String
+  quoteId          String?            @map("quote_id") // Links to CpqQuote for document generation
   template         Template           @relation(fields: [templateId], references: [id])
   tenant           Tenant             @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   views            PresentationView[]
