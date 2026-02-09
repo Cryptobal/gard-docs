@@ -13,6 +13,8 @@ interface QuoteCostSummary {
   monthlyPolicy: number;
   monthlyExtras: number;
   monthlyTotal: number;
+  financialRatePct?: number;
+  policyRatePct?: number;
 }
 
 const safeNumber = (value: unknown) => Number(value || 0);
@@ -27,7 +29,7 @@ const normalizeUnitPrice = (value: number, unit?: string | null) => {
   }
   return value;
 };
-const normalizePct = (value: number) => (value > 1 ? value / 100 : value);
+const normalizePct = (value: number) => value / 100;
 
 export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSummary> {
   const quote = await prisma.cpqQuote.findUnique({
@@ -45,6 +47,7 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
     meals,
     vehicles,
     infrastructure,
+    catalogItems,
   ] = await Promise.all([
     prisma.cpqPosition.findMany({
       where: { quoteId },
@@ -52,25 +55,31 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
     }),
     prisma.cpqQuoteParameters.findUnique({ where: { quoteId } }),
     prisma.cpqQuoteUniformItem.findMany({
-      where: { quoteId, active: true },
+      where: { quoteId },
       include: { catalogItem: true },
     }),
     prisma.cpqQuoteExamItem.findMany({
-      where: { quoteId, active: true },
+      where: { quoteId },
       include: { catalogItem: true },
     }),
     prisma.cpqQuoteCostItem.findMany({
-      where: { quoteId, isEnabled: true },
+      where: { quoteId },
       include: { catalogItem: true },
     }),
     prisma.cpqQuoteMeal.findMany({
-      where: { quoteId, isEnabled: true },
+      where: { quoteId },
     }),
     prisma.cpqQuoteVehicle.findMany({
-      where: { quoteId, isEnabled: true },
+      where: { quoteId },
     }),
     prisma.cpqQuoteInfrastructure.findMany({
-      where: { quoteId, isEnabled: true },
+      where: { quoteId },
+    }),
+    prisma.cpqCatalogItem.findMany({
+      where: {
+        active: true,
+        OR: [{ tenantId }, { tenantId: null }],
+      },
     }),
   ]);
 
@@ -84,10 +93,78 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
   const avgStayMonths = parameters?.avgStayMonths ?? 4;
   const monthlyHoursStandard = parameters?.monthlyHoursStandard ?? 180;
 
-  const uniformSetCost = uniformItems.reduce((sum, item) => {
+  const defaultCatalog = catalogItems.filter((item) => item.isDefault);
+  const uniformDefaultIds = new Set(
+    defaultCatalog.filter((item) => item.type === "uniform").map((item) => item.id)
+  );
+  const examDefaultIds = new Set(
+    defaultCatalog.filter((item) => item.type === "exam").map((item) => item.id)
+  );
+  const mealDefaults = defaultCatalog.filter((item) => item.type === "meal");
+  const costDefaultIds = new Set(
+    defaultCatalog
+      .filter((item) =>
+        ["phone", "radio", "flashlight", "infrastructure", "fuel", "transport", "system", "financial", "policy"].includes(
+          item.type
+        )
+      )
+      .map((item) => item.id)
+  );
+
+  const existingUniformIds = new Set(uniformItems.map((item) => item.catalogItemId));
+  const existingExamIds = new Set(examItems.map((item) => item.catalogItemId));
+  const existingCostIds = new Set(costItems.map((item) => item.catalogItemId));
+  const existingMealTypes = new Set(meals.map((meal) => meal.mealType.toLowerCase()));
+
+  const defaultUniforms = defaultCatalog
+    .filter((item) => uniformDefaultIds.has(item.id))
+    .filter((item) => !existingUniformIds.has(item.id))
+    .map((item) => ({
+      catalogItemId: item.id,
+      unitPriceOverride: null,
+      active: true,
+      catalogItem: item,
+    }));
+  const defaultExams = defaultCatalog
+    .filter((item) => examDefaultIds.has(item.id))
+    .filter((item) => !existingExamIds.has(item.id))
+    .map((item) => ({
+      catalogItemId: item.id,
+      unitPriceOverride: null,
+      active: true,
+      catalogItem: item,
+    }));
+  const defaultCostItems = defaultCatalog
+    .filter((item) => costDefaultIds.has(item.id))
+    .filter((item) => !existingCostIds.has(item.id))
+    .map((item) => ({
+      catalogItemId: item.id,
+      calcMode: "per_month",
+      quantity: 1,
+      unitPriceOverride: null,
+      isEnabled: true,
+      catalogItem: item,
+    }));
+  const defaultMeals = mealDefaults
+    .filter((item) => !existingMealTypes.has(item.name.toLowerCase()))
+    .map((item) => ({
+      mealType: item.name,
+      mealsPerDay: 0,
+      daysOfService: 0,
+      priceOverride: null,
+      isEnabled: true,
+    }));
+
+  const mergedUniforms = [...uniformItems, ...defaultUniforms];
+  const mergedExams = [...examItems, ...defaultExams];
+  const mergedCostItems = [...costItems, ...defaultCostItems];
+  const mergedMeals = [...meals, ...defaultMeals];
+
+  const uniformSetCost = mergedUniforms.reduce((sum, item) => {
+    if (!item.active) return sum;
+    const base = safeNumber(item.catalogItem?.basePrice ?? 0);
     const override = item.unitPriceOverride ? safeNumber(item.unitPriceOverride) : null;
-    const base = safeNumber(item.catalogItem.basePrice);
-    const unitPrice = normalizeUnitPrice(override ?? base, item.catalogItem.unit);
+    const unitPrice = normalizeUnitPrice(override ?? base, item.catalogItem?.unit);
     return sum + unitPrice;
   }, 0);
   const monthlyUniforms =
@@ -95,27 +172,30 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
       ? ((uniformSetCost * uniformChangesPerYear) / 12) * totalGuards
       : 0;
 
-  const examSetCost = examItems.reduce((sum, item) => {
+  const examSetCost = mergedExams.reduce((sum, item) => {
+    if (!item.active) return sum;
+    const base = safeNumber(item.catalogItem?.basePrice ?? 0);
     const override = item.unitPriceOverride ? safeNumber(item.unitPriceOverride) : null;
-    const base = safeNumber(item.catalogItem.basePrice);
-    const unitPrice = normalizeUnitPrice(override ?? base, item.catalogItem.unit);
+    const unitPrice = normalizeUnitPrice(override ?? base, item.catalogItem?.unit);
     return sum + unitPrice;
   }, 0);
   const examEntriesPerYear = avgStayMonths > 0 ? 12 / avgStayMonths : 0;
+  const examFrequency = Math.max(examEntriesPerYear, uniformChangesPerYear);
   const monthlyExams =
-    totalGuards > 0 ? ((examSetCost * examEntriesPerYear) / 12) * totalGuards : 0;
+    totalGuards > 0 ? ((examSetCost * examFrequency) / 12) * totalGuards : 0;
 
-  const financialItems = costItems.filter((item) =>
-    ["financial", "policy"].includes(item.catalogItem.type)
+  const financialItems = mergedCostItems.filter((item) =>
+    ["financial", "policy"].includes(item.catalogItem?.type ?? "")
   );
-  const nonFinancialItems = costItems.filter(
-    (item) => !["financial", "policy"].includes(item.catalogItem.type)
+  const nonFinancialItems = mergedCostItems.filter(
+    (item) => !["financial", "policy"].includes(item.catalogItem?.type ?? "")
   );
 
   const monthlyCostItems = nonFinancialItems.reduce((sum, item) => {
+    if (!item.isEnabled) return sum;
+    const base = safeNumber(item.catalogItem?.basePrice ?? 0);
     const override = item.unitPriceOverride ? safeNumber(item.unitPriceOverride) : null;
-    const base = safeNumber(item.catalogItem.basePrice);
-    const unitPrice = normalizeUnitPrice(override ?? base, item.catalogItem.unit);
+    const unitPrice = normalizeUnitPrice(override ?? base, item.catalogItem?.unit);
     const quantity = safeNumber(item.quantity);
     const calcMode = item.calcMode || "per_month";
     if (calcMode === "per_guard") {
@@ -124,28 +204,21 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
     return sum + unitPrice * quantity;
   }, 0);
 
-  const catalogMeals = await prisma.cpqCatalogItem.findMany({
-    where: {
-      type: "meal",
-      active: true,
-      OR: [{ tenantId }, { tenantId: null }],
-    },
-  });
+  const mealCatalog = catalogItems.filter((item) => item.type === "meal");
   const mealMap = new Map(
-    catalogMeals.map((meal) => [meal.name.toLowerCase(), safeNumber(meal.basePrice)])
+    mealCatalog.map((meal) => [meal.name.toLowerCase(), meal])
   );
-
-  const monthlyMeals = meals.reduce((sum, meal) => {
+  const monthlyMeals = mergedMeals.reduce((sum, meal) => {
+    if (!meal.isEnabled) return sum;
     const override = meal.priceOverride ? safeNumber(meal.priceOverride) : null;
-    const base = mealMap.get(meal.mealType.toLowerCase()) ?? 0;
-    const catalogUnit = catalogMeals.find(
-      (item) => item.name.toLowerCase() === meal.mealType.toLowerCase()
-    )?.unit;
-    const price = normalizeUnitPrice(override ?? base, catalogUnit);
+    const catalogItem = mealMap.get(meal.mealType.toLowerCase());
+    const base = safeNumber(catalogItem?.basePrice ?? 0);
+    const price = normalizeUnitPrice(override ?? base, catalogItem?.unit);
     return sum + price * meal.mealsPerDay * meal.daysOfService;
   }, 0);
 
   const monthlyVehicles = vehicles.reduce((sum, vehicle) => {
+    if (!vehicle.isEnabled) return sum;
     const kmPerDay = safeNumber(vehicle.kmPerDay);
     const daysPerMonth = safeNumber(vehicle.daysPerMonth);
     const kmPerLiter = safeNumber(vehicle.kmPerLiter);
@@ -160,6 +233,7 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
   }, 0);
 
   const monthlyInfrastructure = infrastructure.reduce((sum, infra) => {
+    if (!infra.isEnabled) return sum;
     const base = safeNumber(infra.rentMonthly);
     let fuelCost = 0;
     if (infra.hasFuel) {
@@ -181,53 +255,46 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
     monthlyInfrastructure +
     monthlyCostItems;
 
-  const marginPct = normalizePct(safeNumber(parameters?.marginPct || 20));
+  const marginPct = normalizePct(safeNumber(parameters?.marginPct ?? 20));
+  const baseWithMargin = marginPct < 1 ? costsBase / (1 - marginPct) : costsBase;
 
   const financialItem = financialItems.find(
-    (item) => item.catalogItem.type === "financial"
+    (item) => item.isEnabled && item.catalogItem?.type === "financial"
   );
-  const financialRatePct = financialItem
-    ? normalizePct(
-        safeNumber(
-          financialItem.unitPriceOverride ?? financialItem.catalogItem.basePrice
-        )
+  const financialRatePctRaw = financialItem
+    ? safeNumber(
+        financialItem.unitPriceOverride ?? financialItem.catalogItem?.basePrice ?? 0
       )
     : 0;
+  const financialRatePct = normalizePct(financialRatePctRaw);
 
-  const policyItem = financialItems.find((item) => item.catalogItem.type === "policy");
-  const policyRatePct = policyItem
-    ? normalizePct(
-        safeNumber(policyItem.unitPriceOverride ?? policyItem.catalogItem.basePrice)
-      )
+  const policyItem = financialItems.find(
+    (item) => item.isEnabled && item.catalogItem?.type === "policy"
+  );
+  const policyRatePctRaw = policyItem
+    ? safeNumber(policyItem.unitPriceOverride ?? policyItem.catalogItem?.basePrice ?? 0)
     : 0;
+  const policyRatePct = normalizePct(policyRatePctRaw);
 
-  // Validación crítica: si los porcentajes suman >= 100%, el margen es 0%
-  const totalRatePct = marginPct + financialRatePct + policyRatePct;
-  if (totalRatePct >= 0.99) {
-    console.warn(`[CPQ ${quoteId}] totalRatePct >= 99% (${(totalRatePct * 100).toFixed(1)}%). Margen insuficiente.`);
-  }
+  // Costo financiero y póliza se calculan sobre el costo + margen (sin loop)
+  const monthlyFinancial = baseWithMargin * financialRatePct;
 
-  // Precio de venta: costo base / (1 - porcentajes totales)
-  // Si totalRatePct >= 1, no hay markup (precio = costo)
-  const salePriceMonthly =
-    totalRatePct < 1 ? costsBase / (1 - totalRatePct) : costsBase;
-
-  // Costo financiero: se calcula sobre el precio de venta
-  const monthlyFinancial = salePriceMonthly * financialRatePct;
-
-  // Costo de póliza: se prorratea según duración del contrato
   const contractMonths = parameters?.contractMonths ?? 12;
   const policyContractMonths = parameters?.policyContractMonths ?? 12;
-  const policyContractPct = normalizePct(safeNumber(parameters?.policyContractPct || 100));
-  const policyContractAmount = salePriceMonthly * policyContractMonths * policyContractPct;
+  const policyContractPct = normalizePct(safeNumber(parameters?.policyContractPct ?? 100));
+  const policyContractAmount = baseWithMargin * policyContractMonths * policyContractPct;
   const policyTotal = policyContractAmount * policyRatePct;
   const monthlyPolicy = contractMonths > 0 ? policyTotal / contractMonths : 0;
 
-  // monthlyExtras: solo costos financieros y póliza (NO duplicar costos base)
-  const monthlyExtras = monthlyFinancial + monthlyPolicy;
-
-  // Costo total mensual: costo base + costos financieros
-  const monthlyTotal = costsBase + monthlyFinancial + monthlyPolicy;
+  const baseExtras =
+    monthlyUniforms +
+    monthlyExams +
+    monthlyMeals +
+    monthlyVehicles +
+    monthlyInfrastructure +
+    monthlyCostItems;
+  const monthlyExtras = baseExtras + monthlyFinancial + monthlyPolicy;
+  const monthlyTotal = monthlyPositions + monthlyExtras;
 
   return {
     totalGuards,
@@ -242,6 +309,8 @@ export async function computeCpqQuoteCosts(quoteId: string): Promise<QuoteCostSu
     monthlyPolicy,
     monthlyExtras,
     monthlyTotal,
+    financialRatePct: financialRatePctRaw,
+    policyRatePct: policyRatePctRaw,
   };
 }
 

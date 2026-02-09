@@ -74,7 +74,7 @@ export function KpiCard({
 
   const cardContent = (
     <div className={cn(
-      "rounded-lg border",
+      "rounded-lg border min-w-0",
       variantBg[variant],
       padding,
       className
@@ -87,7 +87,7 @@ export function KpiCard({
           <span className="text-muted-foreground/60">{icon}</span>
         )}
       </div>
-      <div className={cn(valueSize, "font-semibold font-mono tracking-tight", variantText[variant])}>
+      <div className={cn(valueSize, "font-semibold font-mono tracking-tight break-words", variantText[variant])}>
         {value}
       </div>
       {(description || (trend && trendValue)) && (

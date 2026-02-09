@@ -190,6 +190,8 @@ export interface CpqQuoteCostSummary {
   monthlyPolicy: number;
   monthlyExtras: number;
   monthlyTotal: number;
+  financialRatePct?: number;
+  policyRatePct?: number;
 }
 
 export interface CreateQuoteInput {

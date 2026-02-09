@@ -26,11 +26,14 @@ interface CpqPositionCardProps {
   position: CpqPosition;
   onUpdated?: () => void;
   totalGuards?: number;
-  additionalCostsTotal?: number;
+  baseAdditionalCostsTotal?: number;
   marginPct?: number;
   financialRatePct?: number;
   policyRatePct?: number;
   monthlyHours?: number;
+  policyContractMonths?: number;
+  policyContractPct?: number;
+  contractMonths?: number;
 }
 
 export function CpqPositionCard({
@@ -38,11 +41,14 @@ export function CpqPositionCard({
   position,
   onUpdated,
   totalGuards = 1,
-  additionalCostsTotal = 0,
+  baseAdditionalCostsTotal = 0,
   marginPct = 20,
   financialRatePct = 0,
   policyRatePct = 0,
   monthlyHours = 180,
+  policyContractMonths = 12,
+  policyContractPct = 100,
+  contractMonths = 12,
 }: CpqPositionCardProps) {
   const [openEdit, setOpenEdit] = useState(false);
   const [openBreakdown, setOpenBreakdown] = useState(false);
@@ -51,10 +57,15 @@ export function CpqPositionCard({
 
   const positionGuards = position.numGuards;
   const proportion = totalGuards > 0 ? positionGuards / totalGuards : 0;
-  const additionalCostsForPosition = additionalCostsTotal * proportion;
-  const totalCostPosition = Number(position.monthlyPositionCost) + additionalCostsForPosition;
-  const totalRatePct = (marginPct + financialRatePct + policyRatePct) / 100;
-  const salePricePosition = totalRatePct < 1 ? totalCostPosition / (1 - totalRatePct) : totalCostPosition;
+  const baseAdditionalCostsForPosition = baseAdditionalCostsTotal * proportion;
+  const totalCostPosition = Number(position.monthlyPositionCost) + baseAdditionalCostsForPosition;
+  const marginRate = marginPct / 100;
+  const baseWithMargin = marginRate < 1 ? totalCostPosition / (1 - marginRate) : totalCostPosition;
+  const policyFactor =
+    contractMonths > 0 ? (policyContractMonths * (policyContractPct / 100)) / contractMonths : 0;
+  const financialCost = baseWithMargin * (financialRatePct / 100);
+  const policyCost = baseWithMargin * (policyRatePct / 100) * policyFactor;
+  const salePricePosition = baseWithMargin + financialCost + policyCost;
   const hourlyRate = monthlyHours > 0 ? salePricePosition / monthlyHours : 0;
 
   const handleRecalculate = async () => {

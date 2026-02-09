@@ -24,6 +24,11 @@ interface CpqPricingCalcProps {
   vehicleTotal?: number;
   infraTotal?: number;
   systemTotal?: number;
+  financialRatePct?: number;
+  policyRatePct?: number;
+  policyContractMonths?: number;
+  policyContractPct?: number;
+  contractMonths?: number;
 }
 
 export function CpqPricingCalc({
@@ -38,6 +43,11 @@ export function CpqPricingCalc({
   vehicleTotal,
   infraTotal,
   systemTotal,
+  financialRatePct,
+  policyRatePct,
+  policyContractMonths,
+  policyContractPct,
+  contractMonths,
 }: CpqPricingCalcProps) {
   const [localMargin, setLocalMargin] = useState(marginPct);
   const [marginDraft, setMarginDraft] = useState("");
@@ -74,20 +84,27 @@ export function CpqPricingCalc({
   const systemCosts = systemTotal ?? 0;
   
   const costsBase = directCosts + uniformCosts + examCosts + mealCosts + operationalCosts + transportCosts + vehicleCosts + infraCosts + systemCosts;
-  
-  const financialRatePct = summary.monthlyFinancial > 0
-    ? (summary.monthlyFinancial / (summary.monthlyTotal || 1)) * 100
-    : 0;
-  const policyRatePct = summary.monthlyPolicy > 0
-    ? (summary.monthlyPolicy / (summary.monthlyTotal || 1)) * 100
-    : 0;
 
-  const totalRatePct = localMargin + financialRatePct + policyRatePct;
-  const priceBeforeTaxes = totalRatePct < 100 ? costsBase / (1 - totalRatePct / 100) : costsBase;
+  const baseWithMargin = margin < 1 ? costsBase / (1 - margin) : costsBase;
+  const policyMonths = policyContractMonths ?? 12;
+  const policyPct = policyContractPct ?? 100;
+  const policyContractBase = contractMonths ?? 12;
+  const policyFactor =
+    policyContractBase > 0 ? (policyMonths * (policyPct / 100)) / policyContractBase : 0;
 
-  const marginAmount = priceBeforeTaxes * margin;
+  const derivedFinancialRatePct =
+    baseWithMargin > 0 ? (summary.monthlyFinancial / baseWithMargin) * 100 : 0;
+  const derivedPolicyRatePct =
+    baseWithMargin > 0 && policyFactor > 0
+      ? (summary.monthlyPolicy / (baseWithMargin * policyFactor)) * 100
+      : 0;
+  const effectiveFinancialRatePct = financialRatePct ?? derivedFinancialRatePct;
+  const effectivePolicyRatePct = policyRatePct ?? derivedPolicyRatePct;
+
+  const marginAmount = baseWithMargin - costsBase;
   const financialAmount = summary.monthlyFinancial;
   const policyAmount = summary.monthlyPolicy;
+  const salePriceMonthly = baseWithMargin + financialAmount + policyAmount;
 
   const handleSaveMargin = async () => {
     if (!onMarginChange) return;
@@ -159,13 +176,13 @@ export function CpqPricingCalc({
         </div>
         <div className="flex justify-between items-center pl-2 text-amber-300">
           <span className="text-xs">
-            Costo financiero ({formatNumber(financialRatePct, { minDecimals: 2, maxDecimals: 2 })}%)
+            Costo financiero ({formatNumber(effectiveFinancialRatePct, { minDecimals: 2, maxDecimals: 2 })}%)
           </span>
           <span className="font-mono text-xs">{formatCurrency(financialAmount)}</span>
         </div>
         <div className="flex justify-between items-center pl-2 text-purple-300">
           <span className="text-xs">
-            Póliza ({formatNumber(policyRatePct, { minDecimals: 2, maxDecimals: 2 })}%)
+            Póliza ({formatNumber(effectivePolicyRatePct, { minDecimals: 2, maxDecimals: 2 })}%)
           </span>
           <span className="font-mono text-xs">{formatCurrency(policyAmount)}</span>
         </div>
@@ -211,16 +228,22 @@ export function CpqPricingCalc({
         
         <div className="flex justify-between items-center border-t-2 border-emerald-500/50 pt-2 mt-2 text-base font-bold text-emerald-400">
           <span>Precio venta mensual</span>
-          <span className="font-mono">{formatCurrency(priceBeforeTaxes)}</span>
+          <span className="font-mono">{formatCurrency(salePriceMonthly)}</span>
         </div>
       </div>
 
-      <div className="text-xs text-muted-foreground bg-muted/20 rounded-md p-2">
-        <div className="font-semibold mb-1">Fórmula:</div>
+      <div className="text-xs text-muted-foreground bg-muted/20 rounded-md p-2 space-y-1">
+        <div className="font-semibold">Fórmula:</div>
         <div className="font-mono text-xs">
-          PV = CB / (1 - M% - TF% - TP%)
+          PV = (CB / (1 - M%)) + CF + PP
         </div>
-        <div className="mt-1">
+        <div className="font-mono text-xs">
+          CF = (CB / (1 - M%)) × TF%
+        </div>
+        <div className="font-mono text-xs">
+          PP = (CB / (1 - M%)) × (Meses póliza × % contrato / Meses contrato) × TP%
+        </div>
+        <div>
           CB = Costos base | M = Margen | TF = Tasa financiera | TP = Tasa póliza
         </div>
       </div>

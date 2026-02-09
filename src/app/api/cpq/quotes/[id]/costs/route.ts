@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { computeCpqQuoteCosts } from "@/modules/cpq/costing/compute-quote-costs";
 
 const safeNumber = (value: unknown) => Number(value || 0);
-const normalizePct = (value: number) => (value > 1 ? value / 100 : value);
+const normalizePct = (value: number) => value / 100;
 const normalizeDecimal = (value: unknown) => {
   if (value instanceof Prisma.Decimal) return value;
   if (value === null || value === undefined) return new Prisma.Decimal(0);
@@ -197,8 +197,9 @@ export async function GET(
       return sum + unitPrice;
     }, 0);
     const examEntriesPerYear = avgStayMonths > 0 ? 12 / avgStayMonths : 0;
+    const examFrequency = Math.max(examEntriesPerYear, uniformChangesPerYear);
     const monthlyExams =
-      totalGuards > 0 ? ((examSetCost * examEntriesPerYear) / 12) * totalGuards : 0;
+      totalGuards > 0 ? ((examSetCost * examFrequency) / 12) * totalGuards : 0;
 
     const mealMap = new Map(
       catalogItems
@@ -234,40 +235,82 @@ export async function GET(
       return sum + unitPrice * quantity;
     }, 0);
 
-    const marginPct = normalizePct(safeNumber(parameters?.marginPct ?? 20));
-    const financialItem = financialItems.find(
-      (item) => item.catalogItem?.type === "financial"
-    );
-    const financialRatePct = financialItem
-      ? normalizePct(
-          safeNumber(
-            financialItem.unitPriceOverride ?? financialItem.catalogItem?.basePrice ?? 0
-          )
-        )
-      : 0;
-    const policyItem = financialItems.find((item) => item.catalogItem?.type === "policy");
-    const policyRatePct = policyItem
-      ? normalizePct(
-          safeNumber(policyItem.unitPriceOverride ?? policyItem.catalogItem?.basePrice ?? 0)
-        )
-      : 0;
+    const monthlyVehicles = vehicles.reduce((sum, vehicle) => {
+      if (!vehicle.isEnabled) return sum;
+      const kmPerDay = safeNumber(vehicle.kmPerDay);
+      const daysPerMonth = safeNumber(vehicle.daysPerMonth);
+      const kmPerLiter = safeNumber(vehicle.kmPerLiter);
+      const liters =
+        kmPerLiter > 0 ? (kmPerDay * daysPerMonth) / kmPerLiter : 0;
+      const fuelCost = liters * safeNumber(vehicle.fuelPrice);
+      const vehicleMonthly =
+        safeNumber(vehicle.rentMonthly) +
+        safeNumber(vehicle.maintenanceMonthly) +
+        fuelCost;
+      return sum + vehicleMonthly * vehicle.vehiclesCount;
+    }, 0);
+
+    const monthlyInfrastructure = infrastructure.reduce((sum, infra) => {
+      if (!infra.isEnabled) return sum;
+      const base = safeNumber(infra.rentMonthly);
+      let fuelCost = 0;
+      if (infra.hasFuel) {
+        const liters =
+          safeNumber(infra.fuelLitersPerHour) *
+          safeNumber(infra.fuelHoursPerDay) *
+          safeNumber(infra.fuelDaysPerMonth);
+        fuelCost = liters * safeNumber(infra.fuelPrice);
+      }
+      return sum + (base + fuelCost) * infra.quantity;
+    }, 0);
 
     const costsBase =
-      monthlyPositions + monthlyUniforms + monthlyExams + monthlyMeals + monthlyCostItems;
-    const totalRatePct = marginPct + financialRatePct + policyRatePct;
-    const salePriceMonthly =
-      totalRatePct < 1 ? costsBase / (1 - totalRatePct) : costsBase;
-    const monthlyFinancial = salePriceMonthly * financialRatePct;
+      monthlyPositions +
+      monthlyUniforms +
+      monthlyExams +
+      monthlyMeals +
+      monthlyVehicles +
+      monthlyInfrastructure +
+      monthlyCostItems;
+
+    const marginPct = normalizePct(safeNumber(parameters?.marginPct ?? 20));
+    const baseWithMargin = marginPct < 1 ? costsBase / (1 - marginPct) : costsBase;
+
+    const financialItem = financialItems.find(
+      (item) => item.isEnabled && item.catalogItem?.type === "financial"
+    );
+    const financialRatePctRaw = financialItem
+      ? safeNumber(
+          financialItem.unitPriceOverride ?? financialItem.catalogItem?.basePrice ?? 0
+        )
+      : 0;
+    const financialRatePct = normalizePct(financialRatePctRaw);
+
+    const policyItem = financialItems.find(
+      (item) => item.isEnabled && item.catalogItem?.type === "policy"
+    );
+    const policyRatePctRaw = policyItem
+      ? safeNumber(policyItem.unitPriceOverride ?? policyItem.catalogItem?.basePrice ?? 0)
+      : 0;
+    const policyRatePct = normalizePct(policyRatePctRaw);
+
+    const monthlyFinancial = baseWithMargin * financialRatePct;
 
     const contractMonths = parameters?.contractMonths ?? 12;
     const policyContractMonths = parameters?.policyContractMonths ?? 12;
     const policyContractPct = normalizePct(safeNumber(parameters?.policyContractPct ?? 100));
-    const policyContractAmount = salePriceMonthly * policyContractMonths * policyContractPct;
+    const policyContractAmount = baseWithMargin * policyContractMonths * policyContractPct;
     const policyTotal = policyContractAmount * policyRatePct;
     const monthlyPolicy = contractMonths > 0 ? policyTotal / contractMonths : 0;
 
-    const monthlyExtras =
-      monthlyUniforms + monthlyExams + monthlyMeals + monthlyCostItems + monthlyFinancial + monthlyPolicy;
+    const baseExtras =
+      monthlyUniforms +
+      monthlyExams +
+      monthlyMeals +
+      monthlyVehicles +
+      monthlyInfrastructure +
+      monthlyCostItems;
+    const monthlyExtras = baseExtras + monthlyFinancial + monthlyPolicy;
     const monthlyTotal = monthlyPositions + monthlyExtras;
 
     const summary = {
@@ -276,13 +319,15 @@ export async function GET(
       monthlyUniforms,
       monthlyExams,
       monthlyMeals,
-      monthlyVehicles: 0,
-      monthlyInfrastructure: 0,
+      monthlyVehicles,
+      monthlyInfrastructure,
       monthlyCostItems,
       monthlyFinancial,
       monthlyPolicy,
       monthlyExtras,
       monthlyTotal,
+      financialRatePct: financialRatePctRaw,
+      policyRatePct: policyRatePctRaw,
     };
 
     return NextResponse.json({
