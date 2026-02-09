@@ -21,7 +21,6 @@ export default async function ConfiguracionPage() {
       <PageHeader
         title="Configuración"
         description="Administración global y por módulo"
-        className="mb-6"
       />
       <ConfigSubnav />
       <div className="grid gap-4 md:grid-cols-2">

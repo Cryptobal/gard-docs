@@ -29,7 +29,6 @@ export default async function EmailTemplatesPage() {
       <PageHeader
         title="Templates de email"
         description="Crea templates con placeholders para seguimiento"
-        className="mb-6"
       />
       <ConfigSubnav />
       <EmailTemplatesClient initialTemplates={initialTemplates} />

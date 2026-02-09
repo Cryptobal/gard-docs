@@ -12,9 +12,6 @@ export type { AppShellProps } from './AppShell';
 export { AppSidebar } from './AppSidebar';
 export type { AppSidebarProps, NavItem } from './AppSidebar';
 
-export { AppTopbar } from './AppTopbar';
-export type { AppTopbarProps } from './AppTopbar';
-
 export { AppLayoutClient } from './AppLayoutClient';
 
 export { PageHeader } from './PageHeader';

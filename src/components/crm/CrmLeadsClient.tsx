@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +16,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CrmLead } from "@/types";
-import { Plus, Loader2, CheckCircle2, Clock, XCircle, AlertTriangle, Trash2 } from "lucide-react";
+import { Plus, Loader2, AlertTriangle, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { StatusBadge } from "@/components/opai/StatusBadge";
 import { CrmDates } from "@/components/crm/CrmDates";
 import { toast } from "sonner";
 
@@ -56,33 +56,6 @@ const DEFAULT_FORM: LeadFormState = {
 };
 
 type DuplicateAccount = { id: string; name: string; rut?: string | null; type?: string };
-
-/* ─── Status badge helper ─── */
-
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case "pending":
-      return (
-        <Badge variant="outline" className="border-amber-500/30 text-amber-400 gap-1">
-          <Clock className="h-3 w-3" /> Pendiente
-        </Badge>
-      );
-    case "approved":
-      return (
-        <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 gap-1">
-          <CheckCircle2 className="h-3 w-3" /> Aprobado
-        </Badge>
-      );
-    case "rejected":
-      return (
-        <Badge variant="outline" className="border-red-500/30 text-red-400 gap-1">
-          <XCircle className="h-3 w-3" /> Rechazado
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-}
 
 export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
   const [leads, setLeads] = useState<CrmLead[]>(initialLeads);

@@ -38,9 +38,9 @@ export function EmptyState({
       <div className="mb-3 text-muted-foreground/40">
         {icon || <Inbox className="h-10 w-10" />}
       </div>
-      <h3 className="mb-1 text-sm font-medium text-foreground">{title}</h3>
+      <h3 className="mb-1 text-base font-medium text-foreground">{title}</h3>
       {description && (
-        <p className="mb-4 max-w-sm text-xs text-muted-foreground">{description}</p>
+        <p className="mb-4 max-w-md text-sm text-muted-foreground">{description}</p>
       )}
       {action && <div>{action}</div>}
     </div>

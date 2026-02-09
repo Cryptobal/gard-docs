@@ -34,7 +34,6 @@ export default async function CrmAccountsPage() {
       <PageHeader
         title="Cuentas"
         description="Prospectos y clientes"
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmAccountsClient initialAccounts={initialAccounts} />

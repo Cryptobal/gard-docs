@@ -86,7 +86,6 @@ export default async function CrmDealDetailPage({
       <PageHeader
         title={deal.title}
         description={`${deal.account?.name || "Sin cliente"} · ${deal.stage?.name || "Sin etapa"}`}
-        className="mb-6"
       />
       <CrmSubnav />
       <div className="space-y-4">

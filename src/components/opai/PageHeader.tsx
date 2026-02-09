@@ -11,9 +11,13 @@ export interface PageHeaderProps {
 /**
  * PageHeader - Encabezado estándar para todas las páginas
  *
- * Tipografía estandarizada:
- * - Título: text-lg font-semibold (18px)
- * - Descripción: text-sm text-muted-foreground (14px)
+ * OPAI Type Scale:
+ * - H1 (page):   text-xl font-semibold (20px) — este componente
+ * - H2 (card):   text-base font-semibold (16px) — CardTitle
+ * - H3 (section): text-sm font-semibold (14px) — secciones internas
+ * - Body:        text-sm (14px) — texto principal
+ * - Caption:     text-xs (12px) — labels, metadata
+ * - Micro:       text-[11px] (11px) — badges, bottom nav
  */
 export function PageHeader({
   title,
@@ -23,13 +27,13 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={cn(
-      "flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between pb-4",
+      "flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-6",
       className
     )}>
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
       {actions && (

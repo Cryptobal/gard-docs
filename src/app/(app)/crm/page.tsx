@@ -107,7 +107,7 @@ export default async function CRMPage() {
 
       <CrmSubnav />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {modules.map((mod) => {
           const Icon = mod.icon;
           const count = mod.countKey ? counts[mod.countKey] ?? 0 : null;

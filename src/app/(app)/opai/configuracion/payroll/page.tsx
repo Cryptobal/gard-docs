@@ -20,7 +20,6 @@ export default async function PayrollConfigPage() {
       <PageHeader
         title="Configuración Payroll"
         description="Parámetros y supuestos"
-        className="mb-6"
       />
       <ConfigSubnav />
       <div className="grid gap-4 md:grid-cols-2">

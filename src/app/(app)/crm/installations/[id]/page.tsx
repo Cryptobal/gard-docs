@@ -55,7 +55,6 @@ export default async function CrmInstallationDetailPage({
             : [installation.commune, installation.city].filter(Boolean).join(" · ") || "Sin ubicación"
         }
         actions={<InstallationEditButton installation={data} />}
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmInstallationDetailClient installation={data} />

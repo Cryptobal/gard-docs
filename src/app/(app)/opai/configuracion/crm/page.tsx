@@ -34,7 +34,6 @@ export default async function CrmConfigPage() {
       <PageHeader
         title="Configuración CRM"
         description="Pipeline, campos y automatizaciones"
-        className="mb-6"
       />
       <ConfigSubnav />
       <CrmConfigClient initialStages={stages} initialFields={fields} />

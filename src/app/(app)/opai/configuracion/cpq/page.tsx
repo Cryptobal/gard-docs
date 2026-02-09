@@ -20,7 +20,6 @@ export default async function CpqConfigPage() {
       <PageHeader
         title="Configuración CPQ"
         description="Catálogo, puestos, cargos, roles y parámetros de pricing"
-        className="mb-6"
       />
       <ConfigSubnav />
       <CpqConfigTabs />

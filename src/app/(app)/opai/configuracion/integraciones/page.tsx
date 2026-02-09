@@ -31,7 +31,6 @@ export default async function IntegracionesPage() {
       <PageHeader
         title="Integraciones"
         description="Configura conexiones globales para el CRM"
-        className="mb-6"
       />
       <ConfigSubnav />
       <div className="space-y-4">

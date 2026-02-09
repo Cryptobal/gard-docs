@@ -42,7 +42,6 @@ export default async function CrmContactsPage() {
       <PageHeader
         title="Contactos"
         description="Personas clave por cliente"
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmContactsClient

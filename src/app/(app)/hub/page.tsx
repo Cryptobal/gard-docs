@@ -98,7 +98,7 @@ export default async function HubPage() {
     : 'Todo al día';
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Page Header + Indicadores */}
       <PageHeader
         title={`${greeting}, ${firstName}`}
@@ -122,7 +122,7 @@ export default async function HubPage() {
       </div>
 
       {/* KPIs Grid */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <KpiCard
           title="Total"
           value={total}
@@ -154,7 +154,7 @@ export default async function HubPage() {
       {/* Apps Launcher */}
       <div>
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Aplicaciones</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {[
             { href: '/opai/inicio', icon: FileText, title: 'Docs', desc: 'Presentaciones', color: 'text-blue-400 bg-blue-400/10' },
             { href: '/crm', icon: Users, title: 'CRM', desc: 'Clientes', color: 'text-emerald-400 bg-emerald-400/10' },
@@ -177,7 +177,7 @@ export default async function HubPage() {
       </div>
 
       {/* Two Column Layout: Work Queue + Activity Feed */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:gap-6">
         {/* Work Queue */}
         <Card>
           <CardHeader>

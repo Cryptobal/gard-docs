@@ -99,7 +99,6 @@ export default async function CrmCotizacionesPage() {
       <PageHeader
         title="Cotizaciones"
         description="Cotizaciones CPQ vinculadas al CRM"
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmCotizacionesClient quotes={initialQuotes} accounts={initialAccounts} />

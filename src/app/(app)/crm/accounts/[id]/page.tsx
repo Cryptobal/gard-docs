@@ -60,7 +60,6 @@ export default async function CrmAccountDetailPage({
       <PageHeader
         title={account.name}
         description={`${account.type === "client" ? "Cliente" : "Prospecto"} · ${account.industry || "Sin industria"}`}
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmAccountDetailClient account={data} />

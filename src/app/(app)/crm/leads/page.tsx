@@ -33,7 +33,6 @@ export default async function CrmLeadsPage() {
       <PageHeader
         title="Prospectos"
         description="Solicitudes entrantes y aprobación manual"
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmLeadsClient initialLeads={initialLeads} />

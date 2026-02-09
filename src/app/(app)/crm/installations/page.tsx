@@ -34,7 +34,6 @@ export default async function CrmInstallationsPage() {
       <PageHeader
         title="Instalaciones"
         description="Sedes y ubicaciones de clientes"
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmInstallationsListClient initialInstallations={initialInstallations} />

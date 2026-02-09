@@ -23,7 +23,6 @@ export default async function PerfilPage() {
       <PageHeader
         title="Mi Perfil"
         description="Gestiona tu cuenta y configuración"
-        className="mb-6"
       />
 
       <div className="max-w-2xl mx-auto space-y-6">

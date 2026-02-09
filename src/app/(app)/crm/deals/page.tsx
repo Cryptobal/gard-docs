@@ -53,7 +53,6 @@ export default async function CrmDealsPage() {
       <PageHeader
         title="Negocios"
         description="Pipeline comercial y oportunidades"
-        className="mb-6"
       />
       <CrmSubnav />
       <CrmDealsClient

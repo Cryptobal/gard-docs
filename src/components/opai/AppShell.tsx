@@ -10,7 +10,6 @@ import { GlobalIndicators } from './GlobalIndicators';
 
 export interface AppShellProps {
   sidebar?: ReactNode;
-  topbar?: ReactNode;
   children: ReactNode;
   userName?: string;
   className?: string;
@@ -19,10 +18,15 @@ export interface AppShellProps {
 /**
  * AppShell - Layout principal
  *
- * Desktop: sidebar izquierdo + content
+ * Desktop: sidebar izquierdo + content (full-width)
  * Mobile: topbar con hamburger + content + bottom nav
+ *
+ * Design tokens:
+ * - Content padding: px-4 → sm:px-6 → lg:px-8 → xl:px-10 → 2xl:px-12
+ * - Sidebar: w-60 (expanded) / w-[72px] (collapsed)
+ * - Transition: duration-200 ease-out
  */
-export function AppShell({ sidebar, topbar, children, userName, className }: AppShellProps) {
+export function AppShell({ sidebar, children, userName, className }: AppShellProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -133,9 +137,8 @@ export function AppShell({ sidebar, topbar, children, userName, className }: App
         <div className="hidden lg:flex sticky top-0 z-20 min-h-12 items-center justify-end gap-4 border-b border-border/50 bg-background/95 backdrop-blur px-6 py-3">
           <GlobalIndicators />
         </div>
-        {topbar}
         <main className="flex-1">
-          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 pb-20 lg:pb-6 animate-in-page">
+          <div className="px-4 py-6 sm:px-6 lg:px-8 xl:px-10 2xl:px-12 pb-20 lg:pb-6 animate-in-page" role="region">
             {children}
           </div>
         </main>
