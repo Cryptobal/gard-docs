@@ -16,6 +16,7 @@ export interface CrmLead {
   serviceType?: string | null;
   metadata?: any;
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface Notification {
@@ -45,6 +46,7 @@ export interface CrmAccount {
   type: CrmAccountType;
   status: string;
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface CrmInstallation {
@@ -59,6 +61,7 @@ export interface CrmInstallation {
   lng?: number | null;
   notes?: string | null;
   createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface CrmContact {
@@ -70,6 +73,8 @@ export interface CrmContact {
   phone?: string | null;
   roleTitle?: string | null;
   isPrimary: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface CrmPipelineStage {
@@ -89,6 +94,7 @@ export interface CrmDeal {
   probability: number;
   expectedCloseDate?: string | null;
   createdAt: string;
+  updatedAt?: string | null;
   proposalLink?: string | null;
   proposalSentAt?: string | null;
   dealType?: string | null;

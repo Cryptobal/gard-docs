@@ -46,7 +46,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/lib/hooks";
 import { CrmAccount, CrmDeal, CrmPipelineStage } from "@/types";
-import { GripVertical, Loader2, Plus } from "lucide-react";
+import { CrmDates } from "@/components/crm/CrmDates";
+import { GripVertical, Loader2, Plus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 type DealFormState = {
@@ -170,6 +171,13 @@ function DealCard({
           <p className="text-xs text-muted-foreground">
             {deal.account?.name} · {deal.primaryContact ? `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`.trim() : "Sin contacto"}
           </p>
+          {deal.createdAt && (
+            <CrmDates
+              createdAt={deal.createdAt}
+              updatedAt={(deal as { updatedAt?: string }).updatedAt}
+              className="mt-0.5"
+            />
+          )}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">
               ${Number(deal.amount).toLocaleString("es-CL")}
@@ -178,6 +186,18 @@ function DealCard({
               <Badge variant="outline" className="text-[10px] h-4">
                 {(deal.quotes || []).length} CPQ
               </Badge>
+            )}
+            {deal.proposalLink && (
+              <a
+                href={deal.proposalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Propuesta
+                <ExternalLink className="h-3 w-3" />
+              </a>
             )}
           </div>
         </div>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/opai/EmptyState";
 import { FileText, Search, ExternalLink, Plus } from "lucide-react";
 import { formatCLP, formatNumber } from "@/lib/utils";
+import { CrmDates } from "@/components/crm/CrmDates";
 
 type QuoteRow = {
   id: string;
@@ -22,6 +23,7 @@ type QuoteRow = {
   totalPositions: number;
   totalGuards: number;
   createdAt: string;
+  updatedAt?: string | null;
 };
 
 type AccountRow = {
@@ -165,6 +167,7 @@ export function CrmCotizacionesClient({
                       <p className="mt-0.5 text-xs text-muted-foreground truncate">
                         {quote.clientName || "Sin cliente"} · {quote.totalGuards} guardias · {quote.totalPositions} puestos
                       </p>
+                      <CrmDates createdAt={quote.createdAt} updatedAt={quote.updatedAt} className="mt-0.5" />
                     </div>
                     <div className="flex items-center gap-4 shrink-0 ml-3 text-right">
                       <div className="text-xs">

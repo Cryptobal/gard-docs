@@ -6,6 +6,7 @@ import { MapPin, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { CrmDates } from "@/components/crm/CrmDates";
 
 export type InstallationRow = {
   id: string;
@@ -15,6 +16,8 @@ export type InstallationRow = {
   commune?: string | null;
   lat?: number | null;
   lng?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   account?: { id: string; name: string } | null;
 };
 
@@ -76,6 +79,13 @@ export function CrmInstallationsListClient({
                 <p className="text-xs text-muted-foreground ml-4">
                   {[inst.commune, inst.city].filter(Boolean).join(", ")}
                 </p>
+              )}
+              {inst.createdAt && (
+                <CrmDates
+                  createdAt={inst.createdAt}
+                  updatedAt={inst.updatedAt}
+                  className="mt-0.5 ml-0"
+                />
               )}
             </Link>
             <Button

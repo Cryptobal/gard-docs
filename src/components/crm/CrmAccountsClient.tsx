@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { Loader2, Plus, Building2, Users, ChevronRight, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { CrmDates } from "@/components/crm/CrmDates";
 import { toast } from "sonner";
 
 type AccountFormState = {
@@ -38,6 +39,7 @@ type AccountRow = {
   type: "prospect" | "client";
   status: string;
   createdAt: string;
+  updatedAt?: string | null;
   _count?: {
     contacts: number;
     deals: number;
@@ -323,6 +325,7 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
                   <p className="text-sm text-muted-foreground">
                     {account.rut || "Sin RUT"} · {account.industry || "Sin industria"}
                   </p>
+                  <CrmDates createdAt={account.createdAt} updatedAt={account.updatedAt} className="mt-0.5" />
                 </div>
               </Link>
               <div className="flex items-center gap-2 shrink-0">

@@ -60,6 +60,7 @@ type DealDetail = {
   account?: { id: string; name: string } | null;
   primaryContact?: { firstName: string; lastName: string; email?: string | null } | null;
   quotes?: DealQuote[];
+  proposalLink?: string | null;
 };
 
 export function CrmDealDetailClient({
@@ -247,6 +248,22 @@ export function CrmDealDetailClient({
             <span className="font-medium">
               {deal.primaryContact ? `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`.trim() : "Sin contacto"}
             </span>
+          </div>
+          <div className="flex items-center justify-between pt-1 border-t">
+            <span>Link propuesta</span>
+            {deal.proposalLink ? (
+              <a
+                href={deal.proposalLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 font-medium text-primary hover:underline break-all max-w-[70%] text-right"
+              >
+                Ver propuesta
+                <ExternalLink className="h-3 w-3 shrink-0" />
+              </a>
+            ) : (
+              <span className="text-muted-foreground">Sin link</span>
+            )}
           </div>
         </CardContent>
       </Card>

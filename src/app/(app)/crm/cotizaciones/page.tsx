@@ -38,6 +38,7 @@ export default async function CrmCotizacionesPage() {
         totalPositions: true,
         totalGuards: true,
         createdAt: true,
+        updatedAt: true,
         parameters: {
           select: { salePriceMonthly: true, marginPct: true },
         },
@@ -85,6 +86,7 @@ export default async function CrmCotizacionesPage() {
         totalPositions: q.totalPositions,
         totalGuards: q.totalGuards,
         createdAt: q.createdAt,
+        updatedAt: q.updatedAt,
       };
     })
   );

@@ -31,6 +31,16 @@ TENANT_ID=gard npm run migrate:soho
 - **Contactos** con empresa → `crm.contacts` (se omiten los sin empresa)
 - **Negocios** desduplicados → `crm.deals` (con proposalLink, dealType, notes, etc.)
 
+## Ajustar etapas de negocios (fix etapas)
+
+Si todos los negocios quedaron en Prospección, puedes reasignar cada uno a su etapa según el CSV:
+
+```bash
+npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/fix-deal-stages-from-csv.ts
+```
+
+Mapeo Fase Soho → etapa: Cotización Enviada, Negociando, Seguimiento 1/2, Oportunidad, Cierre ganado/perdido, Cliente Inactivo.
+
 ## Nota
 
 Ejecutar solo una vez. Si ya hay datos migrados, hacerlo de nuevo creará duplicados. Para reimportar, borrar antes cuentas/contactos/negocios del tenant.

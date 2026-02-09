@@ -19,11 +19,16 @@ const DATA_DIR = path.join(process.cwd(), 'Datos CRM');
 /** Id real del tenant (CUID). Debe resolverse por slug al inicio. */
 let TENANT_ID: string;
 
-// Mapeo Fase Soho → nombre stage
+// Mapeo Fase Soho → nombre stage (pipeline)
 const FASE_TO_STAGE: Record<string, string> = {
   'Cierre ganado': 'Ganado',
   'Cierre perdido': 'Perdido',
   'Cliente Inactivo': 'Perdido',
+  'Cotización Enviada': 'Cotización enviada',
+  'Negociando': 'Negociación',
+  'Oportunidad': 'Prospección',
+  'Seguimiento 1': 'Primer seguimiento',
+  'Seguimiento 2': 'Segundo seguimiento',
 };
 
 function parseDate(val: string | undefined): Date | null {
@@ -42,6 +47,8 @@ async function ensureStages() {
   const stages = [
     { name: 'Prospección', order: 1, color: '#64748b', isClosedWon: false, isClosedLost: false },
     { name: 'Cotización enviada', order: 2, color: '#3b82f6', isClosedWon: false, isClosedLost: false },
+    { name: 'Primer seguimiento', order: 3, color: '#f59e0b', isClosedWon: false, isClosedLost: false },
+    { name: 'Segundo seguimiento', order: 4, color: '#f97316', isClosedWon: false, isClosedLost: false },
     { name: 'Negociación', order: 5, color: '#8b5cf6', isClosedWon: false, isClosedLost: false },
     { name: 'Ganado', order: 6, color: '#10b981', isClosedWon: true, isClosedLost: false },
     { name: 'Perdido', order: 7, color: '#ef4444', isClosedWon: false, isClosedLost: true },

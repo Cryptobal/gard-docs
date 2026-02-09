@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Loader2, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { CrmDates } from "@/components/crm/CrmDates";
 import { toast } from "sonner";
 
 type ContactRow = {
@@ -28,6 +29,8 @@ type ContactRow = {
   phone?: string | null;
   roleTitle?: string | null;
   isPrimary?: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   account?: {
     id: string;
     name: string;
@@ -385,6 +388,13 @@ export function CrmContactsClient({
                   {contact.account?.name || "Sin cliente asociado"}
                   {contact.roleTitle ? ` · ${contact.roleTitle}` : ""}
                 </p>
+                {contact.createdAt && (
+                  <CrmDates
+                    createdAt={contact.createdAt}
+                    updatedAt={contact.updatedAt}
+                    className="mt-0.5"
+                  />
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {contact.isPrimary && <Badge variant="outline">Principal</Badge>}

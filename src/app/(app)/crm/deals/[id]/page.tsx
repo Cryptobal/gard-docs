@@ -67,7 +67,8 @@ export default async function CrmDealDetailPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const initialDeal = JSON.parse(JSON.stringify(deal));
+  const initialDeal = JSON.parse(JSON.stringify(deal)) as Record<string, unknown>;
+  initialDeal.proposalLink = deal.proposalLink ?? null;
   const initialQuotes = JSON.parse(JSON.stringify(quotes));
   const initialContacts = JSON.parse(JSON.stringify(contacts));
   const initialTemplates = JSON.parse(JSON.stringify(templates));

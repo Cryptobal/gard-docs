@@ -292,8 +292,20 @@ export async function POST(
       },
     });
 
-    // If deal is linked, also log there
+    // If deal is linked, update deal's proposal link and log there
     if (quote.dealId) {
+      const deal = await prisma.crmDeal.findFirst({
+        where: { id: quote.dealId, tenantId: ctx.tenantId },
+      });
+      if (deal) {
+        await prisma.crmDeal.update({
+          where: { id: quote.dealId },
+          data: {
+            proposalLink: presentationUrl,
+            proposalSentAt: new Date(),
+          },
+        });
+      }
       await prisma.crmHistoryLog.create({
         data: {
           tenantId: ctx.tenantId,

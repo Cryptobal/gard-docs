@@ -19,6 +19,7 @@ import {
 import { CrmLead } from "@/types";
 import { Plus, Loader2, CheckCircle2, Clock, XCircle, AlertTriangle, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { CrmDates } from "@/components/crm/CrmDates";
 import { toast } from "sonner";
 
 /* ─── Form types ─── */
@@ -560,7 +561,8 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                       {leadDisplayName(lead)} · {lead.email || "Sin email"}{" "}
                       {lead.phone ? `· ${lead.phone}` : ""}
                     </p>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 items-center">
+                      <CrmDates createdAt={lead.createdAt} updatedAt={(lead as { updatedAt?: string }).updatedAt} />
                       {lead.source && lead.source !== "web_cotizador" && lead.source !== "web_cotizador_inteligente" && (
                         <p className="text-xs text-muted-foreground">
                           Fuente: {lead.source}
@@ -673,6 +675,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                 <p className="text-sm text-muted-foreground">
                   {leadDisplayName(lead)}
                 </p>
+                <CrmDates createdAt={lead.createdAt} updatedAt={(lead as { updatedAt?: string }).updatedAt} />
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={lead.status} />
