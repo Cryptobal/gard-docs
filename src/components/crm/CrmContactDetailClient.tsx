@@ -409,19 +409,22 @@ export function CrmContactDetailClient({
                 ? pipelineStages.some((stage) => stage.id === deal.stage?.id)
                 : false;
               return (
-                <div key={deal.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 group">
+                <div
+                  key={deal.id}
+                  className="flex flex-col gap-2 rounded-lg border p-3 sm:p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-accent/30 group"
+                >
                   <Link href={`/crm/deals/${deal.id}`} className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium group-hover:text-primary transition-colors">{deal.title}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="text-sm font-medium group-hover:text-primary transition-colors break-words">{deal.title}</p>
                       <Badge variant="outline">{deal.stage?.name || "Sin etapa"}</Badge>
                       {deal.status === "won" && <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">Ganado</Badge>}
                       {deal.status === "lost" && <Badge variant="outline" className="border-red-500/30 text-red-400">Perdido</Badge>}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">${Number(deal.amount).toLocaleString("es-CL")}</p>
                   </Link>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
                     <select
-                      className="h-8 min-w-[130px] rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60"
+                      className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 sm:min-w-[130px] sm:flex-none"
                       value={deal.stage?.id || ""}
                       onChange={(event) => updateDealStage(deal.id, event.target.value)}
                       disabled={changingStageDealId === deal.id || pipelineStages.length === 0}
@@ -437,7 +440,7 @@ export function CrmContactDetailClient({
                       ))}
                       {pipelineStages.length === 0 && <option value="">Sin etapas disponibles</option>}
                     </select>
-                    <Link href={`/crm/deals/${deal.id}`}>
+                    <Link href={`/crm/deals/${deal.id}`} className="shrink-0">
                       <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform" />
                     </Link>
                   </div>
