@@ -1,270 +1,107 @@
-# 📚 Documentación OPAI Suite
+# Documentacion OPAI Suite
 
-**Resumen:** Índice completo de la documentación de OPAI Suite con Hub ejecutivo y módulo Docs operativos.
-
-**Estado:** Vigente - Phase 1 completada (Hub + Docs activos)
-
-**Scope:** OPAI Suite
+> **Actualizado:** 2026-02-10
 
 ---
 
-Bienvenido a la documentación completa de **OPAI Suite**, la plataforma SaaS unificada para empresas de seguridad accesible en `opai.gard.cl`.
+## Documentos Clave (empieza aqui)
+
+| Documento | Que contiene | Cuando usarlo |
+|-----------|-------------|---------------|
+| [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) | Vision completa de la plataforma, TODAS las fases, que esta hecho y que falta | Para entender a donde va el producto |
+| [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) | Estado real de TODOS los modulos, tecnologias, metricas | Para saber donde estamos HOY |
+| [000-opai-suite-master.md](./00-product/000-opai-suite-master.md) | Arquitectura, principios, multi-tenancy, RBAC, convenciones | Para decisiones tecnicas |
 
 ---
 
-## 🎯 Documento Maestro
-
-El punto de partida para entender el producto completo:
-
-📄 **[OPAI Suite - Documento Maestro Global](./00-product/000-opai-suite-master.md)**
-- Visión completa de OPAI Suite
-- Arquitectura single-domain MONOREPO
-- ✅ Phase 1: Multi-tenant estructural, UX single-tenant
-- ✅ Hub ejecutivo implementado (/hub)
-- ✅ Módulo Docs operativo (/opai/inicio)
-- Dominio principal: opai.gard.cl
-
-📄 **[OPAI Docs - Documento Maestro del Módulo](./00-product/001-docs-master.md)**
-- Visión del módulo Docs (Proposals)
-- Dashboard de propuestas y tracking
-- Templates dinámicos con tokens
-- Vista pública /p/[id] sin auth
-
-📄 **[Repo Playbook](./00-product/010-repo-playbook.md)** (⚠️ Deprecated)
-- Documento histórico de arquitectura multi-repo
-- Referencia de estrategia original
-
----
-
-## 🏗️ Arquitectura
-
-Documentación técnica de la arquitectura del sistema:
-
-### Componentes Principales
-
-📄 **[Arquitectura General](./01-architecture/overview.md)**
-- Stack tecnológico
-- Componentes del sistema
-- Estructura de directorios
-- Tecnologías y bibliotecas
-- Seguridad
-
-📄 **[Autenticación](./01-architecture/auth.md)**
-- Sistema Auth.js v5
-- Flujo de login
-- Protección de rutas
-- Seguridad y JWT
-- 🆕 **Sistema de invitación de usuarios**
-- 🆕 **RBAC y gestión de roles**
-- 🆕 **App Access Phase 1** (control de acceso a módulos por rol)
-
-📄 **[Multi-Tenancy](./01-architecture/multitenancy.md)**
-- Modelo SaaS
-- Aislamiento de datos
-- Filtrado por tenant
-- Tenant switcher
-- 🆕 **Gestión de usuarios multi-tenant**
-
-### Architecture Decision Records (ADR)
-
-📁 **[ADRs](./01-architecture/adr/)**
-- Decisiones arquitectónicas documentadas
-- Contexto y alternativas evaluadas
-- Consecuencias y trade-offs
-
----
-
-## 🔧 Implementación
-
-Detalles de implementación, estado del proyecto y guías técnicas:
-
-📄 **[Database Schema](./02-implementation/database-schema.md)**
-- Esquema completo de base de datos
-- Relaciones entre tablas
-- Índices y constraints
-- Migraciones aplicadas
-
-📄 **[Estado del Proyecto](./02-implementation/estado-proyecto.md)**
-- Estado actual de desarrollo
-- Features implementados
-- Próximos pasos
-- Checklist de tareas
-
-📄 **[Checklist Multi-Tenant](./02-implementation/checklist-multitenant.md)**
-- Validación de implementación multi-tenant
-- Estado en base de datos
-- Validaciones pendientes
-- Testing
-
-📄 **🆕 [Sistema de Usuarios y Roles](./02-implementation/usuarios-roles.md)**
-- Gestión de usuarios internos
-- Invitación por email
-- RBAC (Role-Based Access Control)
-- Flujo completo de activación
-- Dark mode design system
-
----
-
-## 🔌 Integraciones
-
-Documentación de integraciones con sistemas externos:
-
-📄 **[Integración con Zoho CRM](./03-integrations/zoho-integration.md)**
-- Configuración de webhooks
-- Flujo de datos
-- Mapping de campos
-- Troubleshooting
-
-📄 **[Tokens de Zoho](./03-integrations/tokens-zoho.md)**
-- Sistema de tokens dinámicos
-- Variables disponibles
-- Implementación de reemplazo
-- Ejemplos de uso
-
----
-
-## 💼 Ventas y Comercial
-
-Templates y guías para el equipo comercial:
-
-📄 **[Presentación Comercial](./04-sales/presentacion-comercial.md)**
-- Template comercial base
-- Estructura de secciones
-- Guía de contenido
-- Mejores prácticas
-
----
-
-## 📝 Changelog
-
-📄 **[Changelog](./CHANGELOG.md)**
-- Historial de cambios
-- Versiones del sistema
-- Nuevas features
-- Bug fixes
-
----
-
-## 🗂️ Estructura de Carpetas
+## Estructura de documentacion
 
 ```
 docs/
-├── README.md                          ← Este archivo
+├── README.md                            ← Este archivo (indice)
 │
-├── _deprecated/                       ← Archivos históricos (no usar)
-│   └── README.md                      ← Índice de archivos deprecated
+├── 00-product/                          ← Vision y estrategia
+│   ├── MASTER_SPEC_OPI.md               ← DOCUMENTO MAESTRO (todas las fases)
+│   ├── 000-opai-suite-master.md         ← Arquitectura y principios OPAI Suite
+│   └── 001-docs-master.md              ← Master del modulo Presentaciones
 │
-├── 00-product/                        ← Documentos maestros
-│   ├── 000-opai-suite-master.md       ← Visión global OPAI Suite
-│   ├── 001-docs-master.md             ← Master del módulo Docs
-│   └── 010-repo-playbook.md           ← (Deprecated) Guía multi-repo
+├── 01-architecture/                     ← Arquitectura tecnica
+│   ├── overview.md                      ← Stack y componentes
+│   ├── monorepo-structure.md            ← Estructura single-domain
+│   ├── auth.md                          ← Auth.js v5, invitaciones, RBAC
+│   ├── multitenancy.md                  ← Multi-tenancy, aislamiento de datos
+│   ├── design-system.md                 ← Design system dark-first
+│   └── adr/README.md                    ← Architecture Decision Records
 │
-├── 01-architecture/                   ← Arquitectura técnica
-│   ├── monorepo-structure.md          ← Arquitectura single-domain
-│   ├── overview.md
-│   ├── auth.md                        ← Auth.js v5 + RBAC
-│   ├── multitenancy.md                ← Multi-tenancy + gestión usuarios
-│   └── adr/                           ← Architecture Decision Records
+├── 02-implementation/                   ← Estado y guias tecnicas
+│   ├── ESTADO_GENERAL.md                ← ESTADO REAL de todos los modulos
+│   ├── database-schema.md               ← Esquema de base de datos
+│   ├── checklist-multitenant.md         ← Validacion multi-tenant
+│   └── usuarios-roles.md               ← Sistema de usuarios y RBAC
 │
-├── 02-implementation/                 ← Implementación y desarrollo
-│   ├── estado-proyecto.md             ← Estado actual completo
-│   ├── database-schema.md
-│   ├── checklist-multitenant.md
-│   └── usuarios-roles.md              ← Sistema de usuarios y RBAC
+├── 03-integrations/                     ← Integraciones externas
+│   ├── zoho-integration.md              ← Webhook Zoho CRM
+│   ├── tokens-zoho.md                   ← Tokens dinamicos
+│   └── CODIGO-DELUGE-COMPLETO.md        ← Codigo Deluge para Zoho
 │
-├── 03-integrations/                   ← Integraciones externas
-│   ├── zoho-integration.md
-│   ├── tokens-zoho.md
-│   └── CODIGO-DELUGE-COMPLETO.md
+├── 04-sales/                            ← Contenido comercial
+│   └── presentacion-comercial.md        ← Template de presentacion B2B
 │
-├── 04-sales/                          ← Ventas y comercial
-│   └── presentacion-comercial.md
+├── 05-pdf-generation/                   ← Generacion de PDFs
+│   └── playwright-pdf.md               ← Playwright + Chromium
 │
-├── 05-pdf-generation/                 ← Generación de PDFs
-│   └── playwright-pdf.md
+├── 06-etapa-2/                          ← Plan de implementacion Fase 2 OPI
+│   ├── ETAPA_2_IMPLEMENTACION.md        ← Plan maestro (Postventa + Tickets)
+│   ├── ETAPA_2_CHANGELOG.md             ← Archivos a crear/modificar
+│   └── ASSUMPTIONS_ETAPA_2.md           ← Supuestos y decisiones pendientes
 │
-├── CHANGELOG.md                       ← Historial de cambios
-└── NORMALIZACION-COMPLETADA.md        ← Resumen de normalización
+├── CHANGELOG.md                         ← Historial de cambios
+├── NORMALIZACION-COMPLETADA.md          ← Historico de normalizacion
+│
+└── _deprecated/                         ← Archivos obsoletos (no usar)
+    ├── README.md
+    ├── estado-proyecto-docs-legacy.md   ← Estado del modulo Docs (legacy)
+    ├── AUDITORIA-PROYECTO-COMPLETA.md   ← Auditoria historica
+    ├── DESIGN-SYSTEM-IMPLEMENTATION.md  ← Implementacion design system
+    ├── PAYROLL-ROADMAP.md               ← Roadmap payroll
+    ├── 000-repo-init.md                 ← Inicializacion repo (vacio)
+    ├── 010-repo-playbook.md             ← Estrategia multi-repo (obsoleta)
+    └── (stubs de redireccion)
 ```
 
 ---
 
-## 🚀 Inicio Rápido
+## Modulos implementados
 
-### Para Desarrolladores
+| Modulo | Estado | Docs relevantes |
+|--------|:------:|----------------|
+| Hub | ✅ | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) |
+| CRM | ✅ | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) |
+| CPQ | ✅ | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) |
+| Presentaciones | ✅ | [001-docs-master.md](./00-product/001-docs-master.md) |
+| Documentos | ✅ | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) |
+| Payroll | ⚠️ 60% | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) |
+| Auth/RBAC | ✅ | [auth.md](./01-architecture/auth.md), [usuarios-roles.md](./02-implementation/usuarios-roles.md) |
+| Config | ✅ | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) |
 
-1. Lee el **[Documento Maestro](./00-product/001-gard-docs-master.md)** para entender el producto
-2. Revisa la **[Arquitectura General](./01-architecture/overview.md)** para conocer el stack
-3. Consulta el **[Database Schema](./02-implementation/database-schema.md)** para conocer el modelo de datos
-4. Verifica el **[Estado del Proyecto](./02-implementation/estado-proyecto.md)** para saber qué está implementado
-5. 🆕 **[Sistema de Usuarios](./02-implementation/usuarios-roles.md)** para gestión de accesos
+## Fases OPI (por implementar)
 
-### Para Product Managers
-
-1. Comienza con el **[Documento Maestro](./00-product/001-gard-docs-master.md)**
-2. Revisa el **[Estado del Proyecto](./02-implementation/estado-proyecto.md)**
-3. Consulta el **[Changelog](./CHANGELOG.md)** para conocer las últimas actualizaciones
-
-### Para Equipo Comercial
-
-1. Lee la **[Presentación Comercial](./04-sales/presentacion-comercial.md)** para conocer el template base
-2. Revisa la **[Integración con Zoho](./03-integrations/zoho-integration.md)** para entender el flujo de datos
-
----
-
-## 📞 Contacto
-
-Para dudas o actualizaciones de la documentación:
-
-- **Email:** carlos.irigoyen@gard.cl
-- **Proyecto:** opai.gard.cl/docs (alias: docs.gard.cl)
-- **Organización:** Gard Security
+| Fase | Modulo | Plan |
+|:----:|--------|------|
+| 1 | Ops + TE + Personas | [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) |
+| 2 | Postventa + Tickets | [docs/06-etapa-2/](./06-etapa-2/) |
+| 3 | Portal guardias | [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) |
+| 4 | Inventario | [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) |
+| 5 | Asistencia externa | [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) |
 
 ---
 
-## 🔄 Historial de Actualizaciones
+## Inicio rapido
 
-### v2.1 - 06 de Febrero de 2026
-
-**App Access Phase 1:**
-- ✅ Control de acceso a módulos por rol (hardcodeado)
-- ✅ Matriz de permisos en `src/lib/app-access.ts`
-- ✅ Protección de rutas: `/hub`, `/crm`, `/cpq`
-- ✅ Sidebar adaptativo según permisos
-- ✅ Sin cambios en DB (implementación no invasiva)
-- ✅ Preparado para migración a Phase 2 (DB-driven)
-
-### v2.0 - 05 de Febrero de 2026
-
-**Nuevas Funcionalidades:**
-- ✅ Sistema de gestión de usuarios
-- ✅ Invitación por email con tokens seguros
-- ✅ RBAC (4 roles: owner, admin, editor, viewer)
-- ✅ Cambio de roles inline desde tabla
-- ✅ Auditoría completa de acciones
-- ✅ Dark mode design system
-- ✅ Documentación completa en `usuarios-roles.md`
-
-### v1.0 - 05 de Febrero de 2026
-
-**Reorganización Inicial:**
-- ✅ Creada estructura de carpetas por categoría
-- ✅ Descompuesto DOCUMENTO-MAESTRO-APLICACION.md en arquitectura
-- ✅ Movidos documentos a ubicaciones lógicas
-- ✅ Creados stubs de compatibilidad
-- ✅ Creado índice general
+1. Lee [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) para entender la vision completa
+2. Lee [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) para saber que esta implementado
+3. Para trabajar en Fase 2, lee [docs/06-etapa-2/](./06-etapa-2/)
 
 ---
 
-## 📦 Archivos Deprecated
-
-Los archivos stub que estaban en la raíz de `/docs` han sido movidos a:
-
-📁 **[_deprecated/](./deprecated/)** - Archivos históricos con redirecciones
-
-Estos archivos se mantienen solo para compatibilidad. **Usar siempre las ubicaciones actualizadas** en las carpetas organizadas.
-
----
-
-**Última actualización:** 06 de Febrero de 2026  
-**Versión de la documentación:** 2.1 (App Access Phase 1 + Organización mejorada)
+*Contacto: carlos.irigoyen@gard.cl | opai.gard.cl*

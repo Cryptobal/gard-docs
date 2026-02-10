@@ -1,23 +1,29 @@
 # OPAI Suite — Documento Maestro Global
 
-**Resumen:** Plataforma SaaS unificada multi-tenant para empresas de seguridad con arquitectura single-domain (opai.gard.cl) y UX single-tenant en Phase 1.
+**Resumen:** Plataforma SaaS unificada multi-tenant para empresas de seguridad con arquitectura single-domain (opai.gard.cl).
 
-**Estado:** Vigente
+**Estado:** Vigente — Actualizado 2026-02-10
 
-**Scope:** OPAI Suite
+**Scope:** OPAI Suite (módulos comerciales + operacionales)
 
 ---
 
-> **Nota:** Este repositorio implementa el módulo Docs/Proposals dentro de la arquitectura MONOREPO de OPAI. Este documento es la referencia estratégica global. El master operativo específico del módulo Docs está en: [001-docs-master.md](./001-docs-master.md)
+> **Visión completa (todas las fases OPI):** Ver [MASTER_SPEC_OPI.md](./MASTER_SPEC_OPI.md)  
+> **Estado detallado del proyecto:** Ver [ESTADO_GENERAL.md](../02-implementation/ESTADO_GENERAL.md)  
+> **Módulo Docs específico:** Ver [001-docs-master.md](./001-docs-master.md)
 
 ## 1. Propósito
 OPAI es una suite SaaS para empresas de seguridad que unifica:
-- Propuestas comerciales (Docs/Proposals)
-- CRM y seguimiento
-- Operaciones (turnos, incidentes, supervisión)
-- Portal de guardias (tickets, documentos, solicitudes)
-- Portal de clientes (visibilidad controlada)
-- Integraciones (correo, asistencia FaceID externa, payroll externo; Zoho solo legacy si aplica)
+- Propuestas comerciales (Docs/Proposals) ✅ IMPLEMENTADO
+- CRM y seguimiento comercial ✅ IMPLEMENTADO
+- CPQ — Configure, Price, Quote ✅ IMPLEMENTADO
+- Documentos legales (contratos, templates) ✅ IMPLEMENTADO
+- Payroll (simulador de liquidaciones Chile) ⚠️ PARCIAL
+- Operaciones (turnos, incidentes, supervisión) — Fase 1 OPI
+- Postventa (check-in georreferenciado, tickets) — Fase 2 OPI
+- Portal de guardias (comunicados, solicitudes) — Fase 3 OPI
+- Inventario (stock, kits, asignaciones) — Fase 4 OPI
+- Asistencia externa (FaceID/API) — Fase 5 OPI
 
 ## 2. Principios de arquitectura
 - Multi-tenant desde el día 1 (tenant = empresa).
@@ -30,13 +36,19 @@ OPAI es una suite SaaS para empresas de seguridad que unifica:
 - Hardening por etapas: RLS en Postgres (fase 2).
 
 ## 3. Módulos (rutas bajo opai.gard.cl)
-- `/hub`     → Centro de control ejecutivo + app switcher + KPIs globales (IMPLEMENTADO - Phase 1)
-- `/opai/inicio` → Propuestas/Presentaciones + tracking (IMPLEMENTADO - legacy /docs)
-- `/crm`     → Pipeline comercial, contactos, actividades, emails, IA (PLACEHOLDER)
-- `/cpq`     → Configure, Price, Quote - Configurador de productos (PLACEHOLDER)
-- `/ops`     → Operación: turnos, incidentes, rondas, cumplimiento (NO IMPLEMENTADO)
-- `/portal`  → Guardias/clientes: tickets, documentos, solicitudes, SLA (NO IMPLEMENTADO)
-- `/opai/usuarios` → Gestión de usuarios y permisos RBAC (IMPLEMENTADO)
+- `/hub`     → Centro de control ejecutivo + app switcher + KPIs globales ✅ IMPLEMENTADO
+- `/opai/inicio` → Propuestas/Presentaciones + tracking ✅ IMPLEMENTADO
+- `/crm`     → Pipeline comercial, cuentas, contactos, deals, installations, email, follow-ups ✅ IMPLEMENTADO
+- `/cpq`     → Configure, Price, Quote — cotizador con cálculo employer cost ✅ IMPLEMENTADO
+- `/opai/documentos` → Documentos legales, templates con tokens, versionado ✅ IMPLEMENTADO
+- `/payroll` → Simulador de liquidaciones Chile, parámetros legales ⚠️ PARCIAL (60%)
+- `/opai/configuracion` → Usuarios, integraciones, firmas, categorías ✅ IMPLEMENTADO
+- `/opai/usuarios` → Gestión de usuarios y permisos RBAC ✅ IMPLEMENTADO
+- `/ops`     → Operación: puestos, pauta, asistencia, TE ❌ FASE 1 OPI
+- `/postventa` → Check-in/out georreferenciado, bitácora, incidentes ❌ FASE 2 OPI
+- `/tickets` → Sistema de tickets con SLA y categorías ❌ FASE 2 OPI
+- `/portal`  → Portal guardias: comunicados, solicitudes, tickets ❌ FASE 3 OPI
+- `/inventario` → Stock, kits, asignaciones ❌ FASE 4 OPI
 
 ## 4. Multi-tenancy (Phase 1: Estructural, UX Single-Tenant)
 - **Arquitectura:** Multi-tenant desde día 1 (tenant_id en todas las tablas).
@@ -96,12 +108,24 @@ Policies por acción: docs.proposal.send, crm.deal.update, ops.incident.create, 
   - Zoho CRM → solo legacy durante transición (después CRM OPAI será fuente principal)
 
 ## 8. Roadmap (alto nivel)
-✅ Fase 0: Docs/proposals + tracking + base multi-tenant estructural.
-✅ Fase 1: Hub ejecutivo (KPIs, quick actions, apps launcher) + UX single-tenant.
-🔜 Fase 2: CRM básico (contactos, pipeline, oportunidades).
-🔜 Fase 3: CPQ (catálogo, pricing, configurador).
-🔜 Fase 4: Ops (incidentes, turnos, supervisión).
-🔜 Fase 5: Portal guardias/clientes + tenant switcher UI (Phase 2 multi-tenant UX).
+
+### Completado (OPAI Suite)
+- ✅ Fase 0: Docs/proposals + tracking + base multi-tenant estructural
+- ✅ Fase 1: Hub ejecutivo (KPIs, quick actions, apps launcher)
+- ✅ Fase 2: CRM completo (leads, accounts, contacts, deals, installations, pipeline, email, follow-ups)
+- ✅ Fase 3: CPQ completo (cotizaciones, posiciones, catálogo, cálculo employer cost)
+- ✅ Fase 4: Documentos legales (templates Tiptap, tokens, versionado, categorías)
+- ⚠️ Fase 5: Payroll parcial (simulador, parámetros legales Chile)
+- ✅ Fase 6: Auth + RBAC + Gestión de usuarios + Configuración
+
+### Pendiente (OPI — Expansión operacional)
+- ❌ OPI Fase 1: Ops (puestos, pauta mensual/diaria, asistencia, TE, personas/guardias)
+- ❌ OPI Fase 2: Postventa (check-in/out geofence, bitácora, incidentes) + Tickets (SLA, categorías)
+- ❌ OPI Fase 3: Portal guardias (OTP, comunicados, solicitudes RRHH, tickets)
+- ❌ OPI Fase 4: Inventario (catálogo, stock, kits, asignaciones)
+- ❌ OPI Fase 5: Asistencia externa (FaceID/API, reconciliación automática)
+
+**Detalle completo de fases OPI:** Ver [MASTER_SPEC_OPI.md](./MASTER_SPEC_OPI.md)
 
 ## 9. Convenciones
 - Naming: {domain}.{entity} en DB. Ej: ops.incidents, crm.deals.
@@ -110,23 +134,27 @@ Policies por acción: docs.proposal.send, crm.deal.update, ops.incident.create, 
 - Events: {domain}.{entity}.{verb}
 
 ## 10. Arquitectura Actual: MONOREPO Single-Domain
-**Estado:** ✅ Implementado (Phase 1 completada - Hub ejecutivo activo)
+**Estado:** ✅ Implementado — 9 módulos en producción
 - **Dominio único:** `opai.gard.cl`
-- **Dominio legacy:** `docs.gard.cl` (alias temporal para /opai/*)
 - **Estructura:** `src/app/(app)/{module}/` con layout compartido
-- **Módulos operativos:**
-  - `/hub` - Centro de control ejecutivo (owner/admin only)
-  - `/opai/inicio` - Dashboard de propuestas (Docs)
-  - `/opai/usuarios` - Gestión de usuarios RBAC
-  - `/p/[id]` - Vista pública de presentaciones (sin auth)
-- **Módulos placeholder:** `/crm`, `/cpq` (navegación lista, funcionalidad pendiente)
-- **Multi-tenancy:** Estructural completo, UX single-tenant (Phase 1)
+- **Módulos en producción:**
+  - `/hub` — Centro de control ejecutivo
+  - `/crm/*` — CRM completo (12 páginas, 33 APIs)
+  - `/cpq/*` — CPQ completo (5 páginas, 22 APIs)
+  - `/opai/documentos/*` — Documentos legales (6 páginas, 8 APIs)
+  - `/opai/inicio` — Dashboard de presentaciones
+  - `/payroll/*` — Simulador de liquidaciones (3 páginas, 3 APIs)
+  - `/opai/configuracion/*` — Configuración (9 páginas)
+  - `/opai/usuarios` — Gestión de usuarios RBAC
+  - `/p/[id]` — Vista pública de presentaciones (sin auth)
+- **Base de datos:** 56 modelos en 6 schemas (public, crm, cpq, docs, payroll, fx)
+- **Multi-tenancy:** Completo, UX single-tenant
 
 ### Convenciones de Desarrollo
 - Un único repositorio para todos los módulos
 - Código compartido en `src/lib/` y `src/components/`
 - Auth unificado con Auth.js v5
 - Multi-tenancy con `tenantId` en todas las tablas de negocio
-- Ver guía completa en: [010-repo-playbook.md](./010-repo-playbook.md)
+- Validaciones con Zod en `src/lib/validations/`
 
 ---
