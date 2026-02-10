@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { LucideIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LucideIcon, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -24,6 +24,9 @@ export interface AppSidebarProps {
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
   className?: string;
+  /** En móvil: mostrar botón Cerrar y padding inferior para que Salir quede visible */
+  showCloseButton?: boolean;
+  onClose?: () => void;
 }
 
 export function AppSidebar({
@@ -36,6 +39,8 @@ export function AppSidebar({
   onToggleSidebar,
   isSidebarOpen = true,
   className,
+  showCloseButton,
+  onClose,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const collapsed = !isSidebarOpen;
@@ -45,14 +50,16 @@ export function AppSidebar({
       className={cn(
         "fixed left-0 top-0 z-30 h-screen border-r border-border bg-card flex flex-col transition-[width] duration-200 ease-out",
         collapsed ? "w-[72px]" : "w-60",
+        showCloseButton && "pb-[max(5rem,calc(5rem+env(safe-area-inset-bottom)))]",
         className
       )}
     >
-      {/* Logo — compacto o solo icono */}
+      {/* Logo — compacto o solo icono; en móvil + botón Cerrar */}
       <div
         className={cn(
           "flex h-14 items-center border-b border-border shrink-0 transition-[padding] duration-200",
-          collapsed ? "justify-center px-0" : "gap-2.5 px-4"
+          collapsed ? "justify-center px-0" : "gap-2.5 px-4",
+          showCloseButton && "justify-between pr-2"
         )}
       >
         {logo || (
@@ -73,6 +80,16 @@ export function AppSidebar({
               <span className="text-sm font-semibold tracking-tight">OPAI</span>
             )}
           </Link>
+        )}
+        {showCloseButton && onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Cerrar menú"
+          >
+            <X className="h-5 w-5" />
+          </button>
         )}
       </div>
 

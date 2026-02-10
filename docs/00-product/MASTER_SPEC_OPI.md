@@ -14,7 +14,7 @@ Construir la plataforma OPI para Gard con enfoque mobile-first y separación de 
 1. **CRM comercial** — Pipeline de ventas, cuentas, contactos, deals, cotizaciones, email tracking, follow-ups
 2. **CPQ** — Configure, Price, Quote: cotizador con cálculo de costo empleador
 3. **Presentaciones comerciales** — Propuestas dinámicas con tracking de vistas y emails
-4. **Documentos legales** — Contratos, templates con tokens, versionado, firmas
+4. **Documentos legales** — Contratos, templates con tokens, versionado. Firma digital: solo campos en DB (`signatureStatus`, `signedAt`, `signedBy`); flujo de firma no implementado.
 5. **Payroll** — Simulador de liquidaciones Chile, parámetros legales
 6. **Estructura operacional** — Puestos operativos por instalación
 7. **Planificación y cobertura** — Pauta mensual y asistencia diaria
@@ -40,7 +40,7 @@ Construir la plataforma OPI para Gard con enfoque mobile-first y separación de 
  [Presentaciones]██████████ 100%
  [CRM]           ██████████ 100%       [Reportes CRM]     ░░░░░░░░░░ 0%
  [CPQ]           ██████████ 100%
- [Documentos]    ██████████ 100%
+ [Documentos]    ████████░░  90%      [Firma digital flujo] ░░░░░░░░░░
  [Payroll]       ██████░░░░  60%       [Completitud legal] ░░░░░░░░░░
  [FX]            ██████████ 100%
  [Auth/RBAC]     ██████████ 100%

@@ -144,7 +144,7 @@ OPAI Suite es una plataforma SaaS para empresas de seguridad que opera en `opai.
 - **Categorías:** Organización por módulo (CRM, payroll, legal, mail)
 - **Asociaciones:** Vinculación a entidades CRM (accounts, deals, installations, contacts)
 - **Fechas:** Effective date, expiration date, renewal date, alertas automáticas
-- **Firmas:** Estructura para firma digital (signatureStatus, signedAt, signedBy)
+- **Firma digital de documentos:** Solo estructura en DB (`signatureStatus`, `signedAt`, `signedBy`, `signatureData`). No hay flujo implementado (ni UI ni API para firmar). Ver sección "Pendiente" más abajo.
 - **PDF:** Generación de PDF del documento
 - **Historial:** Auditoría de cambios por documento
 
@@ -211,7 +211,7 @@ OPAI Suite es una plataforma SaaS para empresas de seguridad que opera en `opai.
 **Funcionalidades:**
 - **Usuarios:** CRUD, invitación por email, activación, roles, desactivación
 - **Integraciones:** Gmail OAuth (connect, sync, send)
-- **Firmas:** Editor Tiptap para firmas de email, default por usuario
+- **Firmas de email:** Editor Tiptap para pie de correo (firmas de email), default por usuario. No es firma digital de contratos.
 - **Categorías:** Gestión de categorías de documentos por módulo
 - **CRM Config:** Follow-up config, WhatsApp templates
 - **CPQ Config:** Catálogo, roles, puestos de trabajo, cargos
@@ -239,6 +239,19 @@ OPAI Suite es una plataforma SaaS para empresas de seguridad que opera en `opai.
 - Activación de cuenta
 - Reset de contraseña
 - Auditoría de acciones
+
+---
+
+## Qué falta por terminar (de lo que ya tenemos)
+
+Resumen de lo incompleto dentro de los módulos actuales:
+
+| Área | Qué falta | Prioridad sugerida |
+|------|-----------|:------------------:|
+| **Documentos — Firma digital** | Flujo completo de firma: pantalla "Firmar documento", captura de firma (canvas o proveedor externo), API para actualizar `signatureStatus`/`signedAt`/`signedBy`/`signatureData`, y opcionalmente integración con proveedor (ej. PandaDoc, Firma.cl). Hoy solo existen los campos en el modelo `Document`. | Alta si necesitas contratos firmados desde OPAI |
+| **Payroll** | Asignación Familiar (cálculo real desde tramos IPS), Horas Extra con validaciones, días trabajados/ausencias, descuentos voluntarios, APV, pensión alimenticia, mutual completo. | Alta para liquidaciones reales |
+| **CRM — Reportes** | Módulo de reportes (conversión pipeline, métricas por etapa, etc.). En la UI está deshabilitado. | Media |
+| **Testing** | Tests automatizados (unit + e2e). No hay cobertura actual. | Media |
 
 ---
 

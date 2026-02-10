@@ -60,6 +60,8 @@ export function AppShell({ sidebar, children, userName, userRole, className }: A
           onNavigate?: () => void;
           onToggleSidebar?: () => void;
           isSidebarOpen?: boolean;
+          showCloseButton?: boolean;
+          onClose?: () => void;
         }>,
         {
           className: cn(
@@ -70,6 +72,8 @@ export function AppShell({ sidebar, children, userName, userRole, className }: A
           onNavigate: () => setIsMobileOpen(false),
           onToggleSidebar: () => setIsSidebarOpen((o) => !o),
           isSidebarOpen,
+          showCloseButton: isMobileOpen,
+          onClose: () => setIsMobileOpen(false),
         }
       )
     : sidebar;
@@ -148,18 +152,7 @@ export function AppShell({ sidebar, children, userName, userRole, className }: A
             aria-hidden="true"
           />
           {/* Close button */}
-          <button
-            type="button"
-            className={cn(
-              "fixed right-4 top-3 z-[60] h-8 w-8 items-center justify-center rounded-md bg-card/90 text-foreground shadow-lg transition-opacity duration-300",
-              isMobileOpen ? "inline-flex opacity-100" : "hidden opacity-0"
-            )}
-            onClick={() => setIsMobileOpen(false)}
-            aria-label="Cerrar menú"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <div className="fixed left-0 top-0 z-50 h-screen w-60 max-w-[85vw]">
+          <div className="fixed left-0 top-0 z-50 h-full w-[280px] max-w-[82vw] shadow-xl">
             {mobileSidebar}
           </div>
         </div>
