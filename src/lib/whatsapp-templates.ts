@@ -8,6 +8,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { resolveDocument, tiptapToPlainText, type EntityData } from "@/lib/docs/token-resolver";
+import { WA_TEMPLATE_DEFAULTS } from "@/lib/wa-template-defaults";
 
 /** Reemplaza tokens {key} en un template con valores del mapa (legacy) */
 export function resolveWaTokens(
@@ -39,10 +40,6 @@ export async function getWaTemplate(
   slug: string,
   context?: GetWaTemplateContext
 ): Promise<string> {
-  const { WA_TEMPLATE_DEFAULTS } = await import(
-    "@/app/api/crm/whatsapp-templates/route"
-  );
-
   const docTpl = await prisma.docTemplate.findFirst({
     where: {
       tenantId,

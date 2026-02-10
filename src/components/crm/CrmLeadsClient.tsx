@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CrmLead } from "@/types";
-import { Plus, Loader2, AlertTriangle, Trash2, Search, ChevronRight, UserPlus } from "lucide-react";
+import { Plus, Loader2, AlertTriangle, Trash2, Search, ChevronRight, UserPlus, Phone, Mail, MessageSquare, Clock, Users, Calendar, Briefcase } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatusBadge } from "@/components/opai/StatusBadge";
 import { EmptyState } from "@/components/opai/EmptyState";
@@ -48,6 +48,23 @@ function extractWebsiteFromEmail(email: string): string {
   const domain = email.split("@")[1]?.toLowerCase();
   if (!domain || GENERIC_EMAIL_DOMAINS.has(domain)) return "";
   return `https://${domain}`;
+}
+
+/** Normaliza teléfono para tel: (solo dígitos) */
+function telHref(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 0) return "";
+  return `tel:${digits.length <= 9 ? "+56" + digits : "+" + digits}`;
+}
+
+/** URL WhatsApp Chile: +56 9 XXXXXXXX */
+function whatsappHref(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 0) return "";
+  const withCountry = digits.length === 9 && digits.startsWith("9") ? "56" + digits : digits.length >= 10 ? digits : "56" + digits;
+  return `https://wa.me/${withCountry}`;
 }
 
 type ApproveFormState = {
@@ -667,10 +684,69 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {leadDisplayName(lead)} · {lead.email || "Sin email"}
-                          {lead.phone ? ` · ${lead.phone}` : ""}
-                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-xs text-muted-foreground">{leadDisplayName(lead)}</span>
+                          {lead.email ? (
+                            <a
+                              href={`mailto:${lead.email}`}
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Mail className="h-3 w-3" />
+                              {lead.email}
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sin email</span>
+                          )}
+                          {lead.phone && (
+                            <a
+                              href={telHref(lead.phone)}
+                              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Phone className="h-3 w-3" />
+                              {lead.phone}
+                            </a>
+                          )}
+                          <div className="flex items-center gap-1 ml-1">
+                            {lead.phone && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                asChild
+                              >
+                                <a href={telHref(lead.phone)} onClick={(e) => e.stopPropagation()} aria-label="Llamar">
+                                  <Phone className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            )}
+                            {lead.email && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                asChild
+                              >
+                                <a href={`mailto:${lead.email}`} onClick={(e) => e.stopPropagation()} aria-label="Enviar email">
+                                  <Mail className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            )}
+                            {lead.phone && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-muted-foreground hover:text-emerald-600"
+                                asChild
+                              >
+                                <a href={whatsappHref(lead.phone)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} aria-label="WhatsApp">
+                                  <MessageSquare className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 items-center">
                           <CrmDates createdAt={lead.createdAt} updatedAt={(lead as { updatedAt?: string }).updatedAt} showTime />
                           {lead.source && lead.source !== "web_cotizador" && lead.source !== "web_cotizador_inteligente" && (
@@ -705,36 +781,45 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                       </div>
                     </div>
 
-                    {/* Dotación summary */}
+                    {/* Dotación solicitada — UI mejorada */}
                     {dotacion && dotacion.length > 0 && (
-                      <div className="rounded-md bg-muted/30 p-2 mt-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                          Dotación solicitada
-                        </p>
-                        <div className="space-y-1">
+                      <div className="mt-3 rounded-lg border border-border/80 bg-muted/20 overflow-hidden">
+                        <div className="px-3 py-2 border-b border-border/60 bg-muted/30 flex items-center gap-2">
+                          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Dotación solicitada
+                          </span>
+                          {totalGuards > 0 && (
+                            <span className="text-[10px] font-medium text-foreground bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                              {totalGuards} guardia{totalGuards > 1 ? "s" : ""} total
+                            </span>
+                          )}
+                        </div>
+                        <div className="divide-y divide-border/60">
                           {dotacion.map((d, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-medium text-foreground">{d.puesto}</span>
-                              <span>·</span>
-                              <span>{d.cantidad} guardia{d.cantidad > 1 ? "s" : ""}</span>
-                              {d.horaInicio && d.horaFin && (
-                                <>
-                                  <span>·</span>
-                                  <span>{d.horaInicio} - {d.horaFin}</span>
-                                </>
-                              )}
-                              {d.dias && d.dias.length > 0 && d.dias.length < 7 && (
-                                <>
-                                  <span>·</span>
-                                  <span>{d.dias.join(", ")}</span>
-                                </>
-                              )}
-                              {d.dias && d.dias.length === 7 && (
-                                <>
-                                  <span>·</span>
-                                  <span>Todos los días</span>
-                                </>
-                              )}
+                            <div key={i} className="px-3 py-2.5 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Briefcase className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-sm font-medium text-foreground truncate">{d.puesto}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground pl-5 sm:pl-0">
+                                <span className="inline-flex items-center gap-1">
+                                  <Users className="h-3 w-3 shrink-0" />
+                                  {d.cantidad} guardia{d.cantidad > 1 ? "s" : ""}
+                                </span>
+                                {d.horaInicio && d.horaFin && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Clock className="h-3 w-3 shrink-0" />
+                                    {d.horaInicio} – {d.horaFin}
+                                  </span>
+                                )}
+                                {d.dias && d.dias.length > 0 && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 shrink-0" />
+                                    {d.dias.length === 7 ? "Todos los días" : d.dias.join(", ")}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
