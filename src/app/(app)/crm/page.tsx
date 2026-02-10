@@ -40,7 +40,7 @@ const modules: CrmModuleCard[] = [
     icon: Building,
     href: '/crm/accounts',
     color: 'text-blue-400 bg-blue-400/10',
-    countKey: 'accounts' as const,
+    countKey: null,
   },
   {
     key: 'installations' as const,
@@ -49,7 +49,7 @@ const modules: CrmModuleCard[] = [
     icon: MapPin,
     href: '/crm/installations',
     color: 'text-teal-400 bg-teal-400/10',
-    countKey: 'installations' as const,
+    countKey: null,
   },
   {
     key: 'deals' as const,
@@ -58,7 +58,7 @@ const modules: CrmModuleCard[] = [
     icon: TrendingUp,
     href: '/crm/deals',
     color: 'text-purple-400 bg-purple-400/10',
-    countKey: 'deals' as const,
+    countKey: null,
   },
   {
     key: 'contacts' as const,
@@ -67,7 +67,7 @@ const modules: CrmModuleCard[] = [
     icon: Contact,
     href: '/crm/contacts',
     color: 'text-sky-400 bg-sky-400/10',
-    countKey: 'contacts' as const,
+    countKey: null,
   },
   {
     key: 'quotes' as const,
@@ -76,7 +76,7 @@ const modules: CrmModuleCard[] = [
     icon: DollarSign,
     href: '/crm/cotizaciones',
     color: 'text-amber-400 bg-amber-400/10',
-    countKey: 'quotes' as const,
+    countKey: null,
   },
   {
     key: null,
@@ -98,23 +98,10 @@ export default async function CRMPage() {
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
 
-  const [leadsCount, accountsCount, installationsCount, contactsCount, dealsCount, quotesCount] =
-    await Promise.all([
-      prisma.crmLead.count({ where: { tenantId } }),
-      prisma.crmAccount.count({ where: { tenantId } }),
-      prisma.crmInstallation.count({ where: { tenantId } }),
-      prisma.crmContact.count({ where: { tenantId } }),
-      prisma.crmDeal.count({ where: { tenantId } }),
-      prisma.cpqQuote.count({ where: { tenantId } }),
-    ]);
+  const leadsCount = await prisma.crmLead.count({ where: { tenantId } });
 
   const counts: Record<string, number> = {
     leads: leadsCount,
-    accounts: accountsCount,
-    installations: installationsCount,
-    contacts: contactsCount,
-    deals: dealsCount,
-    quotes: quotesCount,
   };
   const visibleModules = modules.filter(
     (mod) =>

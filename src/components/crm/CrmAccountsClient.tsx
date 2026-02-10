@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import Link from "next/link";
-import { Loader2, Plus, Building2, Users, ChevronRight, Trash2, Search, TrendingUp, Mail, Globe } from "lucide-react";
+import { Loader2, Plus, Building2, Users, ChevronRight, Trash2, Search, TrendingUp, Mail, Globe, CheckSquare, Square } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/opai/EmptyState";
 import { CrmDates } from "@/components/crm/CrmDates";
@@ -101,6 +101,23 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
   };
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredAccounts.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredAccounts.map((a) => a.id)));
+  };
+  const clearSelection = () => setSelectedIds(new Set());
 
   const deleteAccount = async (id: string) => {
     try {
@@ -108,9 +125,31 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
       if (!res.ok) throw new Error();
       setAccounts((prev) => prev.filter((a) => a.id !== id));
       setDeleteConfirm({ open: false, id: "" });
+      setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
       toast.success("Cuenta eliminada");
     } catch {
       toast.error("No se pudo eliminar");
+    }
+  };
+
+  const bulkDeleteAccounts = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      let ok = 0;
+      for (const id of ids) {
+        const res = await fetch(`/api/crm/accounts/${id}`, { method: "DELETE" });
+        if (res.ok) ok++;
+      }
+      setAccounts((prev) => prev.filter((a) => !ids.includes(a.id)));
+      setSelectedIds(new Set());
+      setBulkDeleteConfirm(false);
+      toast.success(ok === ids.length ? `${ok} cuenta${ok > 1 ? "s" : ""} eliminada${ok > 1 ? "s" : ""}` : `Eliminadas ${ok} de ${ids.length}`);
+    } catch {
+      toast.error("Error al eliminar");
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -156,9 +195,9 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
   ];
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${selectedIds.size > 0 ? "pb-24" : ""}`}>
       {/* ── Search + Filters + Create ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -168,6 +207,12 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
             className="pl-9 h-9 bg-background text-foreground border-input"
           />
         </div>
+        {filteredAccounts.length > 0 && (
+          <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={toggleSelectAll}>
+            {selectedIds.size === filteredAccounts.length ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+            {selectedIds.size === filteredAccounts.length ? "Deseleccionar todos" : "Seleccionar todos"}
+          </Button>
+        )}
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
@@ -303,86 +348,142 @@ export function CrmAccountsClient({ initialAccounts }: { initialAccounts: Accoun
             />
           ) : view === "list" ? (
             <div className="space-y-2">
-              {filteredAccounts.map((account) => (
-                <Link
-                  key={account.id}
-                  href={`/crm/accounts/${account.id}`}
-                  className="flex flex-col gap-2 rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 sm:flex-row sm:items-center sm:justify-between group"
-                >
-                  <div className="flex flex-1 items-start gap-3 min-w-0">
-                    <div
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                        account.type === "client"
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : "bg-amber-500/10 text-amber-400"
-                      }`}
+              {filteredAccounts.map((account) => {
+                const selected = selectedIds.has(account.id);
+                return (
+                  <div
+                    key={account.id}
+                    className={`flex items-center gap-2 rounded-lg border p-3 sm:p-4 transition-colors sm:items-center sm:justify-between group ${selected ? "border-primary/50 bg-primary/5" : "hover:bg-accent/30"}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSelection(account.id); }}
+                      className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground"
+                      aria-label={selected ? "Quitar de selección" : "Seleccionar"}
                     >
-                      {account.type === "client" ? <Building2 className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm">{account.name}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {account.rut || "Sin RUT"} · {account.industry || "Sin industria"}
-                      </p>
-                      {account.website && (
-                        <a href={account.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline truncate max-w-[200px]" onClick={(e) => e.stopPropagation()}>
-                          <Globe className="h-3 w-3 shrink-0" />
-                          {account.website}
-                        </a>
-                      )}
-                      <CrmDates createdAt={account.createdAt} updatedAt={account.updatedAt} className="mt-0.5" />
-                    </div>
+                      {selected ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5" />}
+                    </button>
+                    <Link
+                      href={`/crm/accounts/${account.id}`}
+                      className="flex flex-1 flex-col gap-2 min-w-0 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex flex-1 items-start gap-3 min-w-0">
+                        <div
+                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            account.type === "client"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-amber-500/10 text-amber-400"
+                          }`}
+                        >
+                          {account.type === "client" ? <Building2 className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">{account.name}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {account.rut || "Sin RUT"} · {account.industry || "Sin industria"}
+                          </p>
+                          {account.website && (
+                            <a href={account.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-xs text-primary hover:underline truncate max-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                              <Globe className="h-3 w-3 shrink-0" />
+                              {account.website}
+                            </a>
+                          )}
+                          <CrmDates createdAt={account.createdAt} updatedAt={account.updatedAt} className="mt-0.5" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className={account.type === "client" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"}>
+                          {account.type === "client" ? "Cliente" : "Prospecto"}
+                        </Badge>
+                        <Badge variant="outline">{account._count?.contacts ?? 0} contactos</Badge>
+                        <Badge variant="outline">{account._count?.deals ?? 0} negocios</Badge>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 hidden sm:block" />
+                      </div>
+                    </Link>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className={account.type === "client" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"}>
-                      {account.type === "client" ? "Cliente" : "Prospecto"}
-                    </Badge>
-                    <Badge variant="outline">{account._count?.contacts ?? 0} contactos</Badge>
-                    <Badge variant="outline">{account._count?.deals ?? 0} negocios</Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 hidden sm:block" />
-                  </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredAccounts.map((account) => (
-                <Link
-                  key={account.id}
-                  href={`/crm/accounts/${account.id}`}
-                  className="rounded-lg border p-4 transition-colors hover:bg-accent/30 hover:border-primary/30 group space-y-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${account.type === "client" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
-                        {account.type === "client" ? <Building2 className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm group-hover:text-primary transition-colors">{account.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{account.industry || "Sin industria"}</p>
-                      </div>
+              {filteredAccounts.map((account) => {
+                const selected = selectedIds.has(account.id);
+                return (
+                  <div
+                    key={account.id}
+                    className={`rounded-lg border p-4 transition-colors hover:border-primary/30 group space-y-3 ${selected ? "border-primary/50 bg-primary/5" : "hover:bg-accent/30"}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSelection(account.id); }}
+                        className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground"
+                        aria-label={selected ? "Quitar de selección" : "Seleccionar"}
+                      >
+                        {selected ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5" />}
+                      </button>
+                      <Link href={`/crm/accounts/${account.id}`} className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${account.type === "client" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
+                            {account.type === "client" ? <Building2 className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm group-hover:text-primary transition-colors">{account.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{account.industry || "Sin industria"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap mt-2">
+                          <Badge variant="outline" className={`text-[10px] ${account.type === "client" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"}`}>
+                            {account.type === "client" ? "Cliente" : "Prospecto"}
+                          </Badge>
+                          <span className="flex items-center gap-1"><Users className="h-3 w-3" />{account._count?.contacts ?? 0}</span>
+                          <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />{account._count?.deals ?? 0}</span>
+                          {account.rut && <span>{account.rut}</span>}
+                          {account.website && (
+                            <a href={account.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline truncate max-w-[140px]" onClick={(e) => e.stopPropagation()}>
+                              <Globe className="h-3 w-3 shrink-0" />
+                              Web
+                            </a>
+                          )}
+                        </div>
+                      </Link>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                     </div>
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${account.type === "client" ? "border-emerald-500/30 text-emerald-400" : "border-amber-500/30 text-amber-400"}`}>
-                      {account.type === "client" ? "Cliente" : "Prospecto"}
-                    </Badge>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" />{account._count?.contacts ?? 0}</span>
-                    <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" />{account._count?.deals ?? 0}</span>
-                    {account.rut && <span>{account.rut}</span>}
-                    {account.website && (
-                      <a href={account.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline truncate max-w-[140px]" onClick={(e) => e.stopPropagation()}>
-                        <Globe className="h-3 w-3 shrink-0" />
-                        Web
-                      </a>
-                    )}
-                  </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Barra eliminación masiva */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card px-4 py-3 shadow-lg sm:left-[var(--sidebar-width,280px)]">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+            <span className="text-sm font-medium">
+              {selectedIds.size} cuenta{selectedIds.size !== 1 ? "s" : ""} seleccionada{selectedIds.size !== 1 ? "s" : ""}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={clearSelection}>
+                Deseleccionar
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirm(true)} disabled={bulkDeleting}>
+                {bulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={bulkDeleteConfirm}
+        onOpenChange={setBulkDeleteConfirm}
+        title="Eliminar cuentas seleccionadas"
+        description="Se eliminarán también contactos, negocios e instalaciones asociados. Esta acción no se puede deshacer."
+        onConfirm={bulkDeleteAccounts}
+      />
 
       <ConfirmDialog
         open={deleteConfirm.open}

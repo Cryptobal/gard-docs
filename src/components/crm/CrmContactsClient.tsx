@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Loader2, Trash2, Search, Users, ChevronRight, Mail, Phone, Building2 } from "lucide-react";
+import { Plus, Pencil, Loader2, Trash2, Search, Users, ChevronRight, Mail, Phone, Building2, CheckSquare, Square } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/opai/EmptyState";
 import { CrmDates } from "@/components/crm/CrmDates";
@@ -80,6 +80,23 @@ export function CrmContactsClient({
   const [editOpen, setEditOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<ViewMode>("list");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredContacts.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredContacts.map((c) => c.id)));
+  };
+  const clearSelection = () => setSelectedIds(new Set());
 
   const inputClassName =
     "bg-background text-foreground placeholder:text-muted-foreground border-input focus-visible:ring-ring";
@@ -161,11 +178,33 @@ export function CrmContactsClient({
       if (!response.ok) throw new Error();
       setContacts((prev) => prev.filter((c) => c.id !== id));
       setDeleteConfirm({ open: false, id: "" });
+      setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
       setEditOpen(false);
       setEditingId(null);
       toast.success("Contacto eliminado");
     } catch {
       toast.error("No se pudo eliminar");
+    }
+  };
+
+  const bulkDeleteContacts = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      let ok = 0;
+      for (const id of ids) {
+        const res = await fetch(`/api/crm/contacts/${id}`, { method: "DELETE" });
+        if (res.ok) ok++;
+      }
+      setContacts((prev) => prev.filter((c) => !ids.includes(c.id)));
+      setSelectedIds(new Set());
+      setBulkDeleteConfirm(false);
+      toast.success(ok === ids.length ? `${ok} contacto${ok > 1 ? "s" : ""} eliminado${ok > 1 ? "s" : ""}` : `Eliminados ${ok} de ${ids.length}`);
+    } catch {
+      toast.error("Error al eliminar");
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -208,7 +247,7 @@ export function CrmContactsClient({
     [c.firstName, c.lastName].filter(Boolean).join(" ") || "Sin nombre";
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${selectedIds.size > 0 ? "pb-24" : ""}`}>
       {/* ── Search + Filters + Create ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -220,6 +259,12 @@ export function CrmContactsClient({
             className="pl-9 h-9 bg-background text-foreground border-input"
           />
         </div>
+        {filteredContacts.length > 0 && (
+          <Button variant="ghost" size="sm" className="shrink-0 gap-1.5" onClick={toggleSelectAll}>
+            {selectedIds.size === filteredContacts.length ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+            {selectedIds.size === filteredContacts.length ? "Deseleccionar todos" : "Seleccionar todos"}
+          </Button>
+        )}
         <div className="flex items-center gap-2">
           <ViewToggle view={view} onChange={setView} />
           <Dialog open={open} onOpenChange={setOpen}>
@@ -403,62 +448,116 @@ export function CrmContactsClient({
             />
           ) : view === "list" ? (
             <div className="space-y-2">
-              {filteredContacts.map((contact) => (
-                <Link
-                  key={contact.id}
-                  href={`/crm/contacts/${contact.id}`}
-                  className="flex items-center justify-between rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm group-hover:text-primary transition-colors">{contactName(contact)}</p>
-                      {contact.isPrimary && (
-                        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Principal</Badge>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {contact.email || "Sin email"} · {contact.phone || "Sin teléfono"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {contact.account?.name || "Sin cliente asociado"}
-                      {contact.roleTitle ? ` · ${contact.roleTitle}` : ""}
-                    </p>
-                    {contact.createdAt && (
-                      <CrmDates createdAt={contact.createdAt} updatedAt={contact.updatedAt} className="mt-0.5" />
-                    )}
+              {filteredContacts.map((contact) => {
+                const selected = selectedIds.has(contact.id);
+                return (
+                  <div
+                    key={contact.id}
+                    className={`flex items-center gap-2 rounded-lg border p-3 sm:p-4 transition-colors group ${selected ? "border-primary/50 bg-primary/5" : "hover:bg-accent/30"}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSelection(contact.id); }}
+                      className="shrink-0 p-1 rounded text-muted-foreground hover:text-foreground"
+                      aria-label={selected ? "Quitar de selección" : "Seleccionar"}
+                    >
+                      {selected ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5" />}
+                    </button>
+                    <Link href={`/crm/contacts/${contact.id}`} className="flex flex-1 items-center justify-between min-w-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm group-hover:text-primary transition-colors">{contactName(contact)}</p>
+                          {contact.isPrimary && (
+                            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Principal</Badge>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {contact.email || "Sin email"} · {contact.phone || "Sin teléfono"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {contact.account?.name || "Sin cliente asociado"}
+                          {contact.roleTitle ? ` · ${contact.roleTitle}` : ""}
+                        </p>
+                        {contact.createdAt && (
+                          <CrmDates createdAt={contact.createdAt} updatedAt={contact.updatedAt} className="mt-0.5" />
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 shrink-0 ml-2" />
+                    </Link>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 shrink-0" />
-                </Link>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredContacts.map((contact) => (
-                <Link
-                  key={contact.id}
-                  href={`/crm/contacts/${contact.id}`}
-                  className="rounded-lg border p-4 transition-colors hover:bg-accent/30 hover:border-primary/30 group space-y-2.5"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-sm group-hover:text-primary transition-colors">{contactName(contact)}</p>
-                      <p className="text-[11px] text-muted-foreground">{contact.roleTitle || "Sin cargo"}</p>
+              {filteredContacts.map((contact) => {
+                const selected = selectedIds.has(contact.id);
+                return (
+                  <div
+                    key={contact.id}
+                    className={`rounded-lg border p-4 transition-colors hover:border-primary/30 group space-y-2.5 ${selected ? "border-primary/50 bg-primary/5" : "hover:bg-accent/30"}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSelection(contact.id); }}
+                        className="shrink-0 p-0.5 rounded text-muted-foreground hover:text-foreground"
+                        aria-label={selected ? "Quitar de selección" : "Seleccionar"}
+                      >
+                        {selected ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5" />}
+                      </button>
+                      <Link href={`/crm/contacts/${contact.id}`} className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-medium text-sm group-hover:text-primary transition-colors">{contactName(contact)}</p>
+                            <p className="text-[11px] text-muted-foreground">{contact.roleTitle || "Sin cargo"}</p>
+                          </div>
+                          {contact.isPrimary && (
+                            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary shrink-0">Principal</Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1 text-xs text-muted-foreground mt-2">
+                          {contact.email && <p className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" />{contact.email}</p>}
+                          {contact.phone && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{contact.phone}</p>}
+                          {contact.account?.name && <p className="flex items-center gap-1.5"><Building2 className="h-3 w-3 shrink-0" />{contact.account.name}</p>}
+                        </div>
+                      </Link>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                     </div>
-                    {contact.isPrimary && (
-                      <Badge variant="outline" className="text-[10px] border-primary/30 text-primary shrink-0">Principal</Badge>
-                    )}
                   </div>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    {contact.email && <p className="flex items-center gap-1.5"><Mail className="h-3 w-3 shrink-0" />{contact.email}</p>}
-                    {contact.phone && <p className="flex items-center gap-1.5"><Phone className="h-3 w-3 shrink-0" />{contact.phone}</p>}
-                    {contact.account?.name && <p className="flex items-center gap-1.5"><Building2 className="h-3 w-3 shrink-0" />{contact.account.name}</p>}
-                  </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card px-4 py-3 shadow-lg sm:left-[var(--sidebar-width,280px)]">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+            <span className="text-sm font-medium">
+              {selectedIds.size} contacto{selectedIds.size !== 1 ? "s" : ""} seleccionado{selectedIds.size !== 1 ? "s" : ""}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={clearSelection}>
+                Deseleccionar
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteConfirm(true)} disabled={bulkDeleting}>
+                {bulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={bulkDeleteConfirm}
+        onOpenChange={setBulkDeleteConfirm}
+        title="Eliminar contactos seleccionados"
+        description="Los contactos serán eliminados permanentemente. Esta acción no se puede deshacer."
+        onConfirm={bulkDeleteContacts}
+      />
 
       <ConfirmDialog
         open={deleteConfirm.open}
