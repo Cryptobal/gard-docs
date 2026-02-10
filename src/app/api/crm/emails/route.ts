@@ -10,7 +10,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, unauthorized } from "@/lib/api-auth";
 import { normalizeEmailAddress } from "@/lib/email-address";
@@ -59,14 +58,14 @@ export async function GET(request: NextRequest) {
         select: { id: true },
       });
 
-      const threadIds = linkedThreads.map((t) => t.id);
+      const threadIds = linkedThreads.map((thread: { id: string }) => thread.id);
       const rawEmail = contact.email?.trim() || "";
       const normalizedEmail = rawEmail ? normalizeEmailAddress(rawEmail) : "";
       const emailCandidates = Array.from(
         new Set([rawEmail, normalizedEmail].filter(Boolean))
       );
 
-      const messageFilters: Prisma.CrmEmailMessageWhereInput[] = [];
+      const messageFilters: Array<Record<string, unknown>> = [];
       if (threadIds.length > 0) {
         messageFilters.push({ threadId: { in: threadIds } });
       }
@@ -112,7 +111,7 @@ export async function GET(request: NextRequest) {
       select: { id: true },
     });
 
-    const threadIds = threads.map((t) => t.id);
+    const threadIds = threads.map((thread: { id: string }) => thread.id);
 
     if (threadIds.length === 0) {
       return NextResponse.json({ success: true, data: [] });
