@@ -14,6 +14,30 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, unauthorized } from "@/lib/api-auth";
 import { normalizeEmailAddress } from "@/lib/email-address";
 
+function buildEmailCandidates(values: Array<string | null | undefined>): string[] {
+  const candidates = values.flatMap((value) => {
+    const raw = value?.trim() || "";
+    const normalized = raw ? normalizeEmailAddress(raw) : "";
+    return [raw, normalized].filter(Boolean);
+  });
+
+  return Array.from(new Set(candidates));
+}
+
+function addMessageEmailFilters(
+  filters: Array<Record<string, unknown>>,
+  emails: string[]
+) {
+  for (const email of emails) {
+    filters.push({
+      fromEmail: { contains: email, mode: "insensitive" },
+    });
+    filters.push({ toEmails: { has: email } });
+    filters.push({ ccEmails: { has: email } });
+    filters.push({ bccEmails: { has: email } });
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const ctx = await requireAuth();
@@ -59,25 +83,13 @@ export async function GET(request: NextRequest) {
       });
 
       const threadIds = linkedThreads.map((thread: { id: string }) => thread.id);
-      const rawEmail = contact.email?.trim() || "";
-      const normalizedEmail = rawEmail ? normalizeEmailAddress(rawEmail) : "";
-      const emailCandidates = Array.from(
-        new Set([rawEmail, normalizedEmail].filter(Boolean))
-      );
+      const emailCandidates = buildEmailCandidates([contact.email]);
 
       const messageFilters: Array<Record<string, unknown>> = [];
       if (threadIds.length > 0) {
         messageFilters.push({ threadId: { in: threadIds } });
       }
-
-      for (const email of emailCandidates) {
-        messageFilters.push({
-          fromEmail: { contains: email, mode: "insensitive" },
-        });
-        messageFilters.push({ toEmails: { has: email } });
-        messageFilters.push({ ccEmails: { has: email } });
-        messageFilters.push({ bccEmails: { has: email } });
-      }
+      addMessageEmailFilters(messageFilters, emailCandidates);
 
       if (messageFilters.length === 0) {
         return NextResponse.json({ success: true, data: [] });
@@ -112,15 +124,57 @@ export async function GET(request: NextRequest) {
     });
 
     const threadIds = threads.map((thread: { id: string }) => thread.id);
+    const messageFilters: Array<Record<string, unknown>> = [];
+    if (threadIds.length > 0) {
+      messageFilters.push({ threadId: { in: threadIds } });
+    }
 
-    if (threadIds.length === 0) {
+    if (dealId) {
+      const [deal, dealContacts] = await Promise.all([
+        prisma.crmDeal.findFirst({
+          where: { id: dealId, tenantId: ctx.tenantId },
+          select: {
+            primaryContact: {
+              select: {
+                email: true,
+              },
+            },
+          },
+        }),
+        prisma.crmDealContact.findMany({
+          where: { dealId, tenantId: ctx.tenantId },
+          select: {
+            contact: {
+              select: {
+                email: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+      const dealPrimaryEmail =
+        (
+          deal as { primaryContact?: { email?: string | null } | null } | null
+        )?.primaryContact?.email || null;
+      const dealContactEmails = dealContacts.map(
+        (entry: { contact: { email: string | null } }) => entry.contact.email
+      );
+      const relatedEmails = buildEmailCandidates([
+        dealPrimaryEmail,
+        ...dealContactEmails,
+      ]);
+      addMessageEmailFilters(messageFilters, relatedEmails);
+    }
+
+    if (messageFilters.length === 0) {
       return NextResponse.json({ success: true, data: [] });
     }
 
     const messages = await prisma.crmEmailMessage.findMany({
       where: {
         tenantId: ctx.tenantId,
-        threadId: { in: threadIds },
+        OR: messageFilters,
       },
       orderBy: [{ sentAt: "desc" }, { createdAt: "desc" }],
       take: limit,

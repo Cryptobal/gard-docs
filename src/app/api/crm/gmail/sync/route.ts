@@ -21,6 +21,59 @@ function parseDateHeader(value: string): Date {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+type GmailMessagePart = {
+  mimeType?: string | null;
+  body?: { data?: string | null } | null;
+  parts?: GmailMessagePart[] | null;
+};
+
+function decodeBase64Url(value?: string | null): string {
+  if (!value) return "";
+
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+
+  try {
+    return Buffer.from(`${base64}${padding}`, "base64").toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
+function extractMessageBodies(payload?: GmailMessagePart): {
+  htmlBody: string | null;
+  textBody: string | null;
+} {
+  if (!payload) return { htmlBody: null, textBody: null };
+
+  let htmlBody: string | null = null;
+  let textBody: string | null = null;
+  const stack: GmailMessagePart[] = [payload];
+
+  while (stack.length > 0) {
+    const part = stack.pop();
+    if (!part) continue;
+
+    const mimeType = (part.mimeType || "").toLowerCase();
+    const decoded = decodeBase64Url(part.body?.data);
+
+    if (decoded) {
+      if (!htmlBody && mimeType.includes("text/html")) {
+        htmlBody = decoded;
+      }
+      if (!textBody && mimeType.includes("text/plain")) {
+        textBody = decoded;
+      }
+    }
+
+    if (part.parts?.length) {
+      stack.push(...part.parts);
+    }
+  }
+
+  return { htmlBody, textBody };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -89,7 +142,9 @@ export async function GET(request: NextRequest) {
       const existing = await prisma.crmEmailMessage.findFirst({
         where: { providerMessageId: message.id, tenantId },
       });
-      if (existing) continue;
+      const shouldBackfillExisting =
+        Boolean(existing) && !existing?.htmlBody && !existing?.textBody;
+      if (existing && !shouldBackfillExisting) continue;
 
       const full = await gmail.users.messages.get({
         userId: "me",
@@ -103,6 +158,7 @@ export async function GET(request: NextRequest) {
       const fromHeader = getHeader(headers, "From");
       const toHeader = getHeader(headers, "To");
       const ccHeader = getHeader(headers, "Cc");
+      const bccHeader = getHeader(headers, "Bcc");
       const dateHeader = getHeader(headers, "Date");
       const labelIds = full.data.labelIds || [];
       const direction = labelIds.includes("SENT") ? "out" : "in";
@@ -111,7 +167,32 @@ export async function GET(request: NextRequest) {
         normalizeEmailAddress(emailAccount.email);
       const toEmails = extractEmailAddresses(toHeader);
       const ccEmails = extractEmailAddresses(ccHeader);
+      const bccEmails = extractEmailAddresses(bccHeader);
       const sentOrReceivedAt = parseDateHeader(dateHeader);
+      const { htmlBody, textBody } = extractMessageBodies(payload as GmailMessagePart | undefined);
+      const snippet = full.data.snippet?.trim() || null;
+
+      if (existing) {
+        await prisma.crmEmailMessage.update({
+          where: { id: existing.id },
+          data: {
+            direction,
+            fromEmail,
+            toEmails,
+            ccEmails,
+            bccEmails,
+            subject,
+            htmlBody,
+            textBody: textBody || snippet,
+            sentAt: sentOrReceivedAt,
+            receivedAt: direction === "in" ? sentOrReceivedAt : null,
+            status: direction === "out" ? "sent" : "received",
+            source: "gmail",
+          },
+        });
+        syncedCount += 1;
+        continue;
+      }
 
       const thread = await prisma.crmEmailThread.findFirst({
         where: {
@@ -126,7 +207,7 @@ export async function GET(request: NextRequest) {
             data: {
               tenantId,
               subject,
-              lastMessageAt: new Date(),
+              lastMessageAt: sentOrReceivedAt,
             },
           });
 
@@ -139,13 +220,14 @@ export async function GET(request: NextRequest) {
           fromEmail,
           toEmails,
           ccEmails,
+          bccEmails,
           subject,
-          htmlBody: null,
-          textBody: null,
+          htmlBody,
+          textBody: textBody || snippet,
           sentAt: sentOrReceivedAt,
           receivedAt: direction === "in" ? sentOrReceivedAt : null,
           createdBy: session.user.id,
-          status: direction === "out" ? "sent" : "delivered",
+          status: direction === "out" ? "sent" : "received",
           source: "gmail",
         },
       });
