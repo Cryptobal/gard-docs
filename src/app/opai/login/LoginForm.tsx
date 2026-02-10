@@ -37,7 +37,7 @@ export function LoginForm({ callbackUrl, error, success }: LoginFormProps) {
           type="email"
           autoComplete="email"
           required
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
           placeholder="admin@gard.cl"
         />
       </div>
@@ -61,7 +61,7 @@ export function LoginForm({ callbackUrl, error, success }: LoginFormProps) {
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             required
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-base md:text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-colors"
           />
           <button
             type="button"

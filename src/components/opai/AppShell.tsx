@@ -2,7 +2,8 @@
 
 import { cloneElement, isValidElement, ReactElement, ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Menu, RefreshCw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomNav } from './BottomNav';
 import { CommandPalette } from './CommandPalette';
@@ -27,8 +28,21 @@ export interface AppShellProps {
  * - Transition: duration-200 ease-out
  */
 export function AppShell({ sidebar, children, userName, className }: AppShellProps) {
+  const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleMobileRefresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+
+    // Refresh suave para mantener la experiencia móvil fluida.
+    router.refresh();
+    window.setTimeout(() => {
+      setIsRefreshing(false);
+    }, 700);
+  };
 
   useEffect(() => {
     if (!isMobileOpen) return;
@@ -62,10 +76,25 @@ export function AppShell({ sidebar, children, userName, className }: AppShellPro
     <div className="relative min-h-screen overflow-x-hidden">
       {/* ── Mobile topbar ── */}
       {sidebar && (
-        <header className="sticky top-0 z-30 flex min-h-12 items-center justify-between border-b border-border bg-card/95 px-4 py-2 backdrop-blur lg:hidden">
-          <Link href="/opai/inicio" className="text-sm font-semibold tracking-tight hover:opacity-80">OPAI</Link>
-          <div className="flex items-center gap-2">
-            <GlobalIndicators compact />
+        <header
+          className="sticky top-0 z-30 flex min-h-12 items-center justify-between border-b border-border bg-card/95 py-2 backdrop-blur lg:hidden"
+          style={{
+            paddingLeft: 'max(env(safe-area-inset-left), 0.75rem)',
+            paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
+          }}
+        >
+          <Link href="/hub" className="shrink-0 text-sm font-semibold tracking-tight hover:opacity-80">OPAI</Link>
+          <div className="flex min-w-0 items-center justify-end gap-1.5">
+            <GlobalIndicators compact className="min-w-0" />
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleMobileRefresh}
+              disabled={isRefreshing}
+              aria-label="Actualizar pantalla"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
             <button
               type="button"
               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface Notification {
   id: string;
@@ -57,7 +58,7 @@ function timeAgo(dateStr: string): string {
  * Muestra notificaciones del sistema (leads, cotizaciones, etc.)
  * Se actualiza automáticamente cada 30 segundos.
  */
-export function NotificationBell() {
+export function NotificationBell({ compact = false }: { compact?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -133,8 +134,15 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="relative h-9 w-9 p-0">
-          <Bell className="h-4 w-4" />
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            'relative p-0',
+            compact ? 'h-8 w-8' : 'h-9 w-9'
+          )}
+        >
+          <Bell className={cn(compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
           {unreadCount > 0 && (
             <Badge 
               variant="destructive" 
@@ -145,7 +153,7 @@ export function NotificationBell() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 max-h-[70vh] overflow-y-auto p-0">
+      <DropdownMenuContent align="end" className="w-[min(24rem,calc(100vw-1rem))] max-h-[70vh] overflow-y-auto p-0">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-3">
           <div>

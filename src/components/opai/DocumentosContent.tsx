@@ -48,7 +48,7 @@ export function DocumentosContent({ presentations, stats, conversionRate }: Docu
     <>
       {/* KPI Cards - Clickeables para filtrar */}
       <div className="grid grid-cols-2 gap-3 sm:gap-3 sm:grid-cols-2 lg:grid-cols-5 mb-6">
-        <button onClick={() => handleKpiClick('all')} className="text-left">
+        <button onClick={() => handleKpiClick('all')} className="w-full min-w-0 text-left">
           <KpiCard
             title="Total"
             value={stats.total}
@@ -59,7 +59,7 @@ export function DocumentosContent({ presentations, stats, conversionRate }: Docu
           />
         </button>
         
-        <button onClick={() => handleKpiClick('sent')} className="text-left">
+        <button onClick={() => handleKpiClick('sent')} className="w-full min-w-0 text-left">
           <KpiCard
             title="Enviadas"
             value={stats.sent}
@@ -70,7 +70,7 @@ export function DocumentosContent({ presentations, stats, conversionRate }: Docu
           />
         </button>
         
-        <button onClick={() => handleKpiClick('viewed')} className="text-left">
+        <button onClick={() => handleKpiClick('viewed')} className="w-full min-w-0 text-left">
           <KpiCard
             title="Vistas"
             value={stats.viewed}
@@ -81,7 +81,7 @@ export function DocumentosContent({ presentations, stats, conversionRate }: Docu
           />
         </button>
         
-        <button onClick={() => handleKpiClick('pending')} className="text-left">
+        <button onClick={() => handleKpiClick('pending')} className="w-full min-w-0 text-left">
           <KpiCard
             title="Sin Leer"
             value={stats.pending}

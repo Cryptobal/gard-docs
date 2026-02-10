@@ -105,15 +105,15 @@ export function KpiCard({
         {value}
       </div>
       {(description || (trend && trendValue)) && (
-        <div className="mt-1 flex items-center gap-2 text-xs">
+        <div className="mt-1 flex min-w-0 items-center gap-2 text-xs">
           {trend && TrendIcon && trendValue && (
-            <span className={cn("flex items-center gap-0.5", trendColors[trend])}>
+            <span className={cn("flex min-w-0 items-center gap-0.5", trendColors[trend])}>
               <TrendIcon className="h-3 w-3" />
-              {trendValue}
+              <span className="truncate">{trendValue}</span>
             </span>
           )}
           {description && (
-            <span className={cn("text-muted-foreground", descriptionClassName)}>{description}</span>
+            <span className={cn("min-w-0 truncate text-muted-foreground", descriptionClassName)}>{description}</span>
           )}
         </div>
       )}

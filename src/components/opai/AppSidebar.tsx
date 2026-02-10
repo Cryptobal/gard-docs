@@ -57,7 +57,7 @@ export function AppSidebar({
       >
         {logo || (
           <Link
-            href="/opai/inicio"
+            href="/hub"
             className={cn("flex items-center", collapsed ? "justify-center" : "gap-2.5")}
             onClick={onNavigate}
             title={collapsed ? "OPAI" : undefined}

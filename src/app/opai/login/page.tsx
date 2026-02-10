@@ -1,7 +1,7 @@
 /**
  * Página de login - Auth.js v5 Credentials
  * Fuera de (app) para evitar redirect loop - no requiere layout con auth
- * Redirige a /opai/inicio tras login exitoso
+ * Redirige a /hub tras login exitoso
  */
 
 import Image from 'next/image';
@@ -18,7 +18,7 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string; success?: string }>;
 }) {
   const params = await searchParams;
-  const callbackUrl = params.callbackUrl || '/opai/inicio';
+  const callbackUrl = params.callbackUrl || '/hub';
   const error = params.error;
   const success = params.success;
 

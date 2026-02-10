@@ -42,14 +42,14 @@ function isPublicPath(pathname: string): boolean {
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Entrada al sitio: siempre llevar a login (sin sesión) o a inicio (con sesión)
+  // Entrada al sitio: siempre llevar a login (sin sesión) o al Hub (con sesión)
   if (pathname === '/' || pathname === '/opai') {
     if (!req.auth) {
       const loginUrl = new URL('/opai/login', req.nextUrl.origin);
-      loginUrl.searchParams.set('callbackUrl', '/opai/inicio');
+      loginUrl.searchParams.set('callbackUrl', '/hub');
       return Response.redirect(loginUrl);
     }
-    return Response.redirect(new URL('/opai/inicio', req.nextUrl.origin));
+    return Response.redirect(new URL('/hub', req.nextUrl.origin));
   }
 
   if (isPublicPath(pathname)) return;

@@ -11,7 +11,7 @@ import { AuthError } from 'next-auth';
 export async function authenticate(formData: FormData) {
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
-  const callbackUrl = String(formData.get('callbackUrl') ?? '/opai/inicio');
+  const callbackUrl = String(formData.get('callbackUrl') ?? '/hub');
 
   try {
     await signIn('credentials', {

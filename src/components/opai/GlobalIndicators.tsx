@@ -24,7 +24,13 @@ const formatCLP = (n: number) =>
  * Se muestra en la barra superior (desktop y mobile).
  * Única fuente de verdad: no duplicar en páginas individuales.
  */
-export function GlobalIndicators({ compact = false }: { compact?: boolean }) {
+export function GlobalIndicators({
+  compact = false,
+  className,
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
   const [data, setData] = useState<IndicatorsData | null>(null);
 
   const fetchIndicators = useCallback(async () => {
@@ -49,20 +55,21 @@ export function GlobalIndicators({ compact = false }: { compact?: boolean }) {
     <div
       className={cn(
         'flex items-center gap-4',
-        compact && 'gap-3'
+        compact && 'min-w-0 gap-2',
+        className
       )}
     >
       {/* UF */}
       {data?.uf && (
         <div
           className={cn(
-            'rounded-lg border border-border bg-card px-3 py-1.5 text-center shrink-0',
+            'shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-center',
             compact && 'px-2 py-1'
           )}
           title={`UF vigente ${data.uf.date || ''}`}
         >
           <p className={cn('text-xs uppercase text-muted-foreground', compact && 'text-[10px]')}>
-            UF {data.uf.date || ''}
+            {compact ? 'UF' : `UF ${data.uf.date || ''}`}
           </p>
           <p className={cn('text-xs font-mono font-semibold', compact && 'text-[10px]')}>
             {formatCLP(data.uf.value)}
@@ -74,8 +81,8 @@ export function GlobalIndicators({ compact = false }: { compact?: boolean }) {
       {data?.utm && (
         <div
           className={cn(
-            'rounded-lg border border-border bg-card px-3 py-1.5 text-center shrink-0',
-            compact && 'px-2 py-1'
+            'shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-center',
+            compact && 'px-2 py-1 max-[420px]:hidden'
           )}
           title={`UTM ${data.utm.month || ''}`}
         >
@@ -89,7 +96,7 @@ export function GlobalIndicators({ compact = false }: { compact?: boolean }) {
       )}
 
       {/* Campana - siempre visible */}
-      <NotificationBell />
+      <NotificationBell compact={compact} />
     </div>
   );
 }
