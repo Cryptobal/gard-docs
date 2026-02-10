@@ -805,13 +805,32 @@ model CrmContact {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  account CrmAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  deals   CrmDeal[]  @relation("crm_deal_primary_contact")
+  account      CrmAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  deals        CrmDeal[]        @relation("crm_deal_primary_contact")
+  dealContacts CrmDealContact[]
 
   @@index([tenantId], map: "idx_crm_contacts_tenant")
   @@index([accountId], map: "idx_crm_contacts_account")
   @@index([createdAt(sort: Desc)], map: "idx_crm_contacts_created_desc")
   @@map("contacts")
+  @@schema("crm")
+}
+
+model CrmDealContact {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId  String   @map("tenant_id")
+  dealId    String   @map("deal_id") @db.Uuid
+  contactId String   @map("contact_id") @db.Uuid
+  role      String   @default("participant") // primary, participant, decision_maker
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  deal    CrmDeal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  contact CrmContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([dealId, contactId], map: "uq_crm_deal_contact")
+  @@index([dealId], map: "idx_crm_deal_contacts_deal")
+  @@index([contactId], map: "idx_crm_deal_contacts_contact")
+  @@map("deal_contacts")
   @@schema("crm")
 }
 
@@ -877,6 +896,7 @@ model CrmDeal {
   quotes         CrmDealQuote[]
   tasks          CrmTask[]
   followUpLogs   CrmFollowUpLog[]
+  dealContacts   CrmDealContact[]
 
   @@index([tenantId], map: "idx_crm_deals_tenant")
   @@index([status], map: "idx_crm_deals_status")

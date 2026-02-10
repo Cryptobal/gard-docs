@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, ExternalLink, Trash2, TrendingUp, FileText, Mail, Users, ChevronRight, Pencil, Send, MessageSquare } from "lucide-react";
+import { ArrowLeft, Loader2, ExternalLink, Trash2, TrendingUp, FileText, Mail, Users, ChevronRight, Pencil, Send, MessageSquare, Plus, Star, X } from "lucide-react";
 import { EmailHistoryList } from "@/components/crm/EmailHistoryList";
 import { ContractEditor } from "@/components/docs/ContractEditor";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -52,6 +52,7 @@ type QuoteOption = { id: string; code: string; clientName?: string | null; statu
 type EmailTemplate = { id: string; name: string; subject: string; body: string; scope: string; stageId?: string | null; };
 type DealQuote = { id: string; quoteId: string; };
 type ContactRow = { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; roleTitle?: string | null; isPrimary?: boolean; };
+type DealContactRow = { id: string; dealId: string; contactId: string; role: string; contact: ContactRow; };
 
 export type DealDetail = {
   id: string;
@@ -66,15 +67,22 @@ export type DealDetail = {
 };
 
 export function CrmDealDetailClient({
-  deal, quotes, contacts, gmailConnected, templates,
+  deal, quotes, dealContacts: initialDealContacts, accountContacts, gmailConnected, templates,
 }: {
-  deal: DealDetail; quotes: QuoteOption[]; contacts: ContactRow[];
+  deal: DealDetail; quotes: QuoteOption[];
+  dealContacts: DealContactRow[]; accountContacts: ContactRow[];
   gmailConnected: boolean; templates: EmailTemplate[];
 }) {
   // ── Quote linking state ──
   const [quoteDialogOpen, setQuoteDialogOpen] = useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState("");
   const [linkedQuotes, setLinkedQuotes] = useState<DealQuote[]>(deal.quotes || []);
+
+  // ── Deal contacts state ──
+  const [dealContacts, setDealContacts] = useState<DealContactRow[]>(initialDealContacts);
+  const [addContactOpen, setAddContactOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState("");
+  const [addingContact, setAddingContact] = useState(false);
   const [linking, setLinking] = useState(false);
 
   // ── Email compose state ──
@@ -153,6 +161,60 @@ export function CrmDealDetailClient({
       toast.success("Correo enviado exitosamente");
     } catch (error) { console.error(error); toast.error("No se pudo enviar."); }
     finally { setSending(false); }
+  };
+
+  // ── Deal contacts handlers ──
+  const linkedContactIds = new Set(dealContacts.map((dc) => dc.contactId));
+  const availableContacts = accountContacts.filter((c) => !linkedContactIds.has(c.id));
+
+  const addDealContact = async () => {
+    if (!selectedContactId) { toast.error("Selecciona un contacto."); return; }
+    setAddingContact(true);
+    try {
+      const role = dealContacts.length === 0 ? "primary" : "participant";
+      const res = await fetch(`/api/crm/deals/${deal.id}/contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId: selectedContactId, role }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error);
+      setDealContacts((prev) => [...prev, data.data]);
+      setSelectedContactId("");
+      setAddContactOpen(false);
+      toast.success("Contacto vinculado al negocio");
+    } catch (error: any) {
+      toast.error(error?.message || "No se pudo vincular.");
+    } finally {
+      setAddingContact(false);
+    }
+  };
+
+  const removeDealContact = async (contactId: string) => {
+    try {
+      const res = await fetch(`/api/crm/deals/${deal.id}/contacts?contactId=${contactId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setDealContacts((prev) => prev.filter((dc) => dc.contactId !== contactId));
+      toast.success("Contacto desvinculado");
+    } catch { toast.error("No se pudo desvincular."); }
+  };
+
+  const markPrimary = async (contactId: string) => {
+    try {
+      const res = await fetch(`/api/crm/deals/${deal.id}/contacts`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId, role: "primary" }),
+      });
+      if (!res.ok) throw new Error();
+      setDealContacts((prev) =>
+        prev.map((dc) => ({
+          ...dc,
+          role: dc.contactId === contactId ? "primary" : "participant",
+        }))
+      );
+      toast.success("Contacto marcado como principal");
+    } catch { toast.error("No se pudo actualizar."); }
   };
 
   return (
@@ -251,29 +313,73 @@ export function CrmDealDetailClient({
         )}
       </CollapsibleSection>
 
-      {/* ── Section 3: Contactos ── */}
+      {/* ── Section 3: Contactos del negocio ── */}
       <CollapsibleSection
         icon={<Users className="h-4 w-4" />}
-        title="Contactos del cliente"
-        count={contacts.length}
-        defaultOpen={contacts.length > 0}
+        title="Contactos del negocio"
+        count={dealContacts.length}
+        defaultOpen={dealContacts.length > 0}
+        action={
+          availableContacts.length > 0 ? (
+            <Dialog open={addContactOpen} onOpenChange={setAddContactOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-7 text-xs">
+                  <Plus className="h-3 w-3 mr-1" /> Agregar
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader><DialogTitle>Vincular contacto al negocio</DialogTitle><DialogDescription>Selecciona un contacto de la cuenta.</DialogDescription></DialogHeader>
+                <div className="space-y-2">
+                  <Label>Contacto</Label>
+                  <select className={selectCn} value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)} disabled={addingContact}>
+                    <option value="">Selecciona contacto</option>
+                    {availableContacts.map((c) => (
+                      <option key={c.id} value={c.id}>{`${c.firstName} ${c.lastName}`.trim()} · {c.email || "Sin email"}</option>
+                    ))}
+                  </select>
+                </div>
+                <DialogFooter>
+                  <Button onClick={addDealContact} disabled={addingContact}>
+                    {addingContact && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Vincular
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          ) : null
+        }
       >
-        {contacts.length === 0 ? (
-          <EmptyState icon={<Users className="h-8 w-8" />} title="Sin contactos" description="Este cliente no tiene contactos registrados." compact />
+        {dealContacts.length === 0 ? (
+          <EmptyState icon={<Users className="h-8 w-8" />} title="Sin contactos" description="Vincula contactos de la cuenta a este negocio." compact />
         ) : (
           <div className="space-y-2">
-            {contacts.map((contact) => (
-              <Link key={contact.id} href={`/crm/contacts/${contact.id}`} className="flex items-center justify-between rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 group">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm group-hover:text-primary transition-colors">{`${contact.firstName} ${contact.lastName}`.trim()}</p>
-                    {contact.isPrimary && <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Principal</Badge>}
+            {dealContacts.map((dc) => {
+              const c = dc.contact;
+              return (
+                <div key={dc.id} className="flex items-center justify-between rounded-lg border p-3 sm:p-4 group">
+                  <Link href={`/crm/contacts/${c.id}`} className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm group-hover:text-primary transition-colors">{`${c.firstName} ${c.lastName}`.trim()}</p>
+                      {dc.role === "primary" && <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">Principal</Badge>}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{c.roleTitle || "Sin cargo"} · {c.email || "Sin email"} · {c.phone || "Sin teléfono"}</p>
+                  </Link>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {dc.role !== "primary" && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" title="Marcar como principal" onClick={() => markPrimary(c.id)}>
+                        <Star className="h-3 w-3" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" title="Desvincular" onClick={() => removeDealContact(c.id)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                    <Link href={`/crm/contacts/${c.id}`}>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{contact.roleTitle || "Sin cargo"} · {contact.email || "Sin email"} · {contact.phone || "Sin teléfono"}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform shrink-0 hidden sm:block" />
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </CollapsibleSection>

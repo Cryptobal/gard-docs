@@ -34,6 +34,7 @@ import {
   Trash2,
   Loader2,
   ChevronRight,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -108,6 +109,11 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
   const [editContact, setEditContact] = useState<ContactRow | null>(null);
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", phone: "", roleTitle: "", isPrimary: false });
   const [savingContact, setSavingContact] = useState(false);
+
+  // ── New contact state ──
+  const [newContactOpen, setNewContactOpen] = useState(false);
+  const [newContactForm, setNewContactForm] = useState({ firstName: "", lastName: "", email: "", phone: "", roleTitle: "", isPrimary: false });
+  const [creatingContact, setCreatingContact] = useState(false);
 
   // ── Delete state ──
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false);
@@ -215,6 +221,35 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
     }
   };
 
+  const createContact = async () => {
+    if (!newContactForm.firstName.trim() || !newContactForm.email.trim()) {
+      toast.error("Nombre y email son obligatorios.");
+      return;
+    }
+    setCreatingContact(true);
+    try {
+      const res = await fetch("/api/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...newContactForm, accountId: account.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error);
+      setAccount((prev) => ({
+        ...prev,
+        contacts: [data.data, ...prev.contacts],
+        _count: { ...prev._count, contacts: prev._count.contacts + 1 },
+      }));
+      setNewContactOpen(false);
+      setNewContactForm({ firstName: "", lastName: "", email: "", phone: "", roleTitle: "", isPrimary: false });
+      toast.success("Contacto creado");
+    } catch {
+      toast.error("No se pudo crear el contacto.");
+    } finally {
+      setCreatingContact(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* ── Toolbar ── */}
@@ -298,6 +333,12 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
         title="Contactos"
         count={account.contacts.length}
         defaultOpen={account.contacts.length > 0}
+        action={
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setNewContactOpen(true)}>
+            <Plus className="h-3 w-3 mr-1" />
+            Agregar
+          </Button>
+        }
       >
         {account.contacts.length === 0 ? (
           <EmptyState icon={<Users className="h-8 w-8" />} title="Sin contactos" description="Esta cuenta no tiene contactos registrados." compact />
@@ -321,17 +362,9 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
                     {contact.phone ? ` · ${contact.phone}` : ""}
                   </p>
                 </Link>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openContactEdit(contact)}>
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteContactConfirm({ open: true, id: contact.id })}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                  <Link href={`/crm/contacts/${contact.id}`}>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
-                </div>
+                <Link href={`/crm/contacts/${contact.id}`} className="shrink-0">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
               </div>
             ))}
           </div>
@@ -491,6 +524,50 @@ export function CrmAccountDetailClient({ account: initialAccount }: { account: A
             <Button onClick={saveContact} disabled={savingContact}>
               {savingContact && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── New Contact Modal ── */}
+      <Dialog open={newContactOpen} onOpenChange={setNewContactOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nuevo contacto</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nombre *</Label>
+              <Input value={newContactForm.firstName} onChange={(e) => setNewContactForm((p) => ({ ...p, firstName: e.target.value }))} className={inputCn} placeholder="Nombre" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Apellido</Label>
+              <Input value={newContactForm.lastName} onChange={(e) => setNewContactForm((p) => ({ ...p, lastName: e.target.value }))} className={inputCn} placeholder="Apellido" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Email *</Label>
+              <Input value={newContactForm.email} onChange={(e) => setNewContactForm((p) => ({ ...p, email: e.target.value }))} className={inputCn} placeholder="correo@empresa.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Teléfono</Label>
+              <Input value={newContactForm.phone} onChange={(e) => setNewContactForm((p) => ({ ...p, phone: e.target.value }))} className={inputCn} placeholder="+56 9 1234 5678" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cargo</Label>
+              <Input value={newContactForm.roleTitle} onChange={(e) => setNewContactForm((p) => ({ ...p, roleTitle: e.target.value }))} className={inputCn} placeholder="Gerente, jefe..." />
+            </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={newContactForm.isPrimary} onChange={(e) => setNewContactForm((p) => ({ ...p, isPrimary: e.target.checked }))} />
+                Contacto principal
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewContactOpen(false)}>Cancelar</Button>
+            <Button onClick={createContact} disabled={creatingContact}>
+              {creatingContact && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Crear contacto
             </Button>
           </DialogFooter>
         </DialogContent>

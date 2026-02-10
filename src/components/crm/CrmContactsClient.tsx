@@ -472,27 +472,9 @@ export function CrmContactsClient({
                       />
                     )}
                   </Link>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      onClick={() => openEditModal(contact)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteConfirm({ open: true, id: contact.id })}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                    <Link href={`/crm/contacts/${contact.id}`}>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 hidden sm:block" />
-                    </Link>
-                  </div>
+                  <Link href={`/crm/contacts/${contact.id}`} className="shrink-0">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
                 </div>
               ))}
             </div>

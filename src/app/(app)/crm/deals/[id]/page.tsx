@@ -62,7 +62,22 @@ export default async function CrmDealDetailPage({
     orderBy: { createdAt: "desc" },
   });
 
-  const contacts = await prisma.crmContact.findMany({
+  // Contacts linked to this deal (via deal_contacts)
+  const dealContacts = await prisma.crmDealContact.findMany({
+    where: { dealId: id, tenantId },
+    include: {
+      contact: {
+        select: {
+          id: true, firstName: true, lastName: true,
+          email: true, phone: true, roleTitle: true, isPrimary: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // All contacts from the account (for the "add" selector)
+  const accountContacts = await prisma.crmContact.findMany({
     where: { tenantId, accountId: deal.accountId },
     orderBy: { createdAt: "desc" },
   });
@@ -70,7 +85,8 @@ export default async function CrmDealDetailPage({
   const initialDeal = JSON.parse(JSON.stringify(deal)) as DealDetail;
   initialDeal.proposalLink = deal.proposalLink ?? null;
   const initialQuotes = JSON.parse(JSON.stringify(quotes));
-  const initialContacts = JSON.parse(JSON.stringify(contacts));
+  const initialDealContacts = JSON.parse(JSON.stringify(dealContacts));
+  const initialAccountContacts = JSON.parse(JSON.stringify(accountContacts));
   const initialTemplates = JSON.parse(JSON.stringify(templates));
 
   return (
@@ -92,7 +108,8 @@ export default async function CrmDealDetailPage({
         <CrmDealDetailClient
           deal={initialDeal}
           quotes={initialQuotes}
-          contacts={initialContacts}
+          dealContacts={initialDealContacts}
+          accountContacts={initialAccountContacts}
           gmailConnected={Boolean(gmailAccount)}
           templates={initialTemplates}
         />
