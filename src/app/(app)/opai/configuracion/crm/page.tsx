@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/opai";
 import { ConfigSubnav } from "@/components/opai";
 import { CrmConfigClient } from "@/components/crm/CrmConfigClient";
 import { FollowUpConfigSection } from "@/components/crm/FollowUpConfigSection";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function CrmConfigPage() {
   const session = await auth();
@@ -14,8 +15,8 @@ export default async function CrmConfigPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
-    redirect("/hub");
+  if (!hasConfigSubmoduleAccess(role, "crm")) {
+    redirect("/opai/configuracion");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -36,7 +37,7 @@ export default async function CrmConfigPage() {
         title="Configuración CRM"
         description="Pipeline, campos y automatizaciones"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <CrmConfigClient initialStages={stages} initialFields={fields} />
       <FollowUpConfigSection />
     </>

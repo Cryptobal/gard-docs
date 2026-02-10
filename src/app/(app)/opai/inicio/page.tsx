@@ -14,6 +14,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getDefaultTenantId } from '@/lib/tenant';
+import { hasDocsSubmoduleAccess } from '@/lib/module-access';
 import { PageHeader, ReloadButton, DocumentosSubnav } from '@/components/opai';
 import { DocumentosContent } from '@/components/opai/DocumentosContent';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,9 @@ export const revalidate = 0;
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect('/opai/login?callbackUrl=/opai/inicio');
+  if (!hasDocsSubmoduleAccess(session.user.role, 'overview')) {
+    redirect('/hub');
+  }
   const tenantId = session.user.tenantId ?? await getDefaultTenantId();
 
   const presentations = await prisma.presentation.findMany({

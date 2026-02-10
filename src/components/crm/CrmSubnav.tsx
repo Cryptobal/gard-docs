@@ -6,15 +6,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { CrmGlobalSearch } from "./CrmGlobalSearch";
-
-export const CRM_NAV_ITEMS = [
-  { href: "/crm/leads", label: "Leads" },
-  { href: "/crm/accounts", label: "Cuentas" },
-  { href: "/crm/installations", label: "Instalaciones" },
-  { href: "/crm/contacts", label: "Contactos" },
-  { href: "/crm/deals", label: "Negocios" },
-  { href: "/crm/cotizaciones", label: "Cotizaciones" },
-];
+import { getVisibleCrmNavItems } from "@/lib/module-access";
 
 /**
  * CrmSubnav - Navegación de módulos CRM con buscador global.
@@ -22,14 +14,25 @@ export const CRM_NAV_ITEMS = [
  * Desktop: pills horizontales + search a la derecha.
  * Móvil: search + dropdown compacto.
  */
-export function CrmSubnav({ className }: { className?: string }) {
+export function CrmSubnav({
+  role,
+  className,
+}: {
+  role: string;
+  className?: string;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navItems = getVisibleCrmNavItems(role);
 
-  const activeItem = CRM_NAV_ITEMS.find(
+  const activeItem = navItems.find(
     (item) => pathname === item.href || pathname?.startsWith(item.href + "/")
   );
+
+  if (navItems.length === 0) {
+    return null;
+  }
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -53,7 +56,7 @@ export function CrmSubnav({ className }: { className?: string }) {
       {/* Desktop: pills + search en la misma línea */}
       <div className="hidden sm:flex sm:items-center sm:gap-3">
         <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
-          {CRM_NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + "/");
             return (
@@ -94,7 +97,7 @@ export function CrmSubnav({ className }: { className?: string }) {
         </button>
         {open && (
           <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border border-border bg-card shadow-lg py-1">
-            {CRM_NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 pathname?.startsWith(item.href + "/");

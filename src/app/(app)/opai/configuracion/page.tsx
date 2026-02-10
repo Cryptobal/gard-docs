@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/opai";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { ConfigSubnav } from "@/components/opai";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function ConfiguracionPage() {
   const session = await auth();
@@ -12,9 +13,54 @@ export default async function ConfiguracionPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
+  if (!hasConfigSubmoduleAccess(role, "overview")) {
     redirect("/hub");
   }
+
+  const configCards = [
+    {
+      key: "users" as const,
+      href: "/opai/configuracion/usuarios",
+      title: "Usuarios",
+      description: "Roles, accesos y seguridad.",
+    },
+    {
+      key: "integrations" as const,
+      href: "/opai/configuracion/integraciones",
+      title: "Integraciones",
+      description: "Gmail y conectores externos.",
+    },
+    {
+      key: "email_templates" as const,
+      href: "/opai/configuracion/email-templates",
+      title: "Templates email",
+      description: "Plantillas con placeholders.",
+    },
+    {
+      key: "signatures" as const,
+      href: "/opai/configuracion/firmas",
+      title: "Firmas",
+      description: "Firmas para correos salientes.",
+    },
+    {
+      key: "crm" as const,
+      href: "/opai/configuracion/crm",
+      title: "CRM",
+      description: "Pipeline y automatizaciones.",
+    },
+    {
+      key: "cpq" as const,
+      href: "/opai/configuracion/cpq",
+      title: "Configuración CPQ",
+      description: "Catálogo, parámetros y pricing.",
+    },
+    {
+      key: "payroll" as const,
+      href: "/opai/configuracion/payroll",
+      title: "Payroll",
+      description: "Parámetros y versiones.",
+    },
+  ].filter((card) => hasConfigSubmoduleAccess(role, card.key));
 
   return (
     <>
@@ -22,56 +68,18 @@ export default async function ConfiguracionPage() {
         title="Configuración"
         description="Administración global y por módulo"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <div className="grid gap-4 md:grid-cols-2">
-        <Link href="/opai/configuracion/usuarios">
-          <Card className="cursor-pointer transition hover:border-primary">
-            <CardHeader>
-              <CardTitle>Usuarios</CardTitle>
-              <CardDescription>Roles, accesos y seguridad.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/opai/configuracion/integraciones">
-          <Card className="cursor-pointer transition hover:border-primary">
-            <CardHeader>
-              <CardTitle>Integraciones</CardTitle>
-              <CardDescription>Gmail y conectores externos.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/opai/configuracion/email-templates">
-          <Card className="cursor-pointer transition hover:border-primary">
-            <CardHeader>
-              <CardTitle>Templates email</CardTitle>
-              <CardDescription>Plantillas con placeholders.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/opai/configuracion/crm">
-          <Card className="cursor-pointer transition hover:border-primary">
-            <CardHeader>
-              <CardTitle>CRM</CardTitle>
-              <CardDescription>Pipeline y automatizaciones.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/opai/configuracion/cpq">
-          <Card className="cursor-pointer transition hover:border-primary">
-            <CardHeader>
-              <CardTitle>Configuración CPQ</CardTitle>
-              <CardDescription>Catálogo, parámetros y pricing.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/opai/configuracion/payroll">
-          <Card className="cursor-pointer transition hover:border-primary">
-            <CardHeader>
-              <CardTitle>Payroll</CardTitle>
-              <CardDescription>Parámetros y versiones.</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
+        {configCards.map((card) => (
+          <Link key={card.href} href={card.href}>
+            <Card className="cursor-pointer transition hover:border-primary">
+              <CardHeader>
+                <CardTitle>{card.title}</CardTitle>
+                <CardDescription>{card.description}</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
+        ))}
       </div>
     </>
   );

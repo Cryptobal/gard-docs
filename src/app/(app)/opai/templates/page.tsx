@@ -9,8 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { FileText, Eye, Calendar } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
+import { hasDocsSubmoduleAccess } from '@/lib/module-access';
 
-export default function TemplatesPage() {
+export default async function TemplatesPage() {
+  const session = await auth();
+  if (!session?.user) {
+    redirect('/opai/login?callbackUrl=/opai/templates');
+  }
+
+  if (!hasDocsSubmoduleAccess(session.user.role, 'templates')) {
+    redirect('/opai/inicio');
+  }
+
   const templates = [
     {
       id: 'commercial',

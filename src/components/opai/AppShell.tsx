@@ -13,6 +13,7 @@ export interface AppShellProps {
   sidebar?: ReactNode;
   children: ReactNode;
   userName?: string;
+  userRole?: string;
   className?: string;
 }
 
@@ -27,7 +28,7 @@ export interface AppShellProps {
  * - Sidebar: w-60 (expanded) / w-[72px] (collapsed)
  * - Transition: duration-200 ease-out
  */
-export function AppShell({ sidebar, children, userName, className }: AppShellProps) {
+export function AppShell({ sidebar, children, userName, userRole, className }: AppShellProps) {
   const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -174,10 +175,10 @@ export function AppShell({ sidebar, children, userName, className }: AppShellPro
       </div>
 
       {/* ── Mobile bottom nav ── */}
-      <BottomNav />
+      <BottomNav userRole={userRole} />
 
       {/* ── Command Palette ── */}
-      <CommandPalette />
+      <CommandPalette userRole={userRole} />
     </div>
   );
 }

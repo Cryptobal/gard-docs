@@ -1,17 +1,9 @@
 "use client";
 
 import { SubNav } from "@/components/opai/SubNav";
+import { getVisibleConfigNavItems } from "@/lib/module-access";
 
-const CONFIG_NAV = [
-  { href: "/opai/configuracion/usuarios", label: "Usuarios" },
-  { href: "/opai/configuracion/integraciones", label: "Integraciones" },
-  { href: "/opai/configuracion/email-templates", label: "Templates email" },
-  { href: "/opai/configuracion/firmas", label: "Firmas" },
-  { href: "/opai/configuracion/crm", label: "CRM" },
-  { href: "/opai/configuracion/cpq", label: "Configuración CPQ" },
-  { href: "/opai/configuracion/payroll", label: "Payroll" },
-];
-
-export function ConfigSubnav() {
-  return <SubNav items={CONFIG_NAV} />;
+export function ConfigSubnav({ role }: { role: string }) {
+  const items = getVisibleConfigNavItems(role);
+  return <SubNav items={items} />;
 }

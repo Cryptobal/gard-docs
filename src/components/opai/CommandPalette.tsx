@@ -1,29 +1,97 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ComponentType, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
 import { Search, FileText, Building2, Calculator, Settings, Plus, UserPlus, Grid3x3 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { hasAppAccess } from '@/lib/app-access';
+import {
+  hasAnyConfigSubmoduleAccess,
+  hasConfigSubmoduleAccess,
+  hasCrmSubmoduleAccess,
+  hasDocsSubmoduleAccess,
+} from '@/lib/module-access';
 
-const pages = [
-  { title: 'Inicio', href: '/hub', icon: Grid3x3, keywords: 'home dashboard' },
-  { title: 'Documentos', href: '/opai/inicio', icon: FileText, keywords: 'docs presentaciones propuestas' },
-  { title: 'CRM', href: '/crm', icon: Building2, keywords: 'clientes contactos negocios' },
-  { title: 'Payroll', href: '/payroll', icon: Calculator, keywords: 'liquidaciones nomina' },
-  { title: 'Configuración', href: '/opai/configuracion/integraciones', icon: Settings, keywords: 'settings ajustes' },
+type PaletteItem = {
+  title: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  keywords: string;
+  canShow: (role: string) => boolean;
+};
+
+const pages: PaletteItem[] = [
+  {
+    title: 'Inicio',
+    href: '/hub',
+    icon: Grid3x3,
+    keywords: 'home dashboard',
+    canShow: (role) => hasAppAccess(role, 'hub'),
+  },
+  {
+    title: 'Documentos',
+    href: '/opai/inicio',
+    icon: FileText,
+    keywords: 'docs presentaciones propuestas',
+    canShow: (role) => hasDocsSubmoduleAccess(role, 'overview'),
+  },
+  {
+    title: 'CRM',
+    href: '/crm',
+    icon: Building2,
+    keywords: 'clientes contactos negocios',
+    canShow: (role) => hasCrmSubmoduleAccess(role, 'overview'),
+  },
+  {
+    title: 'Payroll',
+    href: '/payroll',
+    icon: Calculator,
+    keywords: 'liquidaciones nomina',
+    canShow: (role) => hasAppAccess(role, 'payroll'),
+  },
+  {
+    title: 'Configuración',
+    href: '/opai/configuracion/integraciones',
+    icon: Settings,
+    keywords: 'settings ajustes',
+    canShow: (role) => hasAnyConfigSubmoduleAccess(role),
+  },
 ];
 
-const actions = [
-  { title: 'Nueva Propuesta', href: '/opai/templates', icon: Plus, keywords: 'crear documento presentacion' },
-  { title: 'Invitar Usuario', href: '/opai/configuracion/usuarios', icon: UserPlus, keywords: 'equipo colaborador' },
-  { title: 'Nueva Cotización', href: '/crm/cotizaciones', icon: Plus, keywords: 'cpq quote presupuesto' },
+const actions: PaletteItem[] = [
+  {
+    title: 'Nueva Propuesta',
+    href: '/opai/templates',
+    icon: Plus,
+    keywords: 'crear documento presentacion',
+    canShow: (role) => hasDocsSubmoduleAccess(role, 'document_editor'),
+  },
+  {
+    title: 'Invitar Usuario',
+    href: '/opai/configuracion/usuarios',
+    icon: UserPlus,
+    keywords: 'equipo colaborador',
+    canShow: (role) => hasConfigSubmoduleAccess(role, 'users'),
+  },
+  {
+    title: 'Nueva Cotización',
+    href: '/crm/cotizaciones',
+    icon: Plus,
+    keywords: 'cpq quote presupuesto',
+    canShow: (role) => hasCrmSubmoduleAccess(role, 'quotes'),
+  },
 ];
 
-export function CommandPalette() {
+interface CommandPaletteProps {
+  userRole?: string;
+}
+
+export function CommandPalette({ userRole }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const visiblePages = userRole ? pages.filter((page) => page.canShow(userRole)) : [];
+  const visibleActions = userRole ? actions.filter((action) => action.canShow(userRole)) : [];
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -58,7 +126,7 @@ export function CommandPalette() {
               No se encontraron resultados.
             </Command.Empty>
             <Command.Group heading="Páginas" className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2 py-1.5">
-              {pages.map((page) => (
+              {visiblePages.map((page) => (
                 <Command.Item
                   key={page.href}
                   value={`${page.title} ${page.keywords}`}
@@ -72,7 +140,7 @@ export function CommandPalette() {
             </Command.Group>
             <Command.Separator className="h-px bg-border my-1" />
             <Command.Group heading="Acciones" className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-2 py-1.5">
-              {actions.map((action) => (
+              {visibleActions.map((action) => (
                 <Command.Item
                   key={action.href}
                   value={`${action.title} ${action.keywords}`}

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/opai";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { ConfigSubnav, EmailTemplatesClient } from "@/components/opai";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function EmailTemplatesPage() {
   const session = await auth();
@@ -12,8 +13,8 @@ export default async function EmailTemplatesPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
-    redirect("/hub");
+  if (!hasConfigSubmoduleAccess(role, "email_templates")) {
+    redirect("/opai/configuracion");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -30,7 +31,7 @@ export default async function EmailTemplatesPage() {
         title="Templates de email"
         description="Crea templates con placeholders para seguimiento"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <EmailTemplatesClient initialTemplates={initialTemplates} />
     </>
   );

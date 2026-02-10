@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { hasAppAccess } from "@/lib/app-access";
+import { hasCrmSubmoduleAccess } from "@/lib/module-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader, Breadcrumb } from "@/components/opai";
@@ -20,9 +20,10 @@ export default async function CrmDealDetailPage({
   if (!session?.user) {
     redirect(`/opai/login?callbackUrl=/crm/deals/${id}`);
   }
+  const role = session.user.role;
 
-  if (!hasAppAccess(session.user.role, "crm")) {
-    redirect("/hub");
+  if (!hasCrmSubmoduleAccess(role, "deals")) {
+    redirect("/crm");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -103,7 +104,7 @@ export default async function CrmDealDetailPage({
         title={deal.title}
         description={`${deal.account?.name || "Sin cliente"} · ${deal.stage?.name || "Sin etapa"}`}
       />
-      <CrmSubnav />
+      <CrmSubnav role={role} />
       <div className="space-y-4">
         <CrmDealDetailClient
           deal={initialDeal}

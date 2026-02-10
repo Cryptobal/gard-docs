@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/opai";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { ConfigSubnav, IntegrationsGmailClient } from "@/components/opai";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function IntegracionesPage() {
   const session = await auth();
@@ -12,8 +13,8 @@ export default async function IntegracionesPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
-    redirect("/hub");
+  if (!hasConfigSubmoduleAccess(role, "integrations")) {
+    redirect("/opai/configuracion");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -32,7 +33,7 @@ export default async function IntegracionesPage() {
         title="Integraciones"
         description="Configura conexiones globales para el CRM"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <div className="space-y-4">
         <IntegrationsGmailClient connected={Boolean(gmailAccount)} />
       </div>

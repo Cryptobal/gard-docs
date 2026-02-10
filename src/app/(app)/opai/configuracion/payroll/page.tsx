@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
 import { ConfigSubnav } from "@/components/opai";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function PayrollConfigPage() {
   const session = await auth();
@@ -11,8 +12,8 @@ export default async function PayrollConfigPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
-    redirect("/hub");
+  if (!hasConfigSubmoduleAccess(role, "payroll")) {
+    redirect("/opai/configuracion");
   }
 
   return (
@@ -21,7 +22,7 @@ export default async function PayrollConfigPage() {
         title="Configuración Payroll"
         description="Parámetros y supuestos"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
