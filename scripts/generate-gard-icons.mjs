@@ -1,11 +1,11 @@
 /**
- * Genera iconos favicon/PWA: fondo blanco + logo azul Gard Security.
+ * Genera iconos favicon/PWA: solo escudo blanco (sin letras), fondo transparente.
+ * Usa public/logo escudo blanco.png para que favicon y Add to Home Screen en iPhone sean el escudo blanco.
  * Uso: node scripts/generate-gard-icons.mjs
- * Requiere: sharp (ya en el proyecto vía Next.js)
  */
 
 import sharp from "sharp";
-import { readFileSync, existsSync } from "fs";
+import { existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -16,55 +16,41 @@ const ICONS_DIR = join(PUBLIC, "icons");
 
 const SIZES = [48, 72, 96, 128, 144, 180, 192, 512];
 
-const SOURCES = [
-  join(PUBLIC, "Logo escudo gard azul.webp"),
-  join(PUBLIC, "Logo Gard azul.webp"),
-];
+const SOURCE = join(PUBLIC, "logo escudo blanco.png");
 
-let sourcePath = SOURCES.find((p) => existsSync(p));
-if (!sourcePath) {
-  console.error("No se encontró logo azul en public/. Buscar Logo escudo gard azul.webp o Logo Gard azul.webp");
+if (!existsSync(SOURCE)) {
+  console.error("No se encontró public/logo escudo blanco.png");
   process.exit(1);
 }
 
 async function run() {
-  const logo = sharp(sourcePath);
-  const meta = await logo.metadata();
-  const logoSize = Math.min(meta.width || 512, meta.height || 512);
+  const logo = sharp(SOURCE);
 
   for (const size of SIZES) {
-    const padding = Math.round(size * 0.12);
+    const padding = Math.round(size * 0.1);
     const fitSize = size - padding * 2;
 
-    const whiteBg = sharp({
-      create: {
-        width: size,
-        height: size,
-        channels: 3,
-        background: { r: 255, g: 255, b: 255 },
-      },
-    })
-      .png();
-
-    const resizedLogo = await logo
+    const resized = await logo
       .clone()
-      .resize(fitSize, fitSize, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
+      .resize(fitSize, fitSize, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .png()
       .toBuffer();
 
     const outPath = join(ICONS_DIR, `icon-${size}x${size}.png`);
-    await whiteBg
-      .composite([
-        {
-          input: resizedLogo,
-          top: padding,
-          left: padding,
-        },
-      ])
+    await sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .png()
+      .composite([{ input: resized, top: padding, left: padding }])
       .toFile(outPath);
     console.log(`Generado: ${outPath}`);
   }
-  console.log("Listo. Iconos Gard (fondo blanco + logo azul) en public/icons/");
+  console.log("Listo. Iconos = escudo blanco (sin letras) en public/icons/");
 }
 
 run().catch((err) => {
