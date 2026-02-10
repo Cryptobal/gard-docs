@@ -395,8 +395,8 @@ export function CrmContactsClient({
               icon={<Users className="h-8 w-8" />}
               title="Sin contactos"
               description={
-                search || accountFilter !== "all"
-                  ? "No hay contactos para los filtros seleccionados."
+                search
+                  ? "No hay contactos para la búsqueda."
                   : "No hay contactos registrados todavía."
               }
               compact
