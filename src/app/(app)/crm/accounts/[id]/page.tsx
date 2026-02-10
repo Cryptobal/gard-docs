@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { hasAppAccess } from "@/lib/app-access";
+import { hasCrmSubmoduleAccess } from "@/lib/module-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader, Breadcrumb } from "@/components/opai";
@@ -21,9 +21,10 @@ export default async function CrmAccountDetailPage({
   if (!session?.user) {
     redirect(`/opai/login?callbackUrl=/crm/accounts/${id}`);
   }
+  const role = session.user.role;
 
-  if (!hasAppAccess(session.user.role, "crm")) {
-    redirect("/hub");
+  if (!hasCrmSubmoduleAccess(role, "accounts")) {
+    redirect("/crm");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -61,7 +62,7 @@ export default async function CrmAccountDetailPage({
         title={account.name}
         description={`${account.type === "client" ? "Cliente" : "Prospecto"} · ${account.industry || "Sin industria"}`}
       />
-      <CrmSubnav />
+      <CrmSubnav role={role} />
       <CrmAccountDetailClient account={data} />
     </>
   );

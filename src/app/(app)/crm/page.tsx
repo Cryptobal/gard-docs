@@ -4,7 +4,7 @@
 
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { hasAppAccess } from '@/lib/app-access';
+import { hasCrmSubmoduleAccess } from '@/lib/module-access';
 import { getDefaultTenantId } from '@/lib/tenant';
 import { prisma } from '@/lib/prisma';
 import { PageHeader } from '@/components/opai';
@@ -12,8 +12,20 @@ import { CrmSubnav } from '@/components/crm/CrmSubnav';
 import Link from 'next/link';
 import { Users, Building, TrendingUp, Contact, DollarSign, FileText, ChevronRight, MapPin } from 'lucide-react';
 
-const modules = [
+type CrmModuleCard = {
+  key: Parameters<typeof hasCrmSubmoduleAccess>[1] | null;
+  title: string;
+  description: string;
+  icon: typeof Users;
+  href: string;
+  color: string;
+  countKey: 'leads' | 'accounts' | 'installations' | 'deals' | 'contacts' | 'quotes' | null;
+  disabled?: boolean;
+};
+
+const modules: CrmModuleCard[] = [
   {
+    key: 'leads' as const,
     title: 'Leads',
     description: 'Solicitudes entrantes y aprobación manual.',
     icon: Users,
@@ -22,6 +34,7 @@ const modules = [
     countKey: 'leads' as const,
   },
   {
+    key: 'accounts' as const,
     title: 'Cuentas',
     description: 'Prospectos y clientes.',
     icon: Building,
@@ -30,6 +43,7 @@ const modules = [
     countKey: 'accounts' as const,
   },
   {
+    key: 'installations' as const,
     title: 'Instalaciones',
     description: 'Sedes y ubicaciones de clientes.',
     icon: MapPin,
@@ -38,6 +52,7 @@ const modules = [
     countKey: 'installations' as const,
   },
   {
+    key: 'deals' as const,
     title: 'Negocios',
     description: 'Oportunidades y pipeline.',
     icon: TrendingUp,
@@ -46,6 +61,7 @@ const modules = [
     countKey: 'deals' as const,
   },
   {
+    key: 'contacts' as const,
     title: 'Contactos',
     description: 'Personas clave por cliente.',
     icon: Contact,
@@ -54,6 +70,7 @@ const modules = [
     countKey: 'contacts' as const,
   },
   {
+    key: 'quotes' as const,
     title: 'Cotizaciones',
     description: 'Configurador de precios CPQ.',
     icon: DollarSign,
@@ -62,6 +79,7 @@ const modules = [
     countKey: 'quotes' as const,
   },
   {
+    key: null,
     title: 'Reportes',
     description: 'Métricas y conversiones.',
     icon: FileText,
@@ -75,7 +93,8 @@ const modules = [
 export default async function CRMPage() {
   const session = await auth();
   if (!session?.user) redirect('/opai/login?callbackUrl=/crm');
-  if (!hasAppAccess(session.user.role, 'crm')) redirect('/hub');
+  const role = session.user.role;
+  if (!hasCrmSubmoduleAccess(role, 'overview')) redirect('/hub');
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
 
@@ -97,6 +116,11 @@ export default async function CRMPage() {
     deals: dealsCount,
     quotes: quotesCount,
   };
+  const visibleModules = modules.filter(
+    (mod) =>
+      mod.disabled ||
+      (mod.key !== null && hasCrmSubmoduleAccess(role, mod.key))
+  );
 
   return (
     <div className="space-y-6">
@@ -105,10 +129,10 @@ export default async function CRMPage() {
         description="Pipeline comercial y gestión de clientes"
       />
 
-      <CrmSubnav />
+      <CrmSubnav role={role} />
 
       <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        {modules.map((mod) => {
+        {visibleModules.map((mod) => {
           const Icon = mod.icon;
           const count = mod.countKey ? counts[mod.countKey] ?? 0 : null;
           const inner = (

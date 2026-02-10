@@ -16,6 +16,11 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hasAppAccess } from '@/lib/app-access';
+import {
+  hasAnyConfigSubmoduleAccess,
+  hasConfigSubmoduleAccess,
+  hasDocsSubmoduleAccess,
+} from '@/lib/module-access';
 import { timeAgo } from '@/lib/utils';
 import { PageHeader, Avatar } from '@/components/opai';
 import { KpiCard } from '@/components/opai/KpiCard';
@@ -30,9 +35,7 @@ import {
   Send, 
   Eye, 
   Mail,
-  LayoutGrid,
   Users,
-  DollarSign,
   Settings,
   Clock,
   TrendingUp,
@@ -48,9 +51,10 @@ export default async function HubPage() {
   if (!session?.user) {
     redirect('/opai/login?callbackUrl=/hub');
   }
+  const role = session.user.role;
 
   // Verificar acceso al módulo Hub (App Access)
-  if (!hasAppAccess(session.user.role, 'hub')) {
+  if (!hasAppAccess(role, 'hub')) {
     redirect('/opai/inicio');
   }
 
@@ -96,6 +100,42 @@ export default async function HubPage() {
   const subtitle = unread > 0
     ? `Tienes ${unread} ${unread === 1 ? 'propuesta sin leer' : 'propuestas sin leer'}`
     : 'Todo al día';
+  const canCreateProposal = hasDocsSubmoduleAccess(role, 'document_editor');
+  const canInviteUsers = hasConfigSubmoduleAccess(role, 'users');
+  const appsLauncher = [
+    {
+      href: '/opai/inicio',
+      icon: FileText,
+      title: 'Docs',
+      desc: 'Presentaciones',
+      color: 'text-blue-400 bg-blue-400/10',
+      show: hasAppAccess(role, 'docs'),
+    },
+    {
+      href: '/crm',
+      icon: Users,
+      title: 'CRM',
+      desc: 'Clientes',
+      color: 'text-emerald-400 bg-emerald-400/10',
+      show: hasAppAccess(role, 'crm'),
+    },
+    {
+      href: '/payroll',
+      icon: Calculator,
+      title: 'Payroll',
+      desc: 'Liquidaciones',
+      color: 'text-purple-400 bg-purple-400/10',
+      show: hasAppAccess(role, 'payroll'),
+    },
+    {
+      href: '/opai/configuracion/usuarios',
+      icon: Settings,
+      title: 'Config',
+      desc: 'Ajustes',
+      color: 'text-amber-400 bg-amber-400/10',
+      show: hasAnyConfigSubmoduleAccess(role),
+    },
+  ].filter((app) => app.show);
 
   return (
     <div className="space-y-6">
@@ -107,18 +147,22 @@ export default async function HubPage() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2">
-        <Link href="/opai/templates">
-          <Button size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Nueva Propuesta
-          </Button>
-        </Link>
-        <Link href="/opai/configuracion/usuarios">
-          <Button variant="outline" size="sm" className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Invitar Usuario
-          </Button>
-        </Link>
+        {canCreateProposal && (
+          <Link href="/opai/templates">
+            <Button size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Nueva Propuesta
+            </Button>
+          </Link>
+        )}
+        {canInviteUsers && (
+          <Link href="/opai/configuracion/usuarios">
+            <Button variant="outline" size="sm" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Invitar Usuario
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* KPIs Grid */}
@@ -155,12 +199,7 @@ export default async function HubPage() {
       <div>
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Aplicaciones</h2>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {[
-            { href: '/opai/inicio', icon: FileText, title: 'Docs', desc: 'Presentaciones', color: 'text-blue-400 bg-blue-400/10' },
-            { href: '/crm', icon: Users, title: 'CRM', desc: 'Clientes', color: 'text-emerald-400 bg-emerald-400/10' },
-            { href: '/payroll', icon: Calculator, title: 'Payroll', desc: 'Liquidaciones', color: 'text-purple-400 bg-purple-400/10' },
-            { href: '/opai/configuracion/usuarios', icon: Settings, title: 'Config', desc: 'Ajustes', color: 'text-amber-400 bg-amber-400/10' },
-          ].map((app) => (
+          {appsLauncher.map((app) => (
             <Link key={app.href} href={app.href}>
               <div className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-all hover:bg-accent/40 hover:shadow-md cursor-pointer">
                 <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${app.color}`}>

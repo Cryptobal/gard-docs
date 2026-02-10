@@ -6,6 +6,11 @@
  */
 
 import { ROLES, PERMISSIONS, hasPermission, type Role } from '@/lib/rbac';
+import {
+  hasConfigSubmoduleAccess,
+  hasCrmSubmoduleAccess,
+  hasDocsSubmoduleAccess,
+} from '@/lib/module-access';
 import { HelpCircle, Check, X as XIcon } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -55,6 +60,22 @@ const PERMISSION_GROUPS = [
       { key: PERMISSIONS.MANAGE_SETTINGS, label: 'Configuración' },
     ],
   },
+];
+
+const VISIBILITY_RULES: Array<{
+  label: string;
+  check: (role: Role) => boolean;
+}> = [
+  { label: 'Docs · Dashboard', check: (role) => hasDocsSubmoduleAccess(role, 'overview') },
+  { label: 'Docs · Gestión documental', check: (role) => hasDocsSubmoduleAccess(role, 'documents') },
+  { label: 'Docs · Editor de texto', check: (role) => hasDocsSubmoduleAccess(role, 'document_editor') },
+  { label: 'CRM · Módulo principal', check: (role) => hasCrmSubmoduleAccess(role, 'overview') },
+  { label: 'CRM · Leads', check: (role) => hasCrmSubmoduleAccess(role, 'leads') },
+  { label: 'CRM · Cuentas', check: (role) => hasCrmSubmoduleAccess(role, 'accounts') },
+  { label: 'CRM · Negocios', check: (role) => hasCrmSubmoduleAccess(role, 'deals') },
+  { label: 'CRM · Cotizaciones', check: (role) => hasCrmSubmoduleAccess(role, 'quotes') },
+  { label: 'Configuración · Módulo principal', check: (role) => hasConfigSubmoduleAccess(role, 'overview') },
+  { label: 'Configuración · Usuarios', check: (role) => hasConfigSubmoduleAccess(role, 'users') },
 ];
 
 export default function RolesHelpCard() {
@@ -117,6 +138,41 @@ export default function RolesHelpCard() {
                       </tr>
                     ))}
                   </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto pt-2">
+            <h3 className="mb-2 text-sm font-semibold text-foreground">Visibilidad de módulos y submódulos</h3>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Módulo/Submódulo</th>
+                  {rolesOrder.map((role) => (
+                    <th key={`visibility-${role}`} className="text-center py-3 px-4 text-foreground font-medium">
+                      {ROLE_LABELS[role]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {VISIBILITY_RULES.map((rule) => (
+                  <tr key={rule.label} className="border-t border-border/30 hover:bg-muted/30">
+                    <td className="py-3 px-4 text-muted-foreground">{rule.label}</td>
+                    {rolesOrder.map((role) => {
+                      const has = rule.check(role);
+                      return (
+                        <td key={`${rule.label}-${role}`} className="text-center py-3 px-4">
+                          {has ? (
+                            <Check className="w-5 h-5 text-emerald-400 mx-auto" />
+                          ) : (
+                            <XIcon className="w-5 h-5 text-muted-foreground/50 mx-auto" />
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
                 ))}
               </tbody>
             </table>

@@ -13,6 +13,7 @@ import InvitationsTable from "@/components/usuarios/InvitationsTable";
 import InviteUserButton from "@/components/usuarios/InviteUserButton";
 import RolesHelpCard from "@/components/usuarios/RolesHelpCard";
 import { ConfigSubnav } from "@/components/opai";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function UsuariosConfigPage() {
   const session = await auth();
@@ -20,13 +21,14 @@ export default async function UsuariosConfigPage() {
   if (!session?.user) {
     redirect("/opai/login");
   }
+  const role = session.user.role;
 
   const canManageUsers = hasPermission(
-    session.user.role as Role,
+    role as Role,
     PERMISSIONS.MANAGE_USERS
   );
 
-  if (!canManageUsers) {
+  if (!hasConfigSubmoduleAccess(role, "users") || !canManageUsers) {
     redirect("/opai/inicio");
   }
 
@@ -51,7 +53,7 @@ export default async function UsuariosConfigPage() {
           </div>
         }
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
 
       <div className="space-y-8">
         <Card>

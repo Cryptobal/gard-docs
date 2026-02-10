@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { hasAppAccess } from "@/lib/app-access";
+import { hasCrmSubmoduleAccess } from "@/lib/module-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
@@ -15,9 +15,10 @@ export default async function CrmContactsPage() {
   if (!session?.user) {
     redirect("/opai/login?callbackUrl=/crm/contacts");
   }
+  const role = session.user.role;
 
-  if (!hasAppAccess(session.user.role, "crm")) {
-    redirect("/hub");
+  if (!hasCrmSubmoduleAccess(role, "contacts")) {
+    redirect("/crm");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -43,7 +44,7 @@ export default async function CrmContactsPage() {
         title="Contactos"
         description="Personas clave por cliente"
       />
-      <CrmSubnav />
+      <CrmSubnav role={role} />
       <CrmContactsClient
         initialContacts={initialContacts}
         accounts={initialAccounts}

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
 import { ConfigSubnav } from "@/components/opai";
 import { CpqConfigTabs } from "@/components/cpq/CpqConfigTabs";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function CpqConfigPage() {
   const session = await auth();
@@ -11,8 +12,8 @@ export default async function CpqConfigPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
-    redirect("/hub");
+  if (!hasConfigSubmoduleAccess(role, "cpq")) {
+    redirect("/opai/configuracion");
   }
 
   return (
@@ -21,7 +22,7 @@ export default async function CpqConfigPage() {
         title="Configuración CPQ"
         description="Catálogo, puestos, cargos, roles y parámetros de pricing"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <CpqConfigTabs />
     </>
   );

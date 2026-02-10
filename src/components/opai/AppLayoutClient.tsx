@@ -12,13 +12,13 @@ import {
 } from 'lucide-react';
 import { AppShell, AppSidebar, type NavItem } from '@/components/opai';
 import { hasAppAccess } from '@/lib/app-access';
+import { hasAnyConfigSubmoduleAccess } from '@/lib/module-access';
 
 interface AppLayoutClientProps {
   children: ReactNode;
   userName?: string;
   userEmail?: string;
   userRole: string;
-  canManageUsers: boolean;
 }
 
 export function AppLayoutClient({
@@ -26,7 +26,6 @@ export function AppLayoutClient({
   userName,
   userEmail,
   userRole,
-  canManageUsers,
 }: AppLayoutClientProps) {
   const navItems: NavItem[] = [
     {
@@ -57,7 +56,7 @@ export function AppLayoutClient({
       href: '/opai/configuracion/integraciones',
       label: 'Configuración',
       icon: Settings,
-      show: canManageUsers,
+      show: hasAnyConfigSubmoduleAccess(userRole),
     },
   ];
 
@@ -83,6 +82,7 @@ export function AppLayoutClient({
         />
       }
       userName={userName ?? undefined}
+      userRole={userRole}
     >
       {children}
     </AppShell>

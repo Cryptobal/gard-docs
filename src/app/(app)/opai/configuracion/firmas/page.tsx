@@ -4,6 +4,7 @@ import { PageHeader, ConfigSubnav } from "@/components/opai";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { SignatureManagerClient } from "@/components/crm/SignatureManagerClient";
+import { hasConfigSubmoduleAccess } from "@/lib/module-access";
 
 export default async function FirmasPage() {
   const session = await auth();
@@ -12,8 +13,8 @@ export default async function FirmasPage() {
   }
 
   const role = session.user.role;
-  if (role !== "owner" && role !== "admin") {
-    redirect("/hub");
+  if (!hasConfigSubmoduleAccess(role, "signatures")) {
+    redirect("/opai/configuracion");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -31,7 +32,7 @@ export default async function FirmasPage() {
         title="Firmas de email"
         description="Gestiona las firmas que se incluyen al final de los correos enviados desde el CRM"
       />
-      <ConfigSubnav />
+      <ConfigSubnav role={role} />
       <SignatureManagerClient initialSignatures={initialSignatures} />
     </>
   );

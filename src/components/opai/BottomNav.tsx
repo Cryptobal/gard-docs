@@ -15,28 +15,49 @@ import {
   DollarSign,
   MapPin,
 } from 'lucide-react';
+import { hasAppAccess } from '@/lib/app-access';
+import { hasAnyConfigSubmoduleAccess, hasCrmSubmoduleAccess } from '@/lib/module-access';
 
 const MAIN_NAV_ITEMS = [
-  { href: '/hub', label: 'Inicio', icon: Grid3x3 },
-  { href: '/opai/inicio', label: 'Docs', icon: FileText },
-  { href: '/crm', label: 'CRM', icon: Building2 },
-  { href: '/payroll', label: 'Payroll', icon: Calculator },
-  { href: '/opai/configuracion/integraciones', label: 'Config', icon: Settings },
+  { href: '/hub', label: 'Inicio', icon: Grid3x3, app: 'hub' as const },
+  { href: '/opai/inicio', label: 'Docs', icon: FileText, app: 'docs' as const },
+  { href: '/crm', label: 'CRM', icon: Building2, app: 'crm' as const },
+  { href: '/payroll', label: 'Payroll', icon: Calculator, app: 'payroll' as const },
+  { href: '/opai/configuracion/integraciones', label: 'Config', icon: Settings, app: 'admin' as const },
 ];
 
 const CRM_NAV_ITEMS = [
-  { href: '/crm/leads', label: 'Leads', icon: Users },
-  { href: '/crm/accounts', label: 'Cuentas', icon: Building2 },
-  { href: '/crm/installations', label: 'Instalaciones', icon: MapPin },
-  { href: '/crm/deals', label: 'Negocios', icon: TrendingUp },
-  { href: '/crm/contacts', label: 'Contactos', icon: Contact },
-  { href: '/crm/cotizaciones', label: 'CPQ', icon: DollarSign },
+  { href: '/crm/leads', label: 'Leads', icon: Users, key: 'leads' as const },
+  { href: '/crm/accounts', label: 'Cuentas', icon: Building2, key: 'accounts' as const },
+  { href: '/crm/installations', label: 'Instalaciones', icon: MapPin, key: 'installations' as const },
+  { href: '/crm/deals', label: 'Negocios', icon: TrendingUp, key: 'deals' as const },
+  { href: '/crm/contacts', label: 'Contactos', icon: Contact, key: 'contacts' as const },
+  { href: '/crm/cotizaciones', label: 'CPQ', icon: DollarSign, key: 'quotes' as const },
 ];
 
-export function BottomNav() {
+interface BottomNavProps {
+  userRole?: string;
+}
+
+export function BottomNav({ userRole }: BottomNavProps) {
   const pathname = usePathname();
   const isCrm = pathname?.startsWith('/crm/');
-  const items = isCrm ? CRM_NAV_ITEMS : MAIN_NAV_ITEMS;
+  const visibleMainItems = MAIN_NAV_ITEMS.filter((item) => {
+    if (!userRole) return false;
+    if (item.app === 'admin') {
+      return hasAnyConfigSubmoduleAccess(userRole);
+    }
+    return hasAppAccess(userRole, item.app);
+  });
+  const visibleCrmItems = CRM_NAV_ITEMS.filter((item) => {
+    if (!userRole) return false;
+    return hasCrmSubmoduleAccess(userRole, item.key);
+  });
+  const items = isCrm ? visibleCrmItems : visibleMainItems;
+
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:hidden">

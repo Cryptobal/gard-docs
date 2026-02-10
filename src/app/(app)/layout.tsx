@@ -29,8 +29,7 @@ export default async function AppLayout({
     redirect('/opai/login');
   }
 
-  const userRole = session.user?.role;
-  const canManageUsers = userRole === 'owner' || userRole === 'admin';
+  const userRole = session.user.role;
 
   // Delegar UI al Client Component (con rol para App Access)
   return (
@@ -38,7 +37,6 @@ export default async function AppLayout({
       userName={session.user?.name}
       userEmail={session.user?.email}
       userRole={userRole}
-      canManageUsers={canManageUsers}
     >
       {children}
     </AppLayoutClient>

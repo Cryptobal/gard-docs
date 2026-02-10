@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { hasAppAccess } from "@/lib/app-access";
+import { hasCrmSubmoduleAccess } from "@/lib/module-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
@@ -15,9 +15,10 @@ export default async function CrmInstallationsPage() {
   if (!session?.user) {
     redirect("/opai/login?callbackUrl=/crm/installations");
   }
+  const role = session.user.role;
 
-  if (!hasAppAccess(session.user.role, "crm")) {
-    redirect("/hub");
+  if (!hasCrmSubmoduleAccess(role, "installations")) {
+    redirect("/crm");
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
@@ -35,7 +36,7 @@ export default async function CrmInstallationsPage() {
         title="Instalaciones"
         description="Sedes y ubicaciones de clientes"
       />
-      <CrmSubnav />
+      <CrmSubnav role={role} />
       <CrmInstallationsListClient initialInstallations={initialInstallations} />
     </>
   );
