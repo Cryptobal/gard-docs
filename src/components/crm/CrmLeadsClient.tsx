@@ -702,7 +702,14 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
                       variant={installationUseExisting[inst._key] === conf.id ? "default" : "outline"}
                       size="sm"
                       className="h-7 text-xs"
-                      onClick={() => setInstallationUseExisting((prev) => prev[inst._key] === conf.id ? { ...prev, [inst._key]: undefined } : { ...prev, [inst._key]: conf.id })}
+                      onClick={() => setInstallationUseExisting((prev) => {
+                        if (prev[inst._key] === conf.id) {
+                          const next = { ...prev };
+                          delete next[inst._key];
+                          return next;
+                        }
+                        return { ...prev, [inst._key]: conf.id };
+                      })}
                     >
                       {installationUseExisting[inst._key] === conf.id ? "Usar existente ✓" : "Usar esta existente"}
                     </Button>
