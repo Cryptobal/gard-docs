@@ -56,10 +56,14 @@ export default async function CrmContactDetailPage({
       })
     : [];
 
-  // Check Gmail connection & load email templates
-  const [gmailAccount, emailTemplates] = await Promise.all([
+  // Check Gmail connection, pipeline stages & load email templates
+  const [gmailAccount, pipelineStages, emailTemplates] = await Promise.all([
     prisma.crmEmailAccount.findFirst({
       where: { tenantId, userId: session.user.id, provider: "gmail", status: "active" },
+    }),
+    prisma.crmPipelineStage.findMany({
+      where: { tenantId, isActive: true },
+      orderBy: { order: "asc" },
     }),
     prisma.crmEmailTemplate.findMany({
       where: { tenantId },
@@ -69,6 +73,7 @@ export default async function CrmContactDetailPage({
 
   const data = JSON.parse(JSON.stringify(contact));
   const initialDeals = JSON.parse(JSON.stringify(deals));
+  const initialPipelineStages = JSON.parse(JSON.stringify(pipelineStages));
   const initialTemplates = JSON.parse(JSON.stringify(emailTemplates));
 
   const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
@@ -91,6 +96,7 @@ export default async function CrmContactDetailPage({
       <CrmContactDetailClient
         contact={data}
         deals={initialDeals}
+        pipelineStages={initialPipelineStages}
         gmailConnected={!!gmailAccount}
         templates={initialTemplates}
       />

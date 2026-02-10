@@ -53,12 +53,13 @@ type EmailTemplate = { id: string; name: string; subject: string; body: string; 
 type DealQuote = { id: string; quoteId: string; };
 type ContactRow = { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; roleTitle?: string | null; isPrimary?: boolean; };
 type DealContactRow = { id: string; dealId: string; contactId: string; role: string; contact: ContactRow; };
+type PipelineStageOption = { id: string; name: string; isClosedWon?: boolean; isClosedLost?: boolean; };
 
 export type DealDetail = {
   id: string;
   title: string;
   amount: string;
-  stage?: { name: string } | null;
+  stage?: { id: string; name: string } | null;
   account?: { id: string; name: string } | null;
   primaryContactId?: string | null;
   primaryContact?: { firstName: string; lastName: string; email?: string | null } | null;
@@ -67,9 +68,10 @@ export type DealDetail = {
 };
 
 export function CrmDealDetailClient({
-  deal, quotes, dealContacts: initialDealContacts, accountContacts, gmailConnected, templates,
+  deal, quotes, pipelineStages, dealContacts: initialDealContacts, accountContacts, gmailConnected, templates,
 }: {
   deal: DealDetail; quotes: QuoteOption[];
+  pipelineStages: PipelineStageOption[];
   dealContacts: DealContactRow[]; accountContacts: ContactRow[];
   gmailConnected: boolean; templates: EmailTemplate[];
 }) {
@@ -83,6 +85,8 @@ export function CrmDealDetailClient({
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
   const [addingContact, setAddingContact] = useState(false);
+  const [currentStage, setCurrentStage] = useState<DealDetail["stage"]>(deal.stage || null);
+  const [changingStage, setChangingStage] = useState(false);
   const [linking, setLinking] = useState(false);
 
   // ── Email compose state ──
@@ -119,7 +123,7 @@ export function CrmDealDetailClient({
   };
 
   const applyPlaceholders = (value: string) => {
-    const r: Record<string, string> = { "{cliente}": deal.account?.name || "", "{contacto}": deal.primaryContact ? `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`.trim() : "", "{negocio}": deal.title || "", "{etapa}": deal.stage?.name || "", "{monto}": deal.amount ? Number(deal.amount).toLocaleString("es-CL") : "", "{correo}": deal.primaryContact?.email || "" };
+    const r: Record<string, string> = { "{cliente}": deal.account?.name || "", "{contacto}": deal.primaryContact ? `${deal.primaryContact.firstName} ${deal.primaryContact.lastName}`.trim() : "", "{negocio}": deal.title || "", "{etapa}": currentStage?.name || "", "{monto}": deal.amount ? Number(deal.amount).toLocaleString("es-CL") : "", "{correo}": deal.primaryContact?.email || "" };
     return Object.entries(r).reduce((acc, [key, val]) => acc.split(key).join(val), value);
   };
 
@@ -217,6 +221,37 @@ export function CrmDealDetailClient({
     } catch { toast.error("No se pudo actualizar."); }
   };
 
+  const updateStage = async (stageId: string) => {
+    if (!stageId || currentStage?.id === stageId) return;
+    const nextStage = pipelineStages.find((stage) => stage.id === stageId);
+    if (!nextStage) return;
+
+    const snapshot = currentStage;
+    setCurrentStage({ id: nextStage.id, name: nextStage.name });
+    setChangingStage(true);
+    try {
+      const response = await fetch(`/api/crm/deals/${deal.id}/stage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stageId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Error cambiando etapa");
+      setCurrentStage(
+        payload.data?.stage
+          ? { id: payload.data.stage.id, name: payload.data.stage.name }
+          : { id: nextStage.id, name: nextStage.name }
+      );
+      toast.success("Etapa actualizada");
+    } catch (error) {
+      console.error(error);
+      setCurrentStage(snapshot);
+      toast.error("No se pudo actualizar la etapa.");
+    } finally {
+      setChangingStage(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* ── Toolbar ── */}
@@ -242,7 +277,28 @@ export function CrmDealDetailClient({
               </Link>
             ) : <span className="font-medium">Sin cliente</span>}
           </InfoRow>
-          <InfoRow label="Etapa"><Badge variant="outline">{deal.stage?.name}</Badge></InfoRow>
+          <InfoRow label="Etapa">
+            <div className="flex items-center gap-2">
+              <select
+                className="h-8 min-w-[150px] rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60"
+                value={currentStage?.id || ""}
+                onChange={(event) => updateStage(event.target.value)}
+                disabled={changingStage || pipelineStages.length === 0}
+                aria-label={`Cambiar etapa de ${deal.title}`}
+              >
+                {currentStage?.id && !pipelineStages.some((stage) => stage.id === currentStage.id) && (
+                  <option value={currentStage.id}>{currentStage.name}</option>
+                )}
+                {pipelineStages.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.name}
+                  </option>
+                ))}
+                {pipelineStages.length === 0 && <option value="">Sin etapas disponibles</option>}
+              </select>
+              {changingStage && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            </div>
+          </InfoRow>
           <InfoRow label="Monto"><span className="font-medium">${Number(deal.amount).toLocaleString("es-CL")}</span></InfoRow>
           <InfoRow label="Contacto">
             {deal.primaryContact && deal.primaryContactId ? (
@@ -463,7 +519,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   return (
     <div className="flex items-center justify-between">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{children}</span>
+      <div className="font-medium">{children}</div>
     </div>
   );
 }

@@ -75,7 +75,7 @@ type DealRow = {
   title: string;
   amount: string;
   status: string;
-  stage?: { name: string } | null;
+  stage?: { id: string; name: string } | null;
 };
 
 type ContactDetail = {
@@ -104,19 +104,30 @@ type EmailTemplate = {
   scope: string;
 };
 
+type PipelineStageOption = {
+  id: string;
+  name: string;
+  isClosedWon?: boolean;
+  isClosedLost?: boolean;
+};
+
 export function CrmContactDetailClient({
   contact: initialContact,
   deals,
+  pipelineStages,
   gmailConnected = false,
   templates = [],
 }: {
   contact: ContactDetail;
   deals: DealRow[];
+  pipelineStages: PipelineStageOption[];
   gmailConnected?: boolean;
   templates?: EmailTemplate[];
 }) {
   const router = useRouter();
   const [contact, setContact] = useState(initialContact);
+  const [contactDeals, setContactDeals] = useState(deals);
+  const [changingStageDealId, setChangingStageDealId] = useState<string | null>(null);
   const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
 
   // ── Edit state ──
@@ -238,6 +249,61 @@ export function CrmContactDetailClient({
     finally { setSending(false); }
   };
 
+  const updateDealStage = async (dealId: string, stageId: string) => {
+    if (!stageId) return;
+    const current = contactDeals.find((deal) => deal.id === dealId);
+    if (!current || current.stage?.id === stageId) return;
+
+    const nextStage = pipelineStages.find((stage) => stage.id === stageId);
+    if (!nextStage) return;
+
+    const snapshot = JSON.parse(JSON.stringify(current)) as DealRow;
+
+    setContactDeals((prev) =>
+      prev.map((deal) =>
+        deal.id === dealId
+          ? {
+              ...deal,
+              stage: { id: nextStage.id, name: nextStage.name },
+              status: nextStage.isClosedWon ? "won" : nextStage.isClosedLost ? "lost" : "open",
+            }
+          : deal
+      )
+    );
+
+    setChangingStageDealId(dealId);
+    try {
+      const response = await fetch(`/api/crm/deals/${dealId}/stage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stageId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Error cambiando etapa");
+
+      setContactDeals((prev) =>
+        prev.map((deal) =>
+          deal.id === dealId
+            ? {
+                ...deal,
+                stage: payload.data?.stage
+                  ? { id: payload.data.stage.id, name: payload.data.stage.name }
+                  : deal.stage,
+                status: payload.data?.status || deal.status,
+              }
+            : deal
+        )
+      );
+      toast.success("Etapa actualizada");
+    } catch (error) {
+      console.error(error);
+      setContactDeals((prev) => prev.map((deal) => (deal.id === dealId ? snapshot : deal)));
+      toast.error("No se pudo actualizar la etapa.");
+    } finally {
+      setChangingStageDealId(null);
+    }
+  };
+
   // ── WhatsApp URL ──
   const whatsappUrl = contact.phone
     ? `https://wa.me/${contact.phone.replace(/\s/g, "").replace(/^\+/, "")}?text=${encodeURIComponent(`Hola ${contact.firstName}, `)}`
@@ -331,27 +397,53 @@ export function CrmContactDetailClient({
       <CollapsibleSection
         icon={<TrendingUp className="h-4 w-4" />}
         title="Negocios"
-        count={deals.length}
-        defaultOpen={deals.length > 0}
+        count={contactDeals.length}
+        defaultOpen={contactDeals.length > 0}
       >
-        {deals.length === 0 ? (
+        {contactDeals.length === 0 ? (
           <EmptyState icon={<TrendingUp className="h-8 w-8" />} title="Sin negocios" description="No hay negocios vinculados a la cuenta de este contacto." compact />
         ) : (
           <div className="space-y-2">
-            {deals.map((deal) => (
-              <Link key={deal.id} href={`/crm/deals/${deal.id}`} className="flex items-center justify-between rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 group">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">{deal.title}</p>
-                    <Badge variant="outline">{deal.stage?.name}</Badge>
-                    {deal.status === "won" && <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">Ganado</Badge>}
-                    {deal.status === "lost" && <Badge variant="outline" className="border-red-500/30 text-red-400">Perdido</Badge>}
+            {contactDeals.map((deal) => {
+              const hasCurrentStage = deal.stage?.id
+                ? pipelineStages.some((stage) => stage.id === deal.stage?.id)
+                : false;
+              return (
+                <div key={deal.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 group">
+                  <Link href={`/crm/deals/${deal.id}`} className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium group-hover:text-primary transition-colors">{deal.title}</p>
+                      <Badge variant="outline">{deal.stage?.name || "Sin etapa"}</Badge>
+                      {deal.status === "won" && <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">Ganado</Badge>}
+                      {deal.status === "lost" && <Badge variant="outline" className="border-red-500/30 text-red-400">Perdido</Badge>}
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">${Number(deal.amount).toLocaleString("es-CL")}</p>
+                  </Link>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <select
+                      className="h-8 min-w-[130px] rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60"
+                      value={deal.stage?.id || ""}
+                      onChange={(event) => updateDealStage(deal.id, event.target.value)}
+                      disabled={changingStageDealId === deal.id || pipelineStages.length === 0}
+                      aria-label={`Cambiar etapa de ${deal.title}`}
+                    >
+                      {deal.stage?.id && !hasCurrentStage && (
+                        <option value={deal.stage.id}>{deal.stage.name}</option>
+                      )}
+                      {pipelineStages.map((stage) => (
+                        <option key={stage.id} value={stage.id}>
+                          {stage.name}
+                        </option>
+                      ))}
+                      {pipelineStages.length === 0 && <option value="">Sin etapas disponibles</option>}
+                    </select>
+                    <Link href={`/crm/deals/${deal.id}`}>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">${Number(deal.amount).toLocaleString("es-CL")}</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform shrink-0 hidden sm:block" />
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </CollapsibleSection>

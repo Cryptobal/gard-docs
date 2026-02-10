@@ -47,6 +47,11 @@ export default async function CrmDealDetailPage({
     select: { id: true, code: true, clientName: true, status: true },
   });
 
+  const pipelineStages = await prisma.crmPipelineStage.findMany({
+    where: { tenantId, isActive: true },
+    orderBy: { order: "asc" },
+  });
+
   const gmailAccount = await prisma.crmEmailAccount.findFirst({
     where: {
       tenantId,
@@ -86,6 +91,7 @@ export default async function CrmDealDetailPage({
   const initialDeal = JSON.parse(JSON.stringify(deal)) as DealDetail;
   initialDeal.proposalLink = deal.proposalLink ?? null;
   const initialQuotes = JSON.parse(JSON.stringify(quotes));
+  const initialPipelineStages = JSON.parse(JSON.stringify(pipelineStages));
   const initialDealContacts = JSON.parse(JSON.stringify(dealContacts));
   const initialAccountContacts = JSON.parse(JSON.stringify(accountContacts));
   const initialTemplates = JSON.parse(JSON.stringify(templates));
@@ -109,6 +115,7 @@ export default async function CrmDealDetailPage({
         <CrmDealDetailClient
           deal={initialDeal}
           quotes={initialQuotes}
+          pipelineStages={initialPipelineStages}
           dealContacts={initialDealContacts}
           accountContacts={initialAccountContacts}
           gmailConnected={Boolean(gmailAccount)}
