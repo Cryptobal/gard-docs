@@ -24,6 +24,7 @@ import {
   normalizeMobileNineDigits,
   normalizeRut,
 } from "@/lib/personas";
+import { hasOpsCapability } from "@/lib/ops-rbac";
 
 type GuardiaItem = {
   id: string;
@@ -54,9 +55,10 @@ type GuardiaItem = {
 
 interface GuardiasClientProps {
   initialGuardias: GuardiaItem[];
+  userRole: string;
 }
 
-export function GuardiasClient({ initialGuardias }: GuardiasClientProps) {
+export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProps) {
   const [guardias, setGuardias] = useState<GuardiaItem[]>(initialGuardias);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
@@ -96,6 +98,8 @@ export function GuardiasClient({ initialGuardias }: GuardiasClientProps) {
     cuenta_vista: "Cuenta vista",
     cuenta_rut: "Cuenta RUT",
   };
+  const canManageGuardias = hasOpsCapability(userRole, "guardias_manage");
+  const canManageBlacklist = hasOpsCapability(userRole, "guardias_blacklist");
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -291,7 +295,7 @@ export function GuardiasClient({ initialGuardias }: GuardiasClientProps) {
           size="sm"
           variant="outline"
           className="h-8 px-2 text-xs"
-          disabled={loadingPublicForm}
+          disabled={loadingPublicForm || !canManageGuardias}
           onClick={() => void handleOpenPublicPostulacion()}
         >
           <ExternalLink className="h-3.5 w-3.5 mr-1" />
@@ -299,7 +303,14 @@ export function GuardiasClient({ initialGuardias }: GuardiasClientProps) {
         </Button>
         <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
           <DialogTrigger asChild>
-            <Button type="button" size="icon" variant="outline" className="h-8 w-8" title="Agregar postulante manualmente">
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              title="Agregar postulante manualmente"
+              disabled={!canManageGuardias}
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </DialogTrigger>
@@ -466,7 +477,7 @@ export function GuardiasClient({ initialGuardias }: GuardiasClientProps) {
                     <select
                       className="h-8 rounded-md border border-border bg-background px-2 text-xs"
                       value={item.lifecycleStatus}
-                      disabled={updatingId === item.id}
+                      disabled={updatingId === item.id || !canManageGuardias}
                       onChange={(e) => void handleLifecycleChange(item, e.target.value)}
                     >
                       {GUARDIA_LIFECYCLE_STATUSES.map((status) => (
@@ -487,14 +498,16 @@ export function GuardiasClient({ initialGuardias }: GuardiasClientProps) {
                     >
                       <Link href={`/personas/guardias/${item.id}`}>Ficha y documentos</Link>
                     </Button>
-                    <Button
-                      size="sm"
-                      variant={item.isBlacklisted ? "outline" : "ghost"}
-                      disabled={updatingId === item.id}
-                      onClick={() => void handleBlacklistToggle(item)}
-                    >
-                      {item.isBlacklisted ? "Quitar lista negra" : "Lista negra"}
-                    </Button>
+                    {canManageBlacklist ? (
+                      <Button
+                        size="sm"
+                        variant={item.isBlacklisted ? "outline" : "ghost"}
+                        disabled={updatingId === item.id}
+                        onClick={() => void handleBlacklistToggle(item)}
+                      >
+                        {item.isBlacklisted ? "Quitar lista negra" : "Lista negra"}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               ))}

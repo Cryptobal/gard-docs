@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { hasAppAccess } from "@/lib/app-access";
 import { prisma } from "@/lib/prisma";
 import type { AuthContext } from "@/lib/api-auth";
+import { hasOpsCapability, type OpsCapability } from "@/lib/ops-rbac";
 
 export type WeekdayKey =
   | "monday"
@@ -33,6 +34,25 @@ export function forbiddenOps() {
 export function ensureOpsAccess(ctx: AuthContext): NextResponse | null {
   if (!hasAppAccess(ctx.userRole, "ops")) {
     return forbiddenOps();
+  }
+  return null;
+}
+
+export function forbiddenOpsCapability(capability: OpsCapability) {
+  return NextResponse.json(
+    { success: false, error: `Sin permisos Ops para: ${capability}` },
+    { status: 403 }
+  );
+}
+
+export function ensureOpsCapability(
+  ctx: AuthContext,
+  capability: OpsCapability
+): NextResponse | null {
+  const forbiddenModule = ensureOpsAccess(ctx);
+  if (forbiddenModule) return forbiddenModule;
+  if (!hasOpsCapability(ctx.userRole, capability)) {
+    return forbiddenOpsCapability(capability);
   }
   return null;
 }

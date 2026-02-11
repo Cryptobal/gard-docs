@@ -29,6 +29,11 @@ export const ROLE_APP_ACCESS: Record<Role, AppKey[]> = {
   // Editor: acceso a hub y módulos operativos (sin admin)
   editor: ["hub", "docs", "crm", "cpq", "payroll"],
 
+  // Roles operacionales finos (Phase 1 hardening)
+  rrhh: ["hub", "ops"],
+  operaciones: ["hub", "ops"],
+  reclutamiento: ["hub", "ops"],
+
   // Viewer: solo lectura (hub y docs)
   viewer: ["hub", "docs"],
 };

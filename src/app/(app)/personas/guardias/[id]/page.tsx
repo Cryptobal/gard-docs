@@ -41,7 +41,10 @@ export default async function GuardiaDetailPage({
         description="Datos personales, ficha de documentos (antecedentes, OS-10, cédula, currículum), cuentas bancarias, comunicaciones e historial."
       />
       <PersonasSubnav />
-      <GuardiaDetailClient initialGuardia={JSON.parse(JSON.stringify(guardia))} />
+      <GuardiaDetailClient
+        initialGuardia={JSON.parse(JSON.stringify(guardia))}
+        userRole={role}
+      />
     </div>
   );
 }

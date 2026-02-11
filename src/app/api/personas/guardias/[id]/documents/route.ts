@@ -4,7 +4,7 @@ import {
   createGuardiaDocumentSchema,
   updateGuardiaDocumentSchema,
 } from "@/lib/validations/ops";
-import { createOpsAuditLog, ensureOpsAccess, parseDateOnly } from "@/lib/ops";
+import { createOpsAuditLog, ensureOpsAccess, ensureOpsCapability, parseDateOnly } from "@/lib/ops";
 import { prisma } from "@/lib/prisma";
 import { normalizeNullable } from "@/lib/personas";
 
@@ -24,7 +24,7 @@ export async function GET(
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "guardias_documents");
     if (forbidden) return forbidden;
     const { id } = await params;
 
@@ -52,7 +52,7 @@ export async function POST(
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "guardias_documents");
     if (forbidden) return forbidden;
     const { id } = await params;
 
@@ -111,7 +111,7 @@ export async function PATCH(
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "guardias_documents");
     if (forbidden) return forbidden;
     const { id } = await params;
     const documentId = request.nextUrl.searchParams.get("documentId");

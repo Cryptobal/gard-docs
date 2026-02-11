@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseBody, requireAuth, unauthorized } from "@/lib/api-auth";
 import { updateGuardiaLifecycleSchema } from "@/lib/validations/ops";
-import { createOpsAuditLog, ensureOpsAccess, parseDateOnly } from "@/lib/ops";
+import { createOpsAuditLog, ensureOpsCapability, parseDateOnly } from "@/lib/ops";
 import { prisma } from "@/lib/prisma";
 import { lifecycleToLegacyStatus, normalizeNullable } from "@/lib/personas";
 
@@ -14,7 +14,7 @@ export async function PATCH(
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "rrhh_events");
     if (forbidden) return forbidden;
     const { id } = await params;
     const parsed = await parseBody(request, updateGuardiaLifecycleSchema);

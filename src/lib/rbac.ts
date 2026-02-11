@@ -8,6 +8,9 @@ export const ROLES = {
   OWNER: 'owner',
   ADMIN: 'admin',
   EDITOR: 'editor',
+  RRHH: 'rrhh',
+  OPERACIONES: 'operaciones',
+  RECLUTAMIENTO: 'reclutamiento',
   VIEWER: 'viewer',
 } as const;
 
@@ -18,6 +21,9 @@ const ROLE_HIERARCHY: Record<Role, number> = {
   owner: 4,
   admin: 3,
   editor: 2,
+  rrhh: 2,
+  operaciones: 2,
+  reclutamiento: 2,
   viewer: 1,
 };
 
@@ -78,6 +84,9 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.CREATE_PRESENTATIONS,
     PERMISSIONS.VIEW_PRESENTATIONS,
   ],
+  rrhh: [PERMISSIONS.VIEW_PRESENTATIONS],
+  operaciones: [PERMISSIONS.VIEW_PRESENTATIONS],
+  reclutamiento: [PERMISSIONS.VIEW_PRESENTATIONS],
   viewer: [
     PERMISSIONS.VIEW_TEMPLATES,
     PERMISSIONS.VIEW_PRESENTATIONS,

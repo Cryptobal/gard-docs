@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   Landmark,
   Mail,
   MessageCircle,
+  Link2,
   Save,
   Send,
   Trash2,
@@ -29,10 +30,12 @@ import {
   DOCUMENT_TYPES,
   GUARDIA_COMM_TEMPLATES,
 } from "@/lib/personas";
+import { hasOpsCapability } from "@/lib/ops-rbac";
 
 const SECTIONS = [
   { id: "datos", label: "Datos personales", icon: User },
   { id: "documentos", label: "Ficha de documentos", icon: FilePlus2 },
+  { id: "docs-vinculados", label: "Docs vinculados", icon: Link2 },
   { id: "cuentas", label: "Cuentas bancarias", icon: Landmark },
   { id: "comunicaciones", label: "Comunicaciones", icon: Mail },
   { id: "historial", label: "Historial", icon: History },
@@ -85,6 +88,7 @@ type GuardiaDetail = {
 
 interface GuardiaDetailClientProps {
   initialGuardia: GuardiaDetail;
+  userRole: string;
 }
 
 const DOC_LABEL: Record<string, string> = {
@@ -102,7 +106,7 @@ const ACCOUNT_TYPE_LABEL: Record<string, string> = {
   cuenta_rut: "Cuenta RUT",
 };
 
-export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps) {
+export function GuardiaDetailClient({ initialGuardia, userRole }: GuardiaDetailClientProps) {
   const [guardia, setGuardia] = useState(initialGuardia);
   const [uploading, setUploading] = useState(false);
   const [creatingDoc, setCreatingDoc] = useState(false);
@@ -134,6 +138,40 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
   const [docEdits, setDocEdits] = useState<
     Record<string, { status: string; issuedAt: string; expiresAt: string }>
   >({});
+  const [availableDocs, setAvailableDocs] = useState<
+    Array<{
+      id: string;
+      title: string;
+      module: string;
+      category: string;
+      status: string;
+      createdAt: string;
+      expirationDate?: string | null;
+    }>
+  >([]);
+  const [linkedDocs, setLinkedDocs] = useState<
+    Array<{
+      id: string;
+      role: string;
+      createdAt: string;
+      document: {
+        id: string;
+        title: string;
+        module: string;
+        category: string;
+        status: string;
+        createdAt: string;
+        expirationDate?: string | null;
+      };
+    }>
+  >([]);
+  const [loadingDocLinks, setLoadingDocLinks] = useState(false);
+  const [linkingDoc, setLinkingDoc] = useState(false);
+  const [unlinkingDocId, setUnlinkingDocId] = useState<string | null>(null);
+  const [linkForm, setLinkForm] = useState({
+    documentId: "",
+    role: "related",
+  });
 
   const docsByType = useMemo(() => {
     const map = new Map<string, GuardiaDetail["documents"][number]>();
@@ -142,6 +180,37 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
     }
     return map;
   }, [guardia.documents]);
+
+  const canManageGuardias = hasOpsCapability(userRole, "guardias_manage");
+  const canManageDocs = hasOpsCapability(userRole, "guardias_documents");
+
+  const loadDocLinks = async () => {
+    setLoadingDocLinks(true);
+    try {
+      const response = await fetch(`/api/personas/guardias/${guardia.id}/doc-links`);
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "No se pudieron cargar vínculos");
+      }
+      setLinkedDocs(payload.data?.linked ?? []);
+      setAvailableDocs(payload.data?.available ?? []);
+      setLinkForm((prev) => ({
+        ...prev,
+        documentId: payload.data?.available?.[0]?.id ?? "",
+      }));
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudieron cargar documentos vinculables");
+    } finally {
+      setLoadingDocLinks(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDocLinks();
+    // guardia.id es estable para esta pantalla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guardia.id]);
 
   const handleUpload = async (file?: File | null) => {
     if (!file) return;
@@ -271,6 +340,57 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
       toast.error("No se pudo eliminar documento");
     } finally {
       setDeletingDocId(null);
+    }
+  };
+
+  const handleLinkDocument = async () => {
+    if (!linkForm.documentId) {
+      toast.error("Selecciona un documento");
+      return;
+    }
+    setLinkingDoc(true);
+    try {
+      const response = await fetch(`/api/personas/guardias/${guardia.id}/doc-links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: linkForm.documentId,
+          role: linkForm.role,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "No se pudo vincular documento");
+      }
+      await loadDocLinks();
+      toast.success("Documento vinculado al guardia");
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo vincular documento");
+    } finally {
+      setLinkingDoc(false);
+    }
+  };
+
+  const handleUnlinkDocument = async (documentId: string) => {
+    if (!window.confirm("¿Desvincular este documento del guardia?")) return;
+    setUnlinkingDocId(documentId);
+    try {
+      const response = await fetch(
+        `/api/personas/guardias/${guardia.id}/doc-links?documentId=${encodeURIComponent(documentId)}`,
+        { method: "DELETE" }
+      );
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "No se pudo desvincular documento");
+      }
+      await loadDocLinks();
+      toast.success("Documento desvinculado");
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo desvincular documento");
+    } finally {
+      setUnlinkingDocId(null);
     }
   };
 
@@ -540,13 +660,13 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                     accept=".pdf,image/*"
                     className="hidden"
                     onChange={(e) => void handleUpload(e.target.files?.[0])}
-                    disabled={uploading}
+                    disabled={uploading || !canManageDocs}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
-                    disabled={uploading}
+                    disabled={uploading || !canManageDocs}
                     onClick={() => fileInputRef.current?.click()}
                     title="Seleccionar archivo"
                   >
@@ -556,7 +676,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                     type="button"
                     size="sm"
                     onClick={handleCreateDocument}
-                    disabled={creatingDoc || !docForm.fileUrl || uploading}
+                    disabled={creatingDoc || !docForm.fileUrl || uploading || !canManageDocs}
                   >
                     <Upload className="h-4 w-4 mr-1" />
                     {creatingDoc ? "Guardando..." : "Cargar"}
@@ -597,7 +717,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                           size="sm"
                           variant="outline"
                           onClick={() => void handleDeleteDocument(doc)}
-                          disabled={deletingDocId === doc.id}
+                          disabled={deletingDocId === doc.id || !canManageDocs}
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
                           Eliminar
@@ -608,6 +728,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                       <select
                         className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                         value={edit.status}
+                        disabled={!canManageDocs}
                         onChange={(e) =>
                           setDocEdits((prev) => ({
                             ...prev,
@@ -624,6 +745,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                       <Input
                         type="date"
                         value={edit.issuedAt}
+                        disabled={!canManageDocs}
                         onChange={(e) =>
                           setDocEdits((prev) => ({
                             ...prev,
@@ -634,6 +756,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                       <Input
                         type="date"
                         value={edit.expiresAt}
+                        disabled={!canManageDocs}
                         onChange={(e) =>
                           setDocEdits((prev) => ({
                             ...prev,
@@ -647,7 +770,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
                         type="button"
                         size="sm"
                         onClick={() => void handleSaveDocument(doc)}
-                        disabled={savingDocId === doc.id}
+                        disabled={savingDocId === doc.id || !canManageDocs}
                       >
                         <Save className="h-4 w-4 mr-1" />
                         {savingDocId === doc.id ? "Guardando..." : "Guardar cambios"}
@@ -662,6 +785,85 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
           <p className="text-xs text-muted-foreground">
             {guardia.documents.length} documento(s) · tipos: antecedentes, OS-10, cédula, currículum, contrato, anexo.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card id="docs-vinculados">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            Documentos vinculados (Docs)
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Vincula contratos/anexos del módulo Docs a esta ficha de guardia para mantener trazabilidad.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={linkForm.documentId}
+              disabled={loadingDocLinks || !canManageDocs}
+              onChange={(e) => setLinkForm((prev) => ({ ...prev, documentId: e.target.value }))}
+            >
+              <option value="">Selecciona documento disponible</option>
+              {availableDocs.map((doc) => (
+                <option key={doc.id} value={doc.id}>
+                  {doc.title} · {doc.status}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={linkForm.role}
+              disabled={!canManageDocs}
+              onChange={(e) => setLinkForm((prev) => ({ ...prev, role: e.target.value }))}
+            >
+              <option value="primary">primary</option>
+              <option value="related">related</option>
+              <option value="copy">copy</option>
+            </select>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleLinkDocument()}
+              disabled={!canManageDocs || linkingDoc || !linkForm.documentId}
+            >
+              {linkingDoc ? "Vinculando..." : "Vincular"}
+            </Button>
+          </div>
+
+          {linkedDocs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin documentos vinculados.</p>
+          ) : (
+            <div className="space-y-2">
+              {linkedDocs.map((item) => (
+                <div key={item.id} className="rounded-md border border-border p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{item.document.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.document.category} · {item.document.status} · rol {item.role}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/opai/documentos/${item.document.id}`}>Abrir</Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void handleUnlinkDocument(item.document.id)}
+                      disabled={!canManageDocs || unlinkingDocId === item.document.id}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Quitar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -708,7 +910,7 @@ export function GuardiaDetailClient({ initialGuardia }: GuardiaDetailClientProps
               value={accountForm.holderName}
               onChange={(e) => setAccountForm((prev) => ({ ...prev, holderName: e.target.value }))}
             />
-            <Button onClick={handleCreateBankAccount} disabled={creatingAccount}>
+            <Button onClick={handleCreateBankAccount} disabled={creatingAccount || !canManageGuardias}>
               {creatingAccount ? "..." : "Agregar"}
             </Button>
           </div>

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parseBody, requireAuth, unauthorized } from "@/lib/api-auth";
 import { updateGuardiaSchema } from "@/lib/validations/ops";
-import { createOpsAuditLog, ensureOpsAccess } from "@/lib/ops";
+import { createOpsAuditLog, ensureOpsAccess, ensureOpsCapability } from "@/lib/ops";
 import {
   lifecycleToLegacyStatus,
   normalizeNullable,
@@ -85,7 +85,7 @@ export async function PATCH(
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "guardias_manage");
     if (forbidden) return forbidden;
 
     const { id } = await params;

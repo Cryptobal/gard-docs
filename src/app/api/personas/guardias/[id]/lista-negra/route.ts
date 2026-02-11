@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseBody, requireAuth, unauthorized } from "@/lib/api-auth";
 import { updateBlacklistSchema } from "@/lib/validations/ops";
-import { createOpsAuditLog, ensureOpsAccess } from "@/lib/ops";
+import { createOpsAuditLog, ensureOpsCapability } from "@/lib/ops";
 import { lifecycleToLegacyStatus } from "@/lib/personas";
 
 type Params = { id: string };
@@ -14,7 +14,7 @@ export async function PATCH(
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "guardias_blacklist");
     if (forbidden) return forbidden;
 
     const { id } = await params;

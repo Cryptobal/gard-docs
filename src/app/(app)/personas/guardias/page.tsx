@@ -48,7 +48,10 @@ export default async function GuardiasPage() {
         description="Alta de guardias y control de elegibilidad operativa."
       />
       <PersonasSubnav />
-      <GuardiasClient initialGuardias={JSON.parse(JSON.stringify(guardias))} />
+      <GuardiasClient
+        initialGuardias={JSON.parse(JSON.stringify(guardias))}
+        userRole={role}
+      />
     </div>
   );
 }

@@ -67,6 +67,9 @@ const ROLE_CRM_SUBMODULE_ACCESS: Record<Role, CrmSubmoduleKey[]> = {
   owner: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
   admin: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
   editor: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
+  rrhh: [],
+  operaciones: [],
+  reclutamiento: [],
   viewer: [],
 };
 
@@ -74,6 +77,9 @@ const ROLE_CONFIG_SUBMODULE_ACCESS: Record<Role, ConfigSubmoduleKey[]> = {
   owner: ["overview", "users", "integrations", "signatures", "doc_categories", "notifications", "crm", "cpq", "payroll"],
   admin: ["overview", "users", "integrations", "signatures", "doc_categories", "notifications", "crm", "cpq", "payroll"],
   editor: [],
+  rrhh: [],
+  operaciones: [],
+  reclutamiento: [],
   viewer: [],
 };
 
@@ -81,6 +87,9 @@ const ROLE_DOCS_SUBMODULE_ACCESS: Record<Role, DocsSubmoduleKey[]> = {
   owner: ["overview", "documents", "document_editor", "templates", "template_editor"],
   admin: ["overview", "documents", "document_editor", "templates", "template_editor"],
   editor: ["overview", "documents", "document_editor", "templates", "template_editor"],
+  rrhh: [],
+  operaciones: [],
+  reclutamiento: [],
   viewer: ["overview", "documents", "templates"],
 };
 

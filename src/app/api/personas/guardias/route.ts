@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parseBody, requireAuth, unauthorized } from "@/lib/api-auth";
 import { createGuardiaSchema } from "@/lib/validations/ops";
-import { createOpsAuditLog, ensureOpsAccess } from "@/lib/ops";
+import { createOpsAuditLog, ensureOpsAccess, ensureOpsCapability } from "@/lib/ops";
 import { lifecycleToLegacyStatus, normalizeNullable } from "@/lib/personas";
 
 function buildNextGuardiaCode(lastCode?: string | null): string {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
-    const forbidden = ensureOpsAccess(ctx);
+    const forbidden = ensureOpsCapability(ctx, "guardias_manage");
     if (forbidden) return forbidden;
 
     const parsed = await parseBody(request, createGuardiaSchema);
