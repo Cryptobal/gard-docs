@@ -1225,22 +1225,37 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
           />
 
           <Card className="p-3 sm:p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-semibold">Gastos financieros</h2>
-                <p className="text-xs text-muted-foreground">
-                  Costo financiero siempre activo y póliza configurable.
-                </p>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-200">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Activo
-              </div>
+            <div>
+              <h2 className="text-sm font-semibold">Gastos financieros</h2>
+              <p className="text-xs text-muted-foreground">
+                Costo financiero siempre activo y póliza configurable.
+              </p>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <p className="text-sm font-semibold">Costo financiero</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">Costo financiero</p>
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
+                      costParams?.financialEnabled
+                        ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-200"
+                        : "border-border bg-muted/30 text-muted-foreground"
+                    )}
+                    onClick={() => updateParams({ financialEnabled: !costParams?.financialEnabled })}
+                    aria-pressed={costParams?.financialEnabled}
+                  >
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        costParams?.financialEnabled ? "bg-emerald-400" : "bg-muted-foreground"
+                      )}
+                    />
+                    {costParams?.financialEnabled ? "Activo" : "Inactivo"}
+                  </button>
+                </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Precio de venta base</Label>
