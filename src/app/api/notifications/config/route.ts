@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
 
-    if (ctx.role !== "owner" && ctx.role !== "admin") {
+    if (ctx.userRole !== "owner" && ctx.userRole !== "admin") {
       return NextResponse.json(
         { success: false, error: "Solo administradores pueden cambiar la configuración" },
         { status: 403 }

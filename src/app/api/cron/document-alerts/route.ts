@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Cache per-tenant prefs and admin emails
-    const prefsCache = new Map<string, Awaited<ReturnType<typeof getNotifPrefs>>>();
+    const prefsCache = new Map<string, Awaited<ReturnType<typeof getNotificationPrefs>>>();
     const adminCache = new Map<string, string[]>();
 
     async function prefs(tid: string) {
@@ -100,7 +100,11 @@ export async function GET(request: NextRequest) {
 
         if (!existing) {
           const p = await prefs(doc.tenantId);
-          const txOps = [
+          type TxOp =
+            | ReturnType<typeof prisma.document.update>
+            | ReturnType<typeof prisma.docHistory.create>
+            | ReturnType<typeof prisma.notification.create>;
+          const txOps: TxOp[] = [
             prisma.document.update({
               where: { id: doc.id },
               data: { status: "expiring" },
@@ -173,7 +177,11 @@ export async function GET(request: NextRequest) {
 
     for (const doc of expiredDocs) {
       const p = await prefs(doc.tenantId);
-      const txOps = [
+      type TxOpExpired =
+        | ReturnType<typeof prisma.document.update>
+        | ReturnType<typeof prisma.docHistory.create>
+        | ReturnType<typeof prisma.notification.create>;
+      const txOps: TxOpExpired[] = [
         prisma.document.update({
           where: { id: doc.id },
           data: { status: "expired" },
