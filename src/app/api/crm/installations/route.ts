@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
         commune: body.commune || null,
         lat: body.lat || null,
         lng: body.lng || null,
+        geoRadiusM: body.geoRadiusM ?? 100,
+        teMontoClp: body.teMontoClp ?? 0,
         notes: body.notes || null,
       },
       include: { account: { select: { id: true, name: true } } },

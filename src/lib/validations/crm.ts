@@ -85,6 +85,8 @@ export const createInstallationSchema = z.object({
   commune: z.string().trim().max(100).optional().nullable(),
   lat: z.number().optional().nullable(),
   lng: z.number().optional().nullable(),
+  geoRadiusM: z.number().int().min(10).max(1000).optional(),
+  teMontoClp: z.number().min(0).optional(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
@@ -95,6 +97,8 @@ export const updateInstallationSchema = z.object({
   commune: z.string().trim().max(100).optional().nullable(),
   lat: z.number().optional().nullable(),
   lng: z.number().optional().nullable(),
+  geoRadiusM: z.number().int().min(10).max(1000).optional(),
+  teMontoClp: z.number().min(0).optional(),
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
