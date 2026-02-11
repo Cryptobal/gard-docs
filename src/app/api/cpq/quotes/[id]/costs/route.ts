@@ -324,7 +324,7 @@ export async function GET(
     const marginPct = normalizePct(safeNumber(parameters?.marginPct ?? 20));
     const baseWithMargin = marginPct < 1 ? costsBase / (1 - marginPct) : costsBase;
 
-    const financialEnabled = parameters?.financialEnabled ?? false;
+    const financialEnabled = true;
     const policyEnabled = parameters?.policyEnabled ?? false;
     const salePriceBase = safeNumber(parameters?.salePriceBase ?? 0);
     const effectiveSalePriceBase = salePriceBase > 0 ? salePriceBase : baseWithMargin;
@@ -463,7 +463,7 @@ export async function PUT(
             monthlyHoursStandard: parameters.monthlyHoursStandard,
             avgStayMonths: parameters.avgStayMonths,
             uniformChangesPerYear: parameters.uniformChangesPerYear,
-            financialEnabled: parameters.financialEnabled,
+            financialEnabled: true,
             financialRatePct: parameters.financialRatePct,
             salePriceBase: parameters.salePriceBase,
             salePriceMonthly: parameters.salePriceMonthly,
@@ -481,7 +481,7 @@ export async function PUT(
             monthlyHoursStandard: parameters.monthlyHoursStandard ?? 180,
             avgStayMonths: parameters.avgStayMonths ?? 4,
             uniformChangesPerYear: parameters.uniformChangesPerYear ?? 3,
-            financialEnabled: parameters.financialEnabled ?? false,
+            financialEnabled: true,
             financialRatePct: parameters.financialRatePct ?? 0,
             salePriceBase: parameters.salePriceBase ?? 0,
             salePriceMonthly: parameters.salePriceMonthly ?? 0,

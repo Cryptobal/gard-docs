@@ -141,8 +141,10 @@ export function CpqPricingCalc({
           <span className="font-mono text-xs">{formatCurrency(directCosts)}</span>
         </div>
         <div className="flex justify-between items-center pl-2">
-          <span className="text-muted-foreground text-xs">Ajuste feriados</span>
-          <span className="font-mono text-xs">{formatCurrency(holidayCosts)}</span>
+          <span className="text-emerald-300 text-xs">
+            Ajuste feriados total ({summary.totalGuards} guardias)
+          </span>
+          <span className="font-mono text-xs text-emerald-300">{formatCurrency(holidayCosts)}</span>
         </div>
         <div className="flex justify-between items-center pl-2">
           <span className="text-muted-foreground text-xs">Uniformes</span>

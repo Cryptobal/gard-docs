@@ -43,7 +43,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddressAutocomplete, type AddressResult } from "@/components/ui/AddressAutocomplete";
-import { ArrowLeft, Copy, RefreshCw, FileText, Users, Layers, Calculator, ChevronLeft, ChevronRight, ChevronDown, Check, Trash2, Download, Send, Sparkles, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, FileText, Users, Layers, Calculator, ChevronLeft, ChevronRight, Check, Trash2, Download, Send, Sparkles, Loader2, Plus } from "lucide-react";
 
 interface CpqQuoteDetailProps {
   quoteId: string;
@@ -53,7 +53,7 @@ const DEFAULT_PARAMS: CpqQuoteParameters = {
   monthlyHoursStandard: 180,
   avgStayMonths: 4,
   uniformChangesPerYear: 3,
-  financialEnabled: false,
+  financialEnabled: true,
   financialRatePct: 2.5,
   salePriceBase: 0,
   salePriceMonthly: 0,
@@ -97,7 +97,6 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
   const [savingFinancials, setSavingFinancials] = useState(false);
   const [financialError, setFinancialError] = useState<string | null>(null);
   const [decimalDrafts, setDecimalDrafts] = useState<Record<string, string>>({});
-  const [financialsCollapsed, setFinancialsCollapsed] = useState(true);
   const [quoteForm, setQuoteForm] = useState({
     clientName: "",
     validUntil: "",
@@ -282,7 +281,11 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
       }
       if (costsData.success) {
         setCostSummary(costsData.data.summary);
-        setCostParams(costsData.data.parameters || null);
+        setCostParams(
+          costsData.data.parameters
+            ? { ...costsData.data.parameters, financialEnabled: true }
+            : null
+        );
         setMarginPct(costsData.data.parameters?.marginPct ?? 20);
         setCostItems(costsData.data.costItems || []);
         setUniforms(costsData.data.uniforms || []);
@@ -308,6 +311,7 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
     if (base > 0) return;
     const costsBase =
       (costSummary.monthlyPositions ?? 0) +
+      (costSummary.monthlyHolidayAdjustment ?? 0) +
       (costSummary.monthlyUniforms ?? 0) +
       (costSummary.monthlyExams ?? 0) +
       (costSummary.monthlyMeals ?? 0) +
@@ -468,7 +472,7 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          parameters: costParams,
+          parameters: { ...costParams, financialEnabled: true },
           uniforms,
           exams,
           costItems,
@@ -615,7 +619,6 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
   const policyContractMonths = costParams?.policyContractMonths ?? 12;
   const policyContractPct = costParams?.policyContractPct ?? 20;
   const contractMonths = costParams?.contractMonths ?? 12;
-  const financialEnabled = costParams?.financialEnabled ?? false;
   const policyEnabled = costParams?.policyEnabled ?? false;
   const salePriceBase = Number(costParams?.salePriceBase ?? 0);
   const monthlyTotal = costSummary?.monthlyTotal ?? stats.monthly + additionalCostsTotal;
@@ -626,6 +629,7 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
     const margin = marginPct / 100;
     const costsBase =
       costSummary.monthlyPositions +
+      (costSummary.monthlyHolidayAdjustment ?? 0) +
       (costSummary.monthlyUniforms ?? 0) +
       (costSummary.monthlyExams ?? 0) +
       (costSummary.monthlyMeals ?? 0) +
@@ -1189,230 +1193,6 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
 
       {activeStep === 3 && (
         <div className="space-y-3" inert={isLocked}>
-          <Card className="p-3 sm:p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold">Gastos financieros</h2>
-                <p className="text-xs text-muted-foreground">
-                  Activa y configura costo financiero y póliza.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground"
-                onClick={() => setFinancialsCollapsed((prev) => !prev)}
-                aria-expanded={!financialsCollapsed}
-              >
-                {financialsCollapsed ? "Mostrar" : "Ocultar"}
-                <ChevronDown
-                  className={`h-3.5 w-3.5 transition-transform ${
-                    financialsCollapsed ? "" : "rotate-180"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {financialsCollapsed && (
-              <div className="text-xs text-muted-foreground">
-                Total actual:{" "}
-                {formatCurrency(
-                  costSummary ? costSummary.monthlyFinancial + costSummary.monthlyPolicy : 0
-                )}
-              </div>
-            )}
-
-            {!financialsCollapsed && (
-              <>
-                <div className="grid gap-3">
-                  <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm font-semibold">Costo financiero</p>
-                        <p className="text-xs text-muted-foreground">
-                          Precio de venta base × tasa. Se redondea al llegar al Resumen.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className={cn(
-                          "inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
-                          financialEnabled
-                            ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-200"
-                            : "border-border bg-muted/30 text-muted-foreground"
-                        )}
-                        onClick={() => updateParams({ financialEnabled: !financialEnabled })}
-                        aria-pressed={financialEnabled}
-                      >
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            financialEnabled ? "bg-emerald-400" : "bg-muted-foreground"
-                          )}
-                        />
-                        {financialEnabled ? "Activo" : "Inactivo"}
-                      </button>
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Precio de venta base (redondeado)</Label>
-                        <Input
-                          type="text"
-                          inputMode="numeric"
-                          value={getDecimalValue("salePriceBase", salePriceBase, 0, true)}
-                          onChange={(e) => setDecimalValue("salePriceBase", e.target.value)}
-                          onBlur={() => {
-                            const raw = decimalDrafts.salePriceBase;
-                            if (raw === undefined) return;
-                            const parsed = raw.trim() ? parseLocalizedNumber(raw) : 0;
-                            updateParams({ salePriceBase: Math.max(0, parsed) });
-                            clearDecimalValue("salePriceBase");
-                          }}
-                          className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
-                          placeholder="Ej: 4000000"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Tasa (%)</Label>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={getDecimalValue("financialRatePct", costParams?.financialRatePct ?? 2.5, 2, true)}
-                          onChange={(e) => setDecimalValue("financialRatePct", e.target.value)}
-                          onBlur={() => {
-                            const raw = decimalDrafts.financialRatePct;
-                            if (raw === undefined) return;
-                            const parsed = raw.trim() ? parseLocalizedNumber(raw) : 2.5;
-                            updateParams({ financialRatePct: parsed });
-                            clearDecimalValue("financialRatePct");
-                          }}
-                          className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
-                          placeholder="2,5"
-                        />
-                      </div>
-                      {financialEnabled && salePriceBase > 0 && (
-                        <div className="text-xs text-emerald-400 sm:col-span-2">
-                          Costo financiero mensual:{" "}
-                          {formatCurrency(salePriceBase * ((costParams?.financialRatePct ?? 2.5) / 100))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-sm font-semibold">Póliza de garantía</p>
-                        <p className="text-xs text-muted-foreground">
-                          Monto anual × porcentaje × tasa / 12. Usa el mismo precio de venta base.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className={cn(
-                          "inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
-                          policyEnabled
-                            ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-200"
-                            : "border-border bg-muted/30 text-muted-foreground"
-                        )}
-                        onClick={() => updateParams({ policyEnabled: !policyEnabled })}
-                        aria-pressed={policyEnabled}
-                      >
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            policyEnabled ? "bg-emerald-400" : "bg-muted-foreground"
-                          )}
-                        />
-                        {policyEnabled ? "Activo" : "Inactivo"}
-                      </button>
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                      <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-                        <p className="text-xs text-muted-foreground">
-                          Usa el mismo precio de venta base de arriba: {formatCurrency(salePriceBase)}
-                        </p>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Meses póliza</Label>
-                        <Input
-                          type="number"
-                          value={policyContractMonths}
-                          onChange={(e) =>
-                            updateParams({
-                              policyContractMonths: parseLocalizedNumber(e.target.value),
-                            })
-                          }
-                          className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
-                          placeholder="12"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Porcentaje garantía (%)</Label>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={getDecimalValue("policyContractPct", policyContractPct, 2)}
-                          onChange={(e) => setDecimalValue("policyContractPct", e.target.value)}
-                          onBlur={() => {
-                            const raw = decimalDrafts.policyContractPct;
-                            if (raw === undefined) return;
-                            const parsed = raw.trim() ? parseLocalizedNumber(raw) : 20;
-                            updateParams({ policyContractPct: parsed });
-                            clearDecimalValue("policyContractPct");
-                          }}
-                          className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
-                          placeholder="20"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Tasa (%)</Label>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={getDecimalValue("policyRatePct", costParams?.policyRatePct ?? 2.5, 2, true)}
-                          onChange={(e) => setDecimalValue("policyRatePct", e.target.value)}
-                          onBlur={() => {
-                            const raw = decimalDrafts.policyRatePct;
-                            if (raw === undefined) return;
-                            const parsed = raw.trim() ? parseLocalizedNumber(raw) : 2.5;
-                            updateParams({ policyRatePct: parsed });
-                            clearDecimalValue("policyRatePct");
-                          }}
-                          className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
-                          placeholder="2,5"
-                        />
-                      </div>
-                      {policyEnabled && salePriceBase > 0 && (
-                        <div className="text-xs text-emerald-400 sm:col-span-2 lg:col-span-4">
-                          Póliza mensual:{" "}
-                          {formatCurrency(
-                            (salePriceBase * policyContractMonths * (policyContractPct / 100) * ((costParams?.policyRatePct ?? 2.5) / 100)) / 12
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {financialError && (
-                  <div className="text-xs text-red-400">{financialError}</div>
-                )}
-
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    onClick={handleSaveFinancials}
-                    disabled={savingFinancials || !costParams}
-                  >
-                    {savingFinancials ? "Guardando..." : "Guardar financieros"}
-                  </Button>
-                </div>
-              </>
-            )}
-          </Card>
-
           <CpqPricingCalc
             summary={costSummary}
             marginPct={marginPct}
@@ -1443,6 +1223,173 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
             policyContractPct={policyContractPct}
             contractMonths={contractMonths}
           />
+
+          <Card className="p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold">Gastos financieros</h2>
+                <p className="text-xs text-muted-foreground">
+                  Costo financiero siempre activo y póliza configurable.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-200">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Activo
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <p className="text-sm font-semibold">Costo financiero</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Precio de venta base</Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={getDecimalValue("salePriceBase", salePriceBase, 0, true)}
+                      onChange={(e) => setDecimalValue("salePriceBase", e.target.value)}
+                      onBlur={() => {
+                        const raw = decimalDrafts.salePriceBase;
+                        if (raw === undefined) return;
+                        const parsed = raw.trim() ? parseLocalizedNumber(raw) : 0;
+                        updateParams({ salePriceBase: Math.max(0, parsed), financialEnabled: true });
+                        clearDecimalValue("salePriceBase");
+                      }}
+                      className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
+                      placeholder="Ej: 4000000"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tasa (%)</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={getDecimalValue("financialRatePct", costParams?.financialRatePct ?? 2.5, 2, true)}
+                      onChange={(e) => setDecimalValue("financialRatePct", e.target.value)}
+                      onBlur={() => {
+                        const raw = decimalDrafts.financialRatePct;
+                        if (raw === undefined) return;
+                        const parsed = raw.trim() ? parseLocalizedNumber(raw) : 2.5;
+                        updateParams({ financialRatePct: parsed, financialEnabled: true });
+                        clearDecimalValue("financialRatePct");
+                      }}
+                      className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
+                      placeholder="2,5"
+                    />
+                  </div>
+                </div>
+                {salePriceBase > 0 && (
+                  <div className="text-xs text-emerald-400">
+                    Costo financiero mensual:{" "}
+                    {formatCurrency(salePriceBase * ((costParams?.financialRatePct ?? 2.5) / 100))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">Póliza de garantía</p>
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs font-medium transition-colors",
+                      policyEnabled
+                        ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-200"
+                        : "border-border bg-muted/30 text-muted-foreground"
+                    )}
+                    onClick={() => updateParams({ policyEnabled: !policyEnabled, financialEnabled: true })}
+                    aria-pressed={policyEnabled}
+                  >
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        policyEnabled ? "bg-emerald-400" : "bg-muted-foreground"
+                      )}
+                    />
+                    {policyEnabled ? "Activa" : "Inactiva"}
+                  </button>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Meses póliza</Label>
+                    <Input
+                      type="number"
+                      value={policyContractMonths}
+                      onChange={(e) =>
+                        updateParams({
+                          policyContractMonths: parseLocalizedNumber(e.target.value),
+                          financialEnabled: true,
+                        })
+                      }
+                      className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
+                      placeholder="12"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Porcentaje (%)</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={getDecimalValue("policyContractPct", policyContractPct, 2)}
+                      onChange={(e) => setDecimalValue("policyContractPct", e.target.value)}
+                      onBlur={() => {
+                        const raw = decimalDrafts.policyContractPct;
+                        if (raw === undefined) return;
+                        const parsed = raw.trim() ? parseLocalizedNumber(raw) : 20;
+                        updateParams({ policyContractPct: parsed, financialEnabled: true });
+                        clearDecimalValue("policyContractPct");
+                      }}
+                      className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
+                      placeholder="20"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tasa (%)</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={getDecimalValue("policyRatePct", costParams?.policyRatePct ?? 2.5, 2, true)}
+                      onChange={(e) => setDecimalValue("policyRatePct", e.target.value)}
+                      onBlur={() => {
+                        const raw = decimalDrafts.policyRatePct;
+                        if (raw === undefined) return;
+                        const parsed = raw.trim() ? parseLocalizedNumber(raw) : 2.5;
+                        updateParams({ policyRatePct: parsed, financialEnabled: true });
+                        clearDecimalValue("policyRatePct");
+                      }}
+                      className="h-9 bg-card text-foreground border-border placeholder:text-muted-foreground"
+                      placeholder="2,5"
+                    />
+                  </div>
+                </div>
+
+                {policyEnabled && salePriceBase > 0 && (
+                  <div className="text-xs text-emerald-400">
+                    Póliza mensual:{" "}
+                    {formatCurrency(
+                      (salePriceBase * policyContractMonths * (policyContractPct / 100) * ((costParams?.policyRatePct ?? 2.5) / 100)) / 12
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {financialError && (
+              <div className="text-xs text-red-400">{financialError}</div>
+            )}
+
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={handleSaveFinancials}
+                disabled={savingFinancials || !costParams}
+              >
+                {savingFinancials ? "Guardando..." : "Guardar financieros"}
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
 
