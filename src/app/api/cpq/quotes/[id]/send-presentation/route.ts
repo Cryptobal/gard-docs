@@ -76,13 +76,37 @@ export async function POST(
     const recipientName =
       customName || `${contact.firstName} ${contact.lastName}`.trim();
 
-    // 3. Load account
-    let account: { name: string } | null = null;
+    // 3. Load account (with notes for logo + company description)
+    const ACCOUNT_LOGO_MARKER_PREFIX = "[[ACCOUNT_LOGO_URL:";
+    const ACCOUNT_LOGO_MARKER_SUFFIX = "]]";
+    function extractAccountLogoUrl(notes: string | null | undefined): string | null {
+      if (!notes) return null;
+      const start = notes.indexOf(ACCOUNT_LOGO_MARKER_PREFIX);
+      if (start === -1) return null;
+      const end = notes.indexOf(ACCOUNT_LOGO_MARKER_SUFFIX, start);
+      if (end === -1) return null;
+      const raw = notes.slice(start + ACCOUNT_LOGO_MARKER_PREFIX.length, end).trim();
+      return raw || null;
+    }
+    function stripAccountLogoMarker(notes: string | null | undefined): string {
+      if (!notes) return "";
+      return notes.replace(/\[\[ACCOUNT_LOGO_URL:[^\]]+\]\]\n?/g, "").trim();
+    }
+    let account: { name: string; logoUrl?: string | null; companyDescription?: string } | null = null;
     if (quote.accountId) {
-      account = await prisma.crmAccount.findUnique({
+      const acc = await prisma.crmAccount.findUnique({
         where: { id: quote.accountId },
-        select: { name: true },
+        select: { name: true, notes: true },
       });
+      if (acc) {
+        const logoUrl = extractAccountLogoUrl(acc.notes);
+        const companyDescription = stripAccountLogoMarker(acc.notes);
+        account = {
+          name: acc.name,
+          logoUrl: logoUrl || null,
+          companyDescription: companyDescription || undefined,
+        };
+      }
     }
     const companyName = account?.name || quote.clientName || "Cliente";
 
@@ -182,6 +206,7 @@ export async function POST(
         installation: quote.installation,
         salePriceMonthly,
         positionSalePrices,
+        siteUrl,
       },
       sessionId,
       templateSlug

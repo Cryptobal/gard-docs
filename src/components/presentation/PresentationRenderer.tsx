@@ -15,7 +15,8 @@ import { ScrollProgress } from './ScrollProgress';
 
 // Import secciones implementadas
 import { Section01Hero } from './sections/Section01Hero';
-import { Section02ExecutiveSummary } from './sections/Section02ExecutiveSummary';
+import { Section01bSobreEmpresa } from './sections/Section01bSobreEmpresa';
+// Section02 Resumen Ejecutivo: nunca se muestra (solicitud del cliente)
 import { Section03Transparencia } from './sections/Section03Transparencia';
 import { Section04Riesgo } from './sections/Section04Riesgo';
 import { Section05FallasModelo } from './sections/Section05FallasModelo';
@@ -61,10 +62,11 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
         {/* Header persistente */}
         <PresentationHeader 
           logo={assets.logo}
+          clientLogoUrl={payload.client.company_logo_url}
           cta={cta}
-          contactName={`${payload.client.contact_first_name || ''} ${payload.client.contact_last_name || ''}`.trim() || payload.client.contact_name} // Nombre + Apellido
+          contactName={`${payload.client.contact_first_name || ''} ${payload.client.contact_last_name || ''}`.trim() || payload.client.contact_name}
           companyName={payload.client.company_name}
-          quoteName={payload.quote.subject || ''} // Asunto de la cotización
+          quoteName={payload.quote.subject || ''}
           quoteNumber={payload.quote.number}
           showTokens={showTokens}
         />
@@ -78,16 +80,14 @@ export function PresentationRenderer({ payload, showTokens = false }: Presentati
             showTokens={showTokens}
           />
           
-          {/* S02 - Executive Summary */}
-          <Section02ExecutiveSummary 
-            data={sections.s02_executive_summary}
-            quoteDescription={payload.quote.description}
+          {/* S01b - Sobre [empresa] (entre Hero y S03) */}
+          <Section01bSobreEmpresa
             companyName={payload.client.company_name}
-            industry={payload.client.industry}
-            sitesCount={payload.service.sites.length}
-            coverageHours={payload.service.coverage_hours}
+            companyDescription={payload.client.company_description || ''}
             showTokens={showTokens}
           />
+          
+          {/* S02 Resumen Ejecutivo: nunca se muestra (solicitud del cliente) */}
           
           {/* S03 - Transparencia */}
           <Section03Transparencia data={sections.s03_transparencia} />

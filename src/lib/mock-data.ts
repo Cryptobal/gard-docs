@@ -81,7 +81,7 @@ export function getMockPresentationPayload(): PresentationPayload {
     
     // Assets
     assets: {
-      logo: '/Logo Gard Blanco.png',
+      logo: '/logo-gard-blanco.svg',
       guard_photos: [
         '/guardia_hero.jpg',
         '/guardia_entrada.jpg',

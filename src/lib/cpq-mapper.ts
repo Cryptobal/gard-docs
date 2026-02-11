@@ -35,7 +35,10 @@ interface CpqMapperInput {
   }>;
   account?: {
     name: string;
+    logoUrl?: string | null;
+    companyDescription?: string;
   } | null;
+  siteUrl?: string;
   contact?: {
     firstName: string;
     lastName: string;
@@ -66,9 +69,16 @@ export function mapCpqDataToPresentation(
   sessionId: string,
   templateSlug: string = "commercial"
 ): PresentationPayload {
-  const { quote, positions, account, contact, installation, ufValue } = input;
+  const { quote, positions, account, contact, installation, ufValue, siteUrl } = input;
 
   const companyName = account?.name || quote.clientName || "Cliente";
+  const companyLogoUrl =
+    account?.logoUrl && siteUrl
+      ? account.logoUrl.startsWith("/")
+        ? `${siteUrl}${account.logoUrl}`
+        : account.logoUrl
+      : null;
+  const companyDescription = account?.companyDescription || "";
   const contactFullName = contact
     ? `${contact.firstName} ${contact.lastName}`.trim()
     : "";
@@ -103,6 +113,8 @@ export function mapCpqDataToPresentation(
     // Datos del cliente - 100% del CPQ
     client: {
       company_name: companyName,
+      company_description: companyDescription,
+      company_logo_url: companyLogoUrl,
       contact_name: contactFullName,
       contact_first_name: contact?.firstName || "",
       contact_last_name: contact?.lastName || "",
@@ -221,7 +233,7 @@ export function mapCpqDataToPresentation(
 // ─── Defaults genéricos de Gard (sin datos de clientes ficticios) ───
 
 const GARD_ASSETS = {
-  logo: "/Logo Gard Blanco.png",
+  logo: "/logo-gard-blanco.svg", // SVG con fondo transparente
   guard_photos: [
     "/guardia_hero.jpg",
     "/guardia_entrada.jpg",

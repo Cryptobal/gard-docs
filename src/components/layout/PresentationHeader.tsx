@@ -11,6 +11,7 @@ import { ZohoToken } from '@/components/presentation/ZohoToken';
 
 interface PresentationHeaderProps {
   logo?: string;
+  clientLogoUrl?: string | null;
   cta: CTALinks;
   contactName?: string;
   companyName?: string;
@@ -21,7 +22,8 @@ interface PresentationHeaderProps {
 }
 
 export function PresentationHeader({ 
-  logo = '/Logo Gard Blanco.png', 
+  logo = '/logo-gard-blanco.svg', // SVG con fondo transparente
+  clientLogoUrl = null,
   cta,
   contactName = 'Interesado',
   companyName = 'tu empresa',
@@ -88,20 +90,31 @@ export function PresentationHeader({
           </div>
         )}
         
-        {/* Main header - MINIMALISTA */}
-        <div className="flex items-center justify-between h-14 sm:h-16">
-          {/* Logo */}
-          <a href="https://gard.cl" target="_blank" rel="noopener noreferrer" className="flex-shrink-0 group">
-            <div className="relative w-28 h-10 sm:w-32 sm:h-12 transition-transform group-hover:scale-110">
-              <Image
-                src={logo}
-                alt="Gard Security"
-                fill
-                className="object-contain drop-shadow-[0_0_10px_rgba(0,212,170,0.3)]"
-                priority
-              />
-            </div>
-          </a>
+        {/* Main header - MINIMALISTA con Gard + logo cliente */}
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-4">
+          {/* Logos: Gard siempre + cliente si existe */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            <a href="https://gard.cl" target="_blank" rel="noopener noreferrer" className="group">
+              <div className="relative w-28 h-10 sm:w-32 sm:h-12 transition-transform group-hover:scale-110">
+                <Image
+                  src={logo}
+                  alt="Gard Security"
+                  fill
+                  className="object-contain drop-shadow-[0_0_10px_rgba(0,212,170,0.3)]"
+                  priority
+                />
+              </div>
+            </a>
+            {clientLogoUrl && (
+              <div className="relative w-24 h-10 sm:w-28 sm:h-12 border-l border-white/20 pl-4 flex items-center">
+                <img
+                  src={clientLogoUrl}
+                  alt={`Logo ${companyName}`}
+                  className="h-full w-auto object-contain object-left max-h-10"
+                />
+              </div>
+            )}
+          </div>
           
           {/* CTAs Minimalistas */}
           <div className="flex items-center gap-3">

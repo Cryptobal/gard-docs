@@ -11,6 +11,8 @@ import { ThemeVariant, PricingCurrency, ContactInfo, CTALinks, CompanyAssets } f
 
 export interface ClientData {
   company_name: string;
+  company_description?: string;
+  company_logo_url?: string | null;
   contact_name: string;
   contact_first_name: string;
   contact_last_name: string;

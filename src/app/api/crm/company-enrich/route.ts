@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { requireAuth, unauthorized } from "@/lib/api-auth";
 import { openai } from "@/lib/openai";
 
@@ -248,16 +249,38 @@ async function downloadLogoToPublic(logoUrl: string): Promise<string | null> {
   const ext = allowed[mime];
   if (!ext) return null;
 
-  const buffer = Buffer.from(await response.arrayBuffer());
+  let buffer = Buffer.from(await response.arrayBuffer());
   if (buffer.byteLength <= 0 || buffer.byteLength > 5 * 1024 * 1024) {
     return null;
   }
 
   const hash = createHash("sha1").update(logoUrl).digest("hex").slice(0, 12);
-  const fileName = `logo-${Date.now()}-${hash}${ext}`;
   const relDir = path.join("public", "uploads", "company-logos");
   const absDir = path.join(process.cwd(), relDir);
   await mkdir(absDir, { recursive: true });
+
+  try {
+    if (ext !== ".svg") {
+      const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const { width, height, channels } = info;
+      const whiteThreshold = 248;
+      for (let i = 0; i < width * height; i++) {
+        const r = data[i * channels];
+        const g = data[i * channels + 1];
+        const b = data[i * channels + 2];
+        const isWhite = r >= whiteThreshold && g >= whiteThreshold && b >= whiteThreshold;
+        if (isWhite) data[i * channels + 3] = 0;
+      }
+      const outFileName = `logo-${Date.now()}-${hash}.png`;
+      const absFile = path.join(absDir, outFileName);
+      await sharp(data, { raw: { width, height, channels: 4 } }).png().toFile(absFile);
+      return `/uploads/company-logos/${outFileName}`;
+    }
+  } catch (logoErr) {
+    console.error("Logo transparency processing failed, using raw:", logoErr);
+  }
+
+  const fileName = `logo-${Date.now()}-${hash}${ext}`;
   const absFile = path.join(absDir, fileName);
   await writeFile(absFile, buffer);
   return `/uploads/company-logos/${fileName}`;

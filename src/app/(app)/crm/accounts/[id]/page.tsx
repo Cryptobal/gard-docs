@@ -29,24 +29,31 @@ export default async function CrmAccountDetailPage({
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
 
-  const account = await prisma.crmAccount.findFirst({
-    where: { id, tenantId },
-    include: {
-      contacts: { orderBy: { createdAt: "desc" } },
-      deals: {
-        include: { stage: true, primaryContact: true },
-        orderBy: { createdAt: "desc" },
+  const [account, quotes] = await Promise.all([
+    prisma.crmAccount.findFirst({
+      where: { id, tenantId },
+      include: {
+        contacts: { orderBy: { createdAt: "desc" } },
+        deals: {
+          include: { stage: true, primaryContact: true },
+          orderBy: { createdAt: "desc" },
+        },
+        installations: { orderBy: { createdAt: "desc" } },
+        _count: { select: { contacts: true, deals: true, installations: true } },
       },
-      installations: { orderBy: { createdAt: "desc" } },
-      _count: { select: { contacts: true, deals: true, installations: true } },
-    },
-  });
+    }),
+    prisma.cpqQuote.findMany({
+      where: { accountId: id, tenantId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, code: true, status: true, clientName: true, monthlyCost: true, createdAt: true },
+    }),
+  ]);
 
   if (!account) {
     redirect("/crm/accounts");
   }
 
-  const data = JSON.parse(JSON.stringify(account));
+  const data = JSON.parse(JSON.stringify({ ...account, quotes }));
 
   return (
     <>
@@ -63,7 +70,7 @@ export default async function CrmAccountDetailPage({
         description={`${account.type === "client" ? "Cliente" : "Prospecto"} · ${account.industry || "Sin industria"}`}
       />
       <CrmSubnav role={role} />
-      <CrmAccountDetailClient account={data} currentUserId={session.user.id} />
+      <CrmAccountDetailClient account={data} quotes={data.quotes || []} currentUserId={session.user.id} />
     </>
   );
 }

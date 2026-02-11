@@ -711,23 +711,45 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
           </Link>
           <PageHeader
             title={quote.code}
-            description={[
-              quote.clientName || "Sin cliente",
-              crmContext.contactId
-                ? (() => {
-                    const c = crmContacts.find((x) => x.id === crmContext.contactId);
-                    return c ? `${c.firstName} ${c.lastName}`.trim() : "";
-                  })()
-                : "",
-              crmContext.installationId
-                ? (() => {
-                    const inst = crmInstallations.find((x) => x.id === crmContext.installationId);
-                    return inst ? inst.name : "";
-                  })()
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            description={
+              <span className="flex flex-wrap items-center gap-x-1 gap-y-0">
+                {crmContext.accountId ? (
+                  <Link href={`/crm/accounts/${crmContext.accountId}`} className="text-primary hover:underline font-medium">
+                    {quote.clientName || "Sin cliente"}
+                  </Link>
+                ) : (
+                  <span>{quote.clientName || "Sin cliente"}</span>
+                )}
+                {crmContext.contactId && (() => {
+                  const c = crmContacts.find((x) => x.id === crmContext.contactId);
+                  const name = c ? `${c.firstName} ${c.lastName}`.trim() : "";
+                  if (!name) return null;
+                  return (
+                    <>
+                      <span className="text-muted-foreground/60">·</span>
+                      {crmContext.accountId ? (
+                        <Link href={`/crm/accounts/${crmContext.accountId}`} className="text-primary hover:underline font-medium">
+                          {name}
+                        </Link>
+                      ) : (
+                        <span>{name}</span>
+                      )}
+                    </>
+                  );
+                })()}
+                {crmContext.installationId && (() => {
+                  const inst = crmInstallations.find((x) => x.id === crmContext.installationId);
+                  const name = inst?.name || "";
+                  if (!name) return null;
+                  return (
+                    <>
+                      <span className="text-muted-foreground/60">·</span>
+                      <span>{name}</span>
+                    </>
+                  );
+                })()}
+              </span>
+            }
           />
         </div>
         <div className="flex items-center gap-2">

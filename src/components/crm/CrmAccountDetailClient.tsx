@@ -36,6 +36,7 @@ import {
   ChevronRight,
   Plus,
   MessageSquareText,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -99,6 +100,15 @@ type InstallationRow = {
   notes?: string | null;
 };
 
+type QuoteRow = {
+  id: string;
+  code: string;
+  status: string;
+  clientName?: string | null;
+  monthlyCost: number | string;
+  createdAt: string;
+};
+
 type AccountDetail = {
   id: string;
   name: string;
@@ -119,7 +129,12 @@ type AccountDetail = {
   _count: { contacts: number; deals: number; installations: number };
 };
 
-export function CrmAccountDetailClient({ account: initialAccount, currentUserId }: { account: AccountDetail; currentUserId: string }) {
+function formatCLP(value: number | string): string {
+  const n = typeof value === "string" ? parseFloat(value) : value;
+  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", minimumFractionDigits: 0 }).format(n || 0);
+}
+
+export function CrmAccountDetailClient({ account: initialAccount, quotes = [], currentUserId }: { account: AccountDetail; quotes?: QuoteRow[]; currentUserId: string }) {
   const router = useRouter();
   const [account, setAccount] = useState(initialAccount);
   const [accountLogoUrl, setAccountLogoUrl] = useState<string | null>(
@@ -481,7 +496,41 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
         )}
       </CollapsibleSection>
 
-      {/* ── Section 5: Comunicación ── */}
+      {/* ── Section 5: Cotizaciones ── */}
+      <CollapsibleSection
+        icon={<FileText className="h-4 w-4" />}
+        title="Cotizaciones"
+        count={quotes.length}
+        defaultOpen={quotes.length > 0}
+      >
+        {quotes.length === 0 ? (
+          <EmptyState icon={<FileText className="h-8 w-8" />} title="Sin cotizaciones" description="No hay cotizaciones vinculadas a esta cuenta." compact />
+        ) : (
+          <div className="space-y-2">
+            {quotes.map((q) => (
+              <Link
+                key={q.id}
+                href={`/crm/cotizaciones/${q.id}`}
+                className="flex items-center justify-between rounded-lg border p-3 sm:p-4 transition-colors hover:bg-accent/30 group"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{q.code}</p>
+                    <Badge variant="outline" className="text-[10px]">{q.status}</Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {formatCLP(q.monthlyCost)}
+                    {q.clientName ? ` · ${q.clientName}` : ""}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform shrink-0 hidden sm:block" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* ── Section 6: Comunicación ── */}
       <CollapsibleSection
         icon={<Mail className="h-4 w-4" />}
         title="Comunicación"
@@ -490,7 +539,7 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
         <EmailHistoryList accountId={account.id} compact />
       </CollapsibleSection>
 
-      {/* ── Section 6: Notas ── */}
+      {/* ── Section 7: Notas ── */}
       <CollapsibleSection
         icon={<MessageSquareText className="h-4 w-4" />}
         title="Notas"

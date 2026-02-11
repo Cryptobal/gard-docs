@@ -72,13 +72,38 @@ export async function POST(
     const recipientName =
       customName || `${contact.firstName} ${contact.lastName}`.trim();
 
-    // 3. Load account
-    let account: { name: string } | null = null;
+    // 3. Load account (with notes for logo + company description)
+    const ACCOUNT_LOGO_PREFIX = "[[ACCOUNT_LOGO_URL:";
+    const ACCOUNT_LOGO_SUFFIX = "]]";
+    function extractLogo(notes: string | null | undefined): string | null {
+      if (!notes) return null;
+      const s = notes.indexOf(ACCOUNT_LOGO_PREFIX);
+      if (s === -1) return null;
+      const e = notes.indexOf(ACCOUNT_LOGO_SUFFIX, s);
+      if (e === -1) return null;
+      return notes.slice(s + ACCOUNT_LOGO_PREFIX.length, e).trim() || null;
+    }
+    function stripLogo(notes: string | null | undefined): string {
+      if (!notes) return "";
+      return notes.replace(/\[\[ACCOUNT_LOGO_URL:[^\]]+\]\]\n?/g, "").trim();
+    }
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.SITE_URL ||
+      "https://opai.gard.cl";
+    let account: { name: string; logoUrl?: string | null; companyDescription?: string } | null = null;
     if (quote.accountId) {
-      account = await prisma.crmAccount.findUnique({
+      const acc = await prisma.crmAccount.findUnique({
         where: { id: quote.accountId },
-        select: { name: true },
+        select: { name: true, notes: true },
       });
+      if (acc) {
+        account = {
+          name: acc.name,
+          logoUrl: extractLogo(acc.notes),
+          companyDescription: stripLogo(acc.notes) || undefined,
+        };
+      }
     }
 
     // 4. Compute costs & sale prices
@@ -147,10 +172,6 @@ export async function POST(
     // 6. Generate unique ID & session ID
     const uniqueId = nanoid(12);
     const sessionId = `cpq_${nanoid(16)}`;
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      process.env.SITE_URL ||
-      "https://opai.gard.cl";
 
     // 7. Map CPQ data to PresentationPayload
     const ufValue =
@@ -173,6 +194,7 @@ export async function POST(
         installation: quote.installation,
         salePriceMonthly,
         positionSalePrices,
+        siteUrl,
       },
       sessionId,
       templateSlug

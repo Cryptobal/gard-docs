@@ -77,7 +77,7 @@ export function Section02ExecutiveSummary({
                     {showTokens ? (
                       <ZohoToken token="account.Account_Name" inline />
                     ) : (
-                      <span>{companyName}</span>
+                      <span>{(companyName || '').replace(/\*/g, '')}</span>
                     )}
                   </h3>
                   <p className="text-sm text-teal-400 font-semibold">
@@ -91,7 +91,7 @@ export function Section02ExecutiveSummary({
                   {showTokens ? (
                     <ZohoToken token="quote.Descripcion_AI" />
                   ) : (
-                    quoteDescription
+                    (quoteDescription || '').replace(/\*/g, '')
                   )}
                 </p>
               </div>
