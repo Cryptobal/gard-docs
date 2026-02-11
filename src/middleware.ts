@@ -17,6 +17,7 @@ function isPublicPath(pathname: string): boolean {
   // Rutas públicas OPAI - presentaciones y preview (rutas reales: /p/, /preview/, /templates/)
   if (pathname.startsWith('/p/')) return true;
   if (pathname.startsWith('/preview/')) return true;
+  if (pathname.startsWith('/postulacion/')) return true;
 
   // API (rutas reales en /api/)
   if (pathname.startsWith('/api/auth')) return true;

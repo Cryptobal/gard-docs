@@ -21,7 +21,7 @@ interface PresentationHeaderProps {
 }
 
 export function PresentationHeader({ 
-  logo = '/uploads/company-logos/Logo%20Gard%2015%20x%207%20cm%20Blanco.png',
+  logo = '/Logo%20Gard%20Blanco.png',
   clientLogoUrl = null,
   cta,
   contactName = 'Interesado',

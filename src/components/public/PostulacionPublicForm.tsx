@@ -51,6 +51,7 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
   const [docFileName, setDocFileName] = useState("");
   const [healthSystem, setHealthSystem] = useState("fonasa");
   const [isapreHasExtraPercent, setIsapreHasExtraPercent] = useState(false);
+  const [submitSuccessMessage, setSubmitSuccessMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -134,6 +135,7 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
   };
 
   const handleSubmit = async () => {
+    setSubmitSuccessMessage(null);
     if (
       !form.firstName.trim() ||
       !form.lastName.trim() ||
@@ -213,6 +215,9 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
         throw new Error(payload.error || "No se pudo enviar la postulación");
       }
       toast.success("Postulación enviada correctamente");
+      setSubmitSuccessMessage(
+        "Formulario enviado correctamente. Gracias, nuestro equipo revisará tu postulación y te contactará pronto."
+      );
       setForm({
         firstName: "",
         lastName: "",
@@ -266,7 +271,7 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/uploads/company-logos/Logo%20Gard%2015%20x%207%20cm%20Blanco.png"
+          src="/Logo%20Gard%20Blanco.png"
           alt="Logo Gard Security"
           className="h-8 w-auto"
         />
@@ -277,6 +282,11 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
           <p className="text-sm text-muted-foreground">
             Completa tus datos y sube tus documentos para que el equipo de operaciones revise tu postulación.
           </p>
+          {submitSuccessMessage ? (
+            <div className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              {submitSuccessMessage}
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">

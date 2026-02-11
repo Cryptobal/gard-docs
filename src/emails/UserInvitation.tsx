@@ -42,7 +42,7 @@ export default function UserInvitationEmail({
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://opai.gard.cl/logos/gard-white.svg"
+              src="https://opai.gard.cl/Logo%20Gard%20Blanco.png"
               width="120"
               height="40"
               alt="Gard Security"

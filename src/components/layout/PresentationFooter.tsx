@@ -26,7 +26,7 @@ interface PresentationFooterProps {
 }
 
 export function PresentationFooter({ 
-  logo = '/uploads/company-logos/Logo%20Gard%2015%20x%207%20cm%20Blanco.png',
+  logo = '/Logo%20Gard%20Blanco.png',
   contact,
   address,
   website,
