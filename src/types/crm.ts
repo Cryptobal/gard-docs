@@ -123,4 +123,10 @@ export interface CrmDeal {
     id: string;
     quoteId: string;
   }[];
+  followUpLogs?: {
+    id: string;
+    sequence: number;
+    status: string;
+    scheduledAt: string;
+  }[];
 }

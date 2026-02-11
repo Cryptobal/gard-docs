@@ -78,6 +78,49 @@ type QuoteOption = {
   status: string;
 };
 
+type DealsFocus =
+  | "all"
+  | "proposals-sent-30d"
+  | "won-after-proposal-30d"
+  | "followup-open"
+  | "followup-overdue";
+
+function getDealsFocusLabel(focus: DealsFocus): string | null {
+  if (focus === "proposals-sent-30d") return "Mostrando propuestas enviadas en los últimos 30 días";
+  if (focus === "won-after-proposal-30d") return "Mostrando negocios ganados tras propuesta en 30 días";
+  if (focus === "followup-open") return "Mostrando negocios abiertos en seguimiento";
+  if (focus === "followup-overdue") return "Mostrando negocios con seguimientos vencidos";
+  return null;
+}
+
+function getDealFollowUpIndicator(deal: CrmDeal): {
+  label: string;
+  className: string;
+} | null {
+  const nextFollowUp = deal.followUpLogs?.[0];
+  if (!nextFollowUp) return null;
+
+  const dueTime = new Date(nextFollowUp.scheduledAt).getTime();
+  const now = Date.now();
+
+  if (dueTime <= now) {
+    return {
+      label: `Seg. ${nextFollowUp.sequence} vencido`,
+      className: "border-red-500/30 text-red-500",
+    };
+  }
+  if (dueTime - now <= 24 * 60 * 60 * 1000) {
+    return {
+      label: `Seg. ${nextFollowUp.sequence} hoy`,
+      className: "border-amber-500/30 text-amber-500",
+    };
+  }
+  return {
+    label: `Seg. ${nextFollowUp.sequence} programado`,
+    className: "border-emerald-500/30 text-emerald-500",
+  };
+}
+
 type DealCardProps = {
   deal: CrmDeal;
   stages: CrmPipelineStage[];
@@ -161,6 +204,7 @@ function DealCard({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const followUpIndicator = getDealFollowUpIndicator(deal);
 
   return (
     <div
@@ -200,6 +244,14 @@ function DealCard({
             {(deal.quotes || []).length > 0 && (
               <Badge variant="outline" className="text-[10px] h-4">
                 {(deal.quotes || []).length} CPQ
+              </Badge>
+            )}
+            {followUpIndicator && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] h-4 ${followUpIndicator.className}`}
+              >
+                {followUpIndicator.label}
               </Badge>
             )}
             {deal.proposalLink && (
@@ -300,11 +352,13 @@ export function CrmDealsClient({
   accounts,
   stages,
   quotes,
+  initialFocus = "all",
 }: {
   initialDeals: CrmDeal[];
   accounts: CrmAccount[];
   stages: CrmPipelineStage[];
   quotes: QuoteOption[];
+  initialFocus?: DealsFocus;
 }) {
   const [deals, setDeals] = useState<CrmDeal[]>(initialDeals);
   const [form, setForm] = useState<DealFormState>(DEFAULT_FORM);
@@ -322,6 +376,7 @@ export function CrmDealsClient({
   // Mobile sheet for deal actions
   const [sheetDealId, setSheetDealId] = useState<string | null>(null);
   const sheetDeal = sheetDealId ? deals.find((d) => d.id === sheetDealId) : null;
+  const focusLabel = getDealsFocusLabel(initialFocus);
 
   const inputClassName =
     "bg-background text-foreground placeholder:text-muted-foreground border-input focus-visible:ring-ring";
@@ -546,6 +601,10 @@ export function CrmDealsClient({
 
   return (
     <div className="space-y-4">
+      {focusLabel && (
+        <p className="text-xs text-muted-foreground">{focusLabel}</p>
+      )}
+
       {/* ── Toolbar ── */}
       <CrmToolbar
         search={search}
@@ -757,7 +816,9 @@ export function CrmDealsClient({
               />
             ) : (
               <div className="space-y-2">
-                {filteredDeals.map((deal) => (
+                {filteredDeals.map((deal) => {
+                  const followUpIndicator = getDealFollowUpIndicator(deal);
+                  return (
                   <Link
                     key={deal.id}
                     href={`/crm/deals/${deal.id}`}
@@ -770,6 +831,11 @@ export function CrmDealsClient({
                         {(deal.quotes || []).length > 0 && (
                           <Badge variant="outline" className="text-[10px] h-4">
                             {(deal.quotes || []).length} CPQ
+                          </Badge>
+                        )}
+                        {followUpIndicator && (
+                          <Badge variant="outline" className={`text-[10px] h-4 ${followUpIndicator.className}`}>
+                            {followUpIndicator.label}
                           </Badge>
                         )}
                       </div>
@@ -787,7 +853,8 @@ export function CrmDealsClient({
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 shrink-0 hidden sm:block" />
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

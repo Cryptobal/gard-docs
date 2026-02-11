@@ -10,7 +10,21 @@ import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
 import { CrmLeadsClient, CrmSubnav } from "@/components/crm";
 
-export default async function CrmLeadsPage() {
+type LeadStatusFilter = "all" | "pending" | "approved" | "rejected";
+
+function normalizeLeadStatusFilter(value?: string): LeadStatusFilter {
+  if (value === "pending" || value === "approved" || value === "rejected") return value;
+  return "all";
+}
+
+export default async function CrmLeadsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialStatusFilter = normalizeLeadStatusFilter(resolvedSearchParams?.status);
+
   const session = await auth();
   if (!session?.user) {
     redirect("/opai/login?callbackUrl=/crm/leads");
@@ -36,7 +50,10 @@ export default async function CrmLeadsPage() {
         description="Solicitudes entrantes y aprobación manual"
       />
       <CrmSubnav role={role} />
-      <CrmLeadsClient initialLeads={initialLeads} />
+      <CrmLeadsClient
+        initialLeads={initialLeads}
+        initialStatusFilter={initialStatusFilter}
+      />
     </>
   );
 }

@@ -83,7 +83,7 @@ export function FollowUpConfigSection() {
   };
 
   return (
-    <Card className="lg:col-span-2">
+    <Card id="seguimientos-automaticos" className="lg:col-span-2">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

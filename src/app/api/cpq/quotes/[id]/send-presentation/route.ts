@@ -104,7 +104,12 @@ export async function POST(
         ? (policyContractMonthsVal * (policyContractPctVal / 100)) / contractMonthsVal
         : 0;
 
-    const totalGuards = summary?.totalGuards ?? quote.positions.reduce((s, p) => s + p.numGuards, 0);
+    const totalGuards =
+      summary?.totalGuards ??
+      quote.positions.reduce(
+        (s: number, p: { numGuards: number }) => s + p.numGuards,
+        0
+      );
     const baseAdditionalCostsTotal = summary
       ? Math.max(0, (summary.monthlyExtras ?? 0) - (summary.monthlyFinancial ?? 0) - (summary.monthlyPolicy ?? 0))
       : 0;
@@ -308,11 +313,15 @@ export async function POST(
 
         // ── Programar follow-ups automáticos ──
         try {
-          const followUpConfig = await prisma.crmFollowUpConfig.findUnique({
+          // Garantiza configuración por tenant (con defaults de schema) para que
+          // los seguimientos 1 y 2 siempre queden operativos tras enviar propuesta.
+          const followUpConfig = await prisma.crmFollowUpConfig.upsert({
             where: { tenantId: ctx.tenantId },
+            update: {},
+            create: { tenantId: ctx.tenantId },
           });
 
-          if (followUpConfig?.isActive) {
+          if (followUpConfig.isActive) {
             const proposalDate = new Date();
 
             // Cancelar follow-ups pendientes anteriores del mismo deal

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, ExternalLink, Trash2, TrendingUp, FileText, Mail, Users, ChevronRight, Pencil, Send, MessageSquare, MessageSquareText, Plus, Star, X } from "lucide-react";
+import { ArrowLeft, Loader2, ExternalLink, Trash2, TrendingUp, FileText, Mail, Users, ChevronRight, Send, MessageSquare, MessageSquareText, Plus, Star, X, Clock3 } from "lucide-react";
 import { EmailHistoryList, type EmailMessage } from "@/components/crm/EmailHistoryList";
 import { ContractEditor } from "@/components/docs/ContractEditor";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -67,29 +67,63 @@ type DealQuote = { id: string; quoteId: string; };
 type ContactRow = { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; roleTitle?: string | null; isPrimary?: boolean; };
 type DealContactRow = { id: string; dealId: string; contactId: string; role: string; contact: ContactRow; };
 type PipelineStageOption = { id: string; name: string; isClosedWon?: boolean; isClosedLost?: boolean; };
+type FollowUpConfigState = {
+  isActive: boolean;
+  firstFollowUpDays: number;
+  secondFollowUpDays: number;
+  sendHour: number;
+  autoAdvanceStage: boolean;
+  pauseOnReply: boolean;
+};
+type FollowUpEmail = {
+  id: string;
+  subject: string;
+  toEmails: string[];
+  status: string;
+  sentAt?: string | null;
+  deliveredAt?: string | null;
+  openCount: number;
+  clickCount: number;
+  bouncedAt?: string | null;
+};
+type FollowUpLog = {
+  id: string;
+  sequence: number;
+  status: string;
+  scheduledAt: string;
+  sentAt?: string | null;
+  error?: string | null;
+  createdAt: string;
+  emailMessage?: FollowUpEmail | null;
+};
 
 export type DealDetail = {
   id: string;
   title: string;
   amount: string;
+  status?: string;
   stage?: { id: string; name: string } | null;
   account?: { id: string; name: string } | null;
   primaryContactId?: string | null;
   primaryContact?: { firstName: string; lastName: string; email?: string | null; phone?: string | null } | null;
   quotes?: DealQuote[];
   proposalLink?: string | null;
+  proposalSentAt?: string | null;
 };
 
 type DocTemplateMail = { id: string; name: string; content: any };
 type DocTemplateWhatsApp = { id: string; name: string; content: any };
 
 export function CrmDealDetailClient({
-  deal, quotes, pipelineStages, dealContacts: initialDealContacts, accountContacts, gmailConnected, docTemplatesMail = [], docTemplatesWhatsApp = [], currentUserId = "",
+  deal, quotes, pipelineStages, dealContacts: initialDealContacts, accountContacts, gmailConnected, docTemplatesMail = [], docTemplatesWhatsApp = [], followUpConfig = null, followUpLogs = [], canConfigureCrm = false, currentUserId = "",
 }: {
   deal: DealDetail; quotes: QuoteOption[];
   pipelineStages: PipelineStageOption[];
   dealContacts: DealContactRow[]; accountContacts: ContactRow[];
   gmailConnected: boolean; docTemplatesMail?: DocTemplateMail[]; docTemplatesWhatsApp?: DocTemplateWhatsApp[];
+  followUpConfig?: FollowUpConfigState | null;
+  followUpLogs?: FollowUpLog[];
+  canConfigureCrm?: boolean;
   currentUserId?: string;
 }) {
   // ── Quote linking state ──
@@ -133,6 +167,47 @@ export function CrmDealDetailClient({
 
   const selectCn = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
   const inputCn = "bg-background text-foreground placeholder:text-muted-foreground border-input focus-visible:ring-ring";
+  const followUpLogsDesc = useMemo(
+    () =>
+      [...followUpLogs].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+    [followUpLogs]
+  );
+  const latestFollowUpBySequence = useMemo(() => {
+    const bySequence: Record<number, FollowUpLog | null> = { 1: null, 2: null };
+    for (const log of followUpLogsDesc) {
+      if ((log.sequence === 1 || log.sequence === 2) && !bySequence[log.sequence]) {
+        bySequence[log.sequence] = log;
+      }
+    }
+    return bySequence;
+  }, [followUpLogsDesc]);
+  const pendingFollowUps = followUpLogs.filter((log) => log.status === "pending");
+  const overdueFollowUpsCount = pendingFollowUps.filter(
+    (log) => new Date(log.scheduledAt).getTime() <= Date.now()
+  ).length;
+  const sentFollowUpsCount = followUpLogs.filter((log) => log.status === "sent").length;
+  const failedFollowUpsCount = followUpLogs.filter((log) => log.status === "failed").length;
+  const followUpFlowStatus = useMemo(
+    () =>
+      getFollowUpFlowStatus({
+        proposalSentAt: deal.proposalSentAt || null,
+        proposalLink: deal.proposalLink || null,
+        config: followUpConfig,
+        totalLogs: followUpLogs.length,
+        pendingLogs: pendingFollowUps.length,
+        overdueLogs: overdueFollowUpsCount,
+      }),
+    [
+      deal.proposalSentAt,
+      deal.proposalLink,
+      followUpConfig,
+      followUpLogs.length,
+      pendingFollowUps.length,
+      overdueFollowUpsCount,
+    ]
+  );
 
   const deleteDeal = async () => {
     try { const res = await fetch(`/api/crm/deals/${deal.id}`, { method: "DELETE" }); if (!res.ok) throw new Error(); toast.success("Negocio eliminado"); router.push("/crm/deals"); }
@@ -392,10 +467,203 @@ export function CrmDealDetailClient({
               </a>
             ) : <span className="text-muted-foreground">Sin link</span>}
           </InfoRow>
+          <InfoRow label="Propuesta enviada">
+            {deal.proposalSentAt ? (
+              <span className="font-medium">{formatDealDateTime(deal.proposalSentAt)}</span>
+            ) : (
+              <span className="text-muted-foreground">No enviada</span>
+            )}
+          </InfoRow>
+          <InfoRow label="Flujo seguimiento">
+            <Badge variant="outline" className={followUpFlowStatus.className}>
+              {followUpFlowStatus.label}
+            </Badge>
+          </InfoRow>
         </div>
       </CollapsibleSection>
 
-      {/* ── Section 2: Cotizaciones ── */}
+      {/* ── Section 2: Seguimiento automático ── */}
+      <CollapsibleSection
+        icon={<Clock3 className="h-4 w-4" />}
+        title="Seguimiento automático"
+        count={followUpLogs.length}
+        defaultOpen={Boolean(deal.proposalSentAt || followUpLogs.length > 0)}
+        action={
+          <div className="flex items-center gap-1">
+            {canConfigureCrm && (
+              <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+                <Link href="/opai/configuracion/crm#seguimientos-automaticos">
+                  Configurar
+                </Link>
+              </Button>
+            )}
+            {gmailConnected && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEmailOpen(true)}>
+                <Send className="h-3 w-3 mr-1" />
+                Enviar correo
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {!deal.proposalSentAt && !deal.proposalLink ? (
+          <EmptyState
+            icon={<Clock3 className="h-8 w-8" />}
+            title="Sin flujo activo"
+            description="El seguimiento automático se activa cuando se envía una propuesta."
+            compact
+          />
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <FollowUpMetric
+                label="Automatización"
+                value={followUpConfig?.isActive === false ? "Pausada" : "Activa"}
+                description={
+                  followUpConfig
+                    ? `Día ${followUpConfig.firstFollowUpDays} y ${followUpConfig.secondFollowUpDays} · ${String(followUpConfig.sendHour).padStart(2, "0")}:00`
+                    : "Configuración por defecto"
+                }
+                tone={followUpConfig?.isActive === false ? "warning" : "success"}
+              />
+              <FollowUpMetric
+                label="Seguimientos enviados"
+                value={sentFollowUpsCount}
+                description="Correos automáticos enviados"
+                tone="default"
+              />
+              <FollowUpMetric
+                label="Pendientes"
+                value={pendingFollowUps.length}
+                description={overdueFollowUpsCount > 0 ? `${overdueFollowUpsCount} vencidos` : "Sin vencidos"}
+                tone={overdueFollowUpsCount > 0 ? "warning" : "success"}
+              />
+              <FollowUpMetric
+                label="Fallidos"
+                value={failedFollowUpsCount}
+                description="Requieren revisión manual"
+                tone={failedFollowUpsCount > 0 ? "danger" : "success"}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[1, 2].map((sequence) => {
+                const log = latestFollowUpBySequence[sequence];
+                const statusMeta = getFollowUpStatusMeta(log?.status || "pending");
+                const timingMeta = log?.status === "pending" ? getPendingTimingMeta(log.scheduledAt) : null;
+
+                return (
+                  <div key={sequence} className="rounded-lg border border-border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                          Seguimiento {sequence}
+                        </p>
+                        <p className="text-sm font-semibold mt-0.5">{statusMeta.label}</p>
+                      </div>
+                      <Badge variant="outline" className={statusMeta.className}>
+                        {statusMeta.badge}
+                      </Badge>
+                    </div>
+
+                    {!log ? (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Sin registro aún para esta etapa.
+                      </p>
+                    ) : (
+                      <div className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                        <p>
+                          Programado: <span className="text-foreground">{formatDealDateTime(log.scheduledAt)}</span>
+                        </p>
+                        {timingMeta && (
+                          <p className={timingMeta.className}>{timingMeta.label}</p>
+                        )}
+                        {log.sentAt && (
+                          <p>
+                            Enviado: <span className="text-foreground">{formatDealDateTime(log.sentAt)}</span>
+                          </p>
+                        )}
+                        {log.error && (
+                          <p className="text-red-500">Error: {log.error}</p>
+                        )}
+                        {log.emailMessage && (
+                          <p className="text-muted-foreground/80">
+                            {log.emailMessage.openCount} aperturas · {log.emailMessage.clickCount} clics
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Historial de seguimientos
+              </p>
+              {followUpLogsDesc.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No hay eventos de seguimiento registrados.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {followUpLogsDesc.map((log) => {
+                    const statusMeta = getFollowUpStatusMeta(log.status);
+                    const timingMeta = log.status === "pending" ? getPendingTimingMeta(log.scheduledAt) : null;
+                    return (
+                      <div key={log.id} className="rounded-lg border border-border p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">
+                              Seguimiento {log.sequence}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Programado: {formatDealDateTime(log.scheduledAt)}
+                            </p>
+                            {log.sentAt && (
+                              <p className="text-xs text-muted-foreground">
+                                Enviado: {formatDealDateTime(log.sentAt)}
+                              </p>
+                            )}
+                            {timingMeta && (
+                              <p className={`text-xs ${timingMeta.className}`}>{timingMeta.label}</p>
+                            )}
+                            {log.error && (
+                              <p className="text-xs text-red-500">Error: {log.error}</p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className={statusMeta.className}>
+                            {statusMeta.badge}
+                          </Badge>
+                        </div>
+
+                        {log.emailMessage && (
+                          <div className="mt-2 rounded-md border border-border/70 bg-muted/30 p-2.5 space-y-1.5">
+                            <p className="text-xs font-medium truncate">
+                              {log.emailMessage.subject || "Correo automático"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              Para: {log.emailMessage.toEmails?.join(", ") || "Sin destinatario"}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                              <span>Estado mail: {formatEmailDeliveryStatus(log.emailMessage)}</span>
+                              <span>Aperturas: {log.emailMessage.openCount}</span>
+                              <span>Clics: {log.emailMessage.clickCount}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* ── Section 3: Cotizaciones ── */}
       <CollapsibleSection
         icon={<FileText className="h-4 w-4" />}
         title="Cotizaciones"
@@ -447,7 +715,7 @@ export function CrmDealDetailClient({
         )}
       </CollapsibleSection>
 
-      {/* ── Section 3: Contactos del negocio ── */}
+      {/* ── Section 4: Contactos del negocio ── */}
       <CollapsibleSection
         icon={<Users className="h-4 w-4" />}
         title="Contactos del negocio"
@@ -518,7 +786,7 @@ export function CrmDealDetailClient({
         )}
       </CollapsibleSection>
 
-      {/* ── Section 4: Comunicación ── */}
+      {/* ── Section 5: Comunicación ── */}
       <CollapsibleSection
         icon={<Mail className="h-4 w-4" />}
         title="Comunicación"
@@ -561,7 +829,7 @@ export function CrmDealDetailClient({
         />
       </CollapsibleSection>
 
-      {/* ── Section 5: Notas ── */}
+      {/* ── Section 6: Notas ── */}
       <CollapsibleSection
         icon={<MessageSquareText className="h-4 w-4" />}
         title="Notas"
@@ -636,4 +904,160 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
       <div className="font-medium">{children}</div>
     </div>
   );
+}
+
+function FollowUpMetric({
+  label,
+  value,
+  description,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  description?: string;
+  tone?: "default" | "success" | "warning" | "danger";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "border-emerald-500/30 bg-emerald-500/5"
+      : tone === "warning"
+        ? "border-amber-500/30 bg-amber-500/5"
+        : tone === "danger"
+          ? "border-red-500/30 bg-red-500/5"
+          : "border-border bg-card";
+
+  return (
+    <div className={`rounded-lg border p-3 ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-semibold">{value}</p>
+      {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
+    </div>
+  );
+}
+
+function formatDealDateTime(value?: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("es-CL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getFollowUpFlowStatus({
+  proposalSentAt,
+  proposalLink,
+  config,
+  totalLogs,
+  pendingLogs,
+  overdueLogs,
+}: {
+  proposalSentAt: string | null;
+  proposalLink: string | null;
+  config: FollowUpConfigState | null;
+  totalLogs: number;
+  pendingLogs: number;
+  overdueLogs: number;
+}) {
+  if (!proposalSentAt && !proposalLink) {
+    return {
+      label: "Sin iniciar",
+      className: "text-[10px] border-muted text-muted-foreground",
+    };
+  }
+  if (config?.isActive === false) {
+    return {
+      label: "Automatización pausada",
+      className: "text-[10px] border-amber-500/30 text-amber-500",
+    };
+  }
+  if (overdueLogs > 0) {
+    return {
+      label: "Con atrasos",
+      className: "text-[10px] border-red-500/30 text-red-500",
+    };
+  }
+  if (pendingLogs > 0) {
+    return {
+      label: "Activo",
+      className: "text-[10px] border-emerald-500/30 text-emerald-500",
+    };
+  }
+  if (totalLogs > 0) {
+    return {
+      label: "Completado",
+      className: "text-[10px] border-blue-500/30 text-blue-500",
+    };
+  }
+  return {
+    label: "Sin eventos",
+    className: "text-[10px] border-muted text-muted-foreground",
+  };
+}
+
+function getFollowUpStatusMeta(status: string) {
+  if (status === "sent") {
+    return {
+      label: "Enviado",
+      badge: "Enviado",
+      className: "text-[10px] border-emerald-500/30 text-emerald-500",
+    };
+  }
+  if (status === "failed") {
+    return {
+      label: "Fallido",
+      badge: "Fallido",
+      className: "text-[10px] border-red-500/30 text-red-500",
+    };
+  }
+  if (status === "cancelled") {
+    return {
+      label: "Cancelado",
+      badge: "Cancelado",
+      className: "text-[10px] border-muted text-muted-foreground",
+    };
+  }
+  if (status === "paused") {
+    return {
+      label: "Pausado",
+      badge: "Pausado",
+      className: "text-[10px] border-amber-500/30 text-amber-500",
+    };
+  }
+  return {
+    label: "Programado",
+    badge: "Pendiente",
+    className: "text-[10px] border-blue-500/30 text-blue-500",
+  };
+}
+
+function getPendingTimingMeta(scheduledAt: string) {
+  const diffMs = new Date(scheduledAt).getTime() - Date.now();
+  if (diffMs <= 0) {
+    return {
+      label: "Vencido: requiere gestión inmediata.",
+      className: "text-red-500",
+    };
+  }
+  if (diffMs <= 24 * 60 * 60 * 1000) {
+    return {
+      label: "Programado para hoy.",
+      className: "text-amber-500",
+    };
+  }
+  return {
+    label: "Programado en fecha futura.",
+    className: "text-emerald-500",
+  };
+}
+
+function formatEmailDeliveryStatus(email: FollowUpEmail) {
+  if (email.bouncedAt) return "Rebotado";
+  if (email.clickCount > 0) return "Con clic";
+  if (email.openCount > 0) return "Abierto";
+  if (email.deliveredAt) return "Entregado";
+  if (email.sentAt) return "Enviado";
+  return email.status || "En cola";
 }
