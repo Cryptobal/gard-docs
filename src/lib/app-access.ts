@@ -33,6 +33,10 @@ export const ROLE_APP_ACCESS: Record<Role, AppKey[]> = {
   rrhh: ["hub", "ops"],
   operaciones: ["hub", "ops"],
   reclutamiento: ["hub", "ops"],
+  solo_ops: ["hub", "ops"],
+  solo_crm: ["hub", "crm"],
+  solo_documentos: ["hub", "docs"],
+  solo_payroll: ["hub", "payroll"],
 
   // Viewer: solo lectura (hub y docs)
   viewer: ["hub", "docs"],

@@ -70,6 +70,10 @@ const ROLE_CRM_SUBMODULE_ACCESS: Record<Role, CrmSubmoduleKey[]> = {
   rrhh: [],
   operaciones: [],
   reclutamiento: [],
+  solo_ops: [],
+  solo_crm: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
+  solo_documentos: [],
+  solo_payroll: [],
   viewer: [],
 };
 
@@ -80,6 +84,10 @@ const ROLE_CONFIG_SUBMODULE_ACCESS: Record<Role, ConfigSubmoduleKey[]> = {
   rrhh: [],
   operaciones: [],
   reclutamiento: [],
+  solo_ops: [],
+  solo_crm: [],
+  solo_documentos: [],
+  solo_payroll: [],
   viewer: [],
 };
 
@@ -90,6 +98,10 @@ const ROLE_DOCS_SUBMODULE_ACCESS: Record<Role, DocsSubmoduleKey[]> = {
   rrhh: [],
   operaciones: [],
   reclutamiento: [],
+  solo_ops: [],
+  solo_crm: [],
+  solo_documentos: ["overview", "documents", "templates"],
+  solo_payroll: [],
   viewer: ["overview", "documents", "templates"],
 };
 

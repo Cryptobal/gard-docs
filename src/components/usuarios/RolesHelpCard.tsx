@@ -26,6 +26,10 @@ const ROLE_LABELS: Record<string, string> = {
   owner: 'Propietario',
   admin: 'Admin',
   editor: 'Editor',
+  solo_documentos: 'Solo Documentos',
+  solo_crm: 'Solo CRM',
+  solo_ops: 'Solo Ops',
+  solo_payroll: 'Solo Payroll',
   viewer: 'Visualizador',
 };
 
@@ -80,7 +84,16 @@ const VISIBILITY_RULES: Array<{
 
 export default function RolesHelpCard() {
   const [open, setOpen] = useState(false);
-  const rolesOrder: Role[] = ['owner', 'admin', 'editor', 'viewer'];
+  const rolesOrder: Role[] = [
+    'owner',
+    'admin',
+    'editor',
+    'solo_documentos',
+    'solo_crm',
+    'solo_ops',
+    'solo_payroll',
+    'viewer',
+  ];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -183,6 +196,7 @@ export default function RolesHelpCard() {
             <p><strong className="text-purple-400">Propietario:</strong> Control total, puede gestionar configuración del tenant.</p>
             <p><strong className="text-blue-400">Administrador:</strong> Igual que Propietario excepto configuración.</p>
             <p><strong className="text-green-400">Editor:</strong> Puede crear y enviar presentaciones, editar templates.</p>
+            <p><strong className="text-cyan-400">Roles Solo módulo:</strong> acceso exclusivo a su módulo (sin configuración).</p>
             <p><strong className="text-muted-foreground">Visualizador:</strong> Solo puede ver presentaciones y templates (sin editar ni enviar).</p>
           </div>
         </div>

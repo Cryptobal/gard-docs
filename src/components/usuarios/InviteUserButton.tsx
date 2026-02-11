@@ -82,6 +82,10 @@ export default function InviteUserButton() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ROLES.VIEWER}>Visualizador</SelectItem>
+                <SelectItem value={ROLES.SOLO_DOCUMENTOS}>Solo Documentos</SelectItem>
+                <SelectItem value={ROLES.SOLO_CRM}>Solo CRM</SelectItem>
+                <SelectItem value={ROLES.SOLO_OPS}>Solo Ops</SelectItem>
+                <SelectItem value={ROLES.SOLO_PAYROLL}>Solo Payroll</SelectItem>
                 <SelectItem value={ROLES.EDITOR}>Editor</SelectItem>
                 <SelectItem value={ROLES.ADMIN}>Administrador</SelectItem>
                 <SelectItem value={ROLES.OWNER}>Propietario</SelectItem>

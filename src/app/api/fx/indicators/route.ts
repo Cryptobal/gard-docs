@@ -6,10 +6,25 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { todayChileDate } from "@/lib/fx-date";
+import {
+  formatDateOnlyMonthYearEs,
+  formatDateOnlyShortEs,
+  formatDateOnlyShortWithYearEs,
+  todayChileDate,
+} from "@/lib/fx-date";
+import { ensureCurrentFxRates } from "@/lib/fx-sync";
 
 export async function GET() {
   try {
+    // Autocorrección: si falta UF del día o UTM del mes, intenta sincronizar desde CMF.
+    // Esto protege el frontend si un cron diario falla.
+    try {
+      await ensureCurrentFxRates();
+    } catch (error) {
+      // No bloquea la UI: si CMF falla, devolvemos el último valor disponible en BD.
+      console.warn("FX ensureCurrentFxRates failed:", error);
+    }
+
     const today = todayChileDate();
 
     // UF: preferir la del día de hoy (Chile); si no existe, usar la más reciente
@@ -28,18 +43,10 @@ export async function GET() {
 
     const ufValue = latestUf ? Number(latestUf.value) : null;
     const utmValue = latestUtm ? Number(latestUtm.value) : null;
-    const ufDate = latestUf?.date
-      ? new Date(latestUf.date).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })
-      : null;
-    const utmMonth = latestUtm?.month
-      ? new Date(latestUtm.month).toLocaleDateString("es-CL", { month: "long", year: "numeric" })
-      : null;
-    const utmMonthShort = latestUtm?.month
-      ? new Date(latestUtm.month).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })
-      : null;
-    const utmFetchedAt = latestUtm?.fetchedAt
-      ? new Date(latestUtm.fetchedAt).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })
-      : null;
+    const ufDate = latestUf?.date ? formatDateOnlyShortEs(new Date(latestUf.date)) : null;
+    const utmMonth = latestUtm?.month ? formatDateOnlyMonthYearEs(new Date(latestUtm.month)) : null;
+    const utmMonthShort = latestUtm?.month ? formatDateOnlyShortWithYearEs(new Date(latestUtm.month)) : null;
+    const utmFetchedAt = latestUtm?.fetchedAt ? formatDateOnlyShortEs(new Date(latestUtm.fetchedAt)) : null;
 
     return NextResponse.json({
       success: true,

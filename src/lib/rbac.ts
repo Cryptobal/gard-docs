@@ -11,6 +11,10 @@ export const ROLES = {
   RRHH: 'rrhh',
   OPERACIONES: 'operaciones',
   RECLUTAMIENTO: 'reclutamiento',
+  SOLO_OPS: 'solo_ops',
+  SOLO_CRM: 'solo_crm',
+  SOLO_DOCUMENTOS: 'solo_documentos',
+  SOLO_PAYROLL: 'solo_payroll',
   VIEWER: 'viewer',
 } as const;
 
@@ -24,6 +28,10 @@ const ROLE_HIERARCHY: Record<Role, number> = {
   rrhh: 2,
   operaciones: 2,
   reclutamiento: 2,
+  solo_ops: 1,
+  solo_crm: 1,
+  solo_documentos: 1,
+  solo_payroll: 1,
   viewer: 1,
 };
 
@@ -87,6 +95,13 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   rrhh: [PERMISSIONS.VIEW_PRESENTATIONS],
   operaciones: [PERMISSIONS.VIEW_PRESENTATIONS],
   reclutamiento: [PERMISSIONS.VIEW_PRESENTATIONS],
+  solo_ops: [],
+  solo_crm: [],
+  solo_documentos: [
+    PERMISSIONS.VIEW_TEMPLATES,
+    PERMISSIONS.VIEW_PRESENTATIONS,
+  ],
+  solo_payroll: [],
   viewer: [
     PERMISSIONS.VIEW_TEMPLATES,
     PERMISSIONS.VIEW_PRESENTATIONS,

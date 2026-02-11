@@ -5,14 +5,23 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { hasAppAccess } from "@/lib/app-access";
+import { requireAuth, unauthorized } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
-import { getDefaultTenantId } from "@/lib/tenant";
+
+function forbiddenCpq() {
+  return NextResponse.json(
+    { success: false, error: "Sin permisos para módulo CPQ" },
+    { status: 403 }
+  );
+}
 
 export async function GET() {
   try {
-    const session = await auth();
-    const tenantId = session?.user?.tenantId ?? (await getDefaultTenantId());
+    const ctx = await requireAuth();
+    if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, "cpq")) return forbiddenCpq();
+    const tenantId = ctx.tenantId;
 
     const quotes = await prisma.cpqQuote.findMany({
       where: { tenantId },
@@ -31,8 +40,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    const tenantId = session?.user?.tenantId ?? (await getDefaultTenantId());
+    const ctx = await requireAuth();
+    if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, "cpq")) return forbiddenCpq();
+    const tenantId = ctx.tenantId;
     const body = await request.json();
 
     const clientName = body?.clientName?.trim() || null;

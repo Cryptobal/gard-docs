@@ -9,6 +9,8 @@
  */
 
 import { auth } from '@/lib/auth';
+import { hasAppAccess } from '@/lib/app-access';
+import type { AppKey } from '@/lib/app-keys';
 
 function isPublicPath(pathname: string): boolean {
   // Placeholders de módulos
@@ -51,6 +53,23 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
+function requiredApiModule(pathname: string): AppKey | null {
+  if (pathname === '/api/presentations' || pathname === '/api/templates') {
+    return 'docs';
+  }
+  if (pathname.startsWith('/api/cpq/')) return 'cpq';
+  if (pathname.startsWith('/api/crm/')) return 'crm';
+  if (pathname.startsWith('/api/docs/')) return 'docs';
+  if (pathname.startsWith('/api/payroll/')) return 'payroll';
+  return null;
+}
+
+function getAuthRole(authData: unknown): string {
+  if (!authData || typeof authData !== 'object') return '';
+  const authObj = authData as { role?: string; user?: { role?: string } };
+  return authObj.user?.role ?? authObj.role ?? '';
+}
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
@@ -71,6 +90,18 @@ export default auth((req) => {
     const loginUrl = new URL('/opai/login', req.nextUrl.origin);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return Response.redirect(loginUrl);
+  }
+
+  // Endurecimiento de APIs por módulo para evitar bypass backend por URL directa
+  const requiredModule = requiredApiModule(pathname);
+  if (requiredModule) {
+    const role = getAuthRole(req.auth);
+    if (role && !hasAppAccess(role, requiredModule)) {
+      return Response.json(
+        { success: false, error: `Sin permisos para módulo ${requiredModule.toUpperCase()}` },
+        { status: 403 }
+      );
+    }
   }
 });
 

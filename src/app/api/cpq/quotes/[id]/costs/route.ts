@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { hasAppAccess } from "@/lib/app-access";
+import { requireAuth, unauthorized } from "@/lib/api-auth";
 import { computeCpqQuoteCosts } from "@/modules/cpq/costing/compute-quote-costs";
 
 const safeNumber = (value: unknown) => Number(value || 0);
@@ -28,16 +30,33 @@ const normalizeUnitPrice = (value: number, unit?: string | null) => {
   return value;
 };
 
+function forbiddenCpq() {
+  return NextResponse.json(
+    { success: false, error: "Sin permisos para módulo CPQ" },
+    { status: 403 }
+  );
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ctx = await requireAuth();
+    if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, "cpq")) return forbiddenCpq();
+
     const { id } = await params;
-    const quote = await prisma.cpqQuote.findUnique({
-      where: { id },
+    const quote = await prisma.cpqQuote.findFirst({
+      where: { id, tenantId: ctx.tenantId },
       select: { tenantId: true },
     });
+    if (!quote) {
+      return NextResponse.json(
+        { success: false, error: "Quote not found" },
+        { status: 404 }
+      );
+    }
     const tenantId = quote?.tenantId ?? null;
 
     const [
@@ -386,7 +405,22 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const ctx = await requireAuth();
+    if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, "cpq")) return forbiddenCpq();
+
     const { id } = await params;
+    const quote = await prisma.cpqQuote.findFirst({
+      where: { id, tenantId: ctx.tenantId },
+      select: { tenantId: true },
+    });
+    if (!quote) {
+      return NextResponse.json(
+        { success: false, error: "Quote not found" },
+        { status: 404 }
+      );
+    }
+    const tenantId = quote.tenantId;
     const body = await request.json();
 
     const parameters = body?.parameters ?? null;
@@ -398,11 +432,6 @@ export async function PUT(
     const infrastructure = Array.isArray(body?.infrastructure) ? body.infrastructure : [];
 
     await prisma.$transaction(async (tx) => {
-      const quote = await tx.cpqQuote.findUnique({
-        where: { id },
-        select: { tenantId: true },
-      });
-      const tenantId = quote?.tenantId ?? null;
       const defaultCatalog = await tx.cpqCatalogItem.findMany({
         where: {
           OR: [{ tenantId }, { tenantId: null }],

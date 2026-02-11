@@ -8,6 +8,16 @@ import { randomBytes } from 'crypto';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'Propietario',
+  admin: 'Administrador',
+  editor: 'Editor',
+  solo_documentos: 'Solo Documentos',
+  solo_crm: 'Solo CRM',
+  solo_ops: 'Solo Ops',
+  solo_payroll: 'Solo Payroll',
+  viewer: 'Visualizador',
+};
 
 /**
  * Invitar un nuevo usuario al tenant
@@ -74,7 +84,7 @@ export async function inviteUser(email: string, role: Role) {
       html: `
         <h2>Has sido invitado a Gard Docs</h2>
         <p><strong>${session.user.name}</strong> te ha invitado a unirte al equipo.</p>
-        <p>Rol asignado: <strong>${role}</strong></p>
+        <p>Rol asignado: <strong>${ROLE_LABELS[role] || role}</strong></p>
         <p>Haz clic en el siguiente enlace para activar tu cuenta:</p>
         <a href="${activationUrl}" style="background: #00d4aa; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
           Activar mi cuenta
@@ -355,6 +365,9 @@ export async function listUsers() {
   if (!session?.user) {
     return { success: false, error: 'No autenticado' };
   }
+  if (!hasPermission(session.user.role as Role, PERMISSIONS.MANAGE_USERS)) {
+    return { success: false, error: 'Sin permisos para gestionar usuarios' };
+  }
 
   const users = await prisma.admin.findMany({
     where: { tenantId: session.user.tenantId },
@@ -382,6 +395,9 @@ export async function listPendingInvitations() {
   const session = await auth();
   if (!session?.user) {
     return { success: false, error: 'No autenticado' };
+  }
+  if (!hasPermission(session.user.role as Role, PERMISSIONS.MANAGE_USERS)) {
+    return { success: false, error: 'Sin permisos para gestionar invitaciones' };
   }
 
   const invitations = await prisma.userInvitation.findMany({

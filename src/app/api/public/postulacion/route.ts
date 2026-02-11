@@ -245,6 +245,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (createdGuardia) {
+      try {
+        const { getNotificationPrefs } = await import("@/lib/notification-prefs");
+        const prefs = await getNotificationPrefs(tenantId);
+        if (prefs.postulacionBellEnabled) {
+          const fullName = `${body.firstName} ${body.lastName}`.trim();
+          await prisma.notification.create({
+            data: {
+              tenantId,
+              type: "new_postulacion",
+              title: `Nueva postulación: ${fullName}`,
+              message: `${fullName} envió el formulario de postulación (${body.documents.length} documento(s)).`,
+              link: `/personas/guardias/${createdGuardia.id}`,
+              data: {
+                guardiaId: createdGuardia.id,
+                code: createdGuardia.code,
+                email: body.email,
+              },
+            },
+          });
+        }
+      } catch (e) {
+        console.warn("[POSTULACION] Failed to create notification", e);
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

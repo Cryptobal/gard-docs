@@ -6,9 +6,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { hasAppAccess } from "@/lib/app-access";
 import { requireAuth, unauthorized } from "@/lib/api-auth";
 
 type Params = { params: Promise<{ id: string }> };
+
+function forbiddenCpq() {
+  return NextResponse.json(
+    { success: false, error: "Sin permisos para módulo CPQ" },
+    { status: 403 }
+  );
+}
 
 function normalizeColorHex(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -21,6 +29,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, "cpq")) return forbiddenCpq();
 
     const { id } = await params;
     const body = await request.json();
@@ -71,6 +80,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, "cpq")) return forbiddenCpq();
 
     const { id } = await params;
 

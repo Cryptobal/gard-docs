@@ -33,6 +33,7 @@ const TYPE_ICONS: Record<string, string> = {
   contract_expired: '🔴',
   guardia_doc_expiring: '🟠',
   guardia_doc_expired: '🔴',
+  new_postulacion: '📋',
   document_signed_completed: '✅',
   email_opened: '👀',
   email_clicked: '🖱️',

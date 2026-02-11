@@ -27,6 +27,10 @@ const ROLE_OPS_CAPABILITIES: Record<string, OpsCapability[]> = {
   rrhh: ["guardias_manage", "guardias_blacklist", "guardias_documents", "rrhh_events"],
   operaciones: ["guardias_documents", "ops_execution", "te_execution"],
   reclutamiento: ["guardias_manage", "guardias_documents"],
+  solo_ops: ["guardias_documents", "ops_execution", "te_execution"],
+  solo_crm: [],
+  solo_documentos: [],
+  solo_payroll: [],
   viewer: [],
 };
 

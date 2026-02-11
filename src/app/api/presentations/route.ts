@@ -6,16 +6,25 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { hasAppAccess } from '@/lib/app-access';
+import { requireAuth, unauthorized } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
-import { getDefaultTenantId } from '@/lib/tenant';
 import { nanoid } from 'nanoid';
+
+function forbiddenDocs() {
+  return NextResponse.json(
+    { success: false, error: 'Sin permisos para módulo Documentos' },
+    { status: 403 }
+  );
+}
 
 // GET /api/presentations
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    const tenantId = session?.user?.tenantId ?? await getDefaultTenantId();
+    const ctx = await requireAuth();
+    if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, 'docs')) return forbiddenDocs();
+    const tenantId = ctx.tenantId;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -81,8 +90,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = await auth();
-    const tenantId = session?.user?.tenantId ?? await getDefaultTenantId();
+    const ctx = await requireAuth();
+    if (!ctx) return unauthorized();
+    if (!hasAppAccess(ctx.userRole, 'docs')) return forbiddenDocs();
+    const tenantId = ctx.tenantId;
 
     const template = await prisma.template.findFirst({
       where: { id: templateId, tenantId },

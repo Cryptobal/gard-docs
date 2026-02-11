@@ -48,6 +48,10 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
       owner: { variant: 'default', label: 'Propietario' },
       admin: { variant: 'secondary', label: 'Admin' },
       editor: { variant: 'outline', label: 'Editor' },
+      solo_documentos: { variant: 'outline', label: 'Solo Documentos' },
+      solo_crm: { variant: 'outline', label: 'Solo CRM' },
+      solo_ops: { variant: 'outline', label: 'Solo Ops' },
+      solo_payroll: { variant: 'outline', label: 'Solo Payroll' },
       viewer: { variant: 'outline', label: 'Visualizador' },
     };
     const cfg = config[role] || config.viewer;
@@ -120,6 +124,10 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={ROLES.VIEWER}>Visualizador</SelectItem>
+                          <SelectItem value={ROLES.SOLO_DOCUMENTOS}>Solo Documentos</SelectItem>
+                          <SelectItem value={ROLES.SOLO_CRM}>Solo CRM</SelectItem>
+                          <SelectItem value={ROLES.SOLO_OPS}>Solo Ops</SelectItem>
+                          <SelectItem value={ROLES.SOLO_PAYROLL}>Solo Payroll</SelectItem>
                           <SelectItem value={ROLES.EDITOR}>Editor</SelectItem>
                           <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
                           <SelectItem value={ROLES.OWNER}>Propietario</SelectItem>
@@ -236,6 +244,10 @@ export default function UsersTable({ users, currentUserId, currentUserRole }: Pr
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={ROLES.VIEWER}>Visualizador</SelectItem>
+                        <SelectItem value={ROLES.SOLO_DOCUMENTOS}>Solo Documentos</SelectItem>
+                        <SelectItem value={ROLES.SOLO_CRM}>Solo CRM</SelectItem>
+                        <SelectItem value={ROLES.SOLO_OPS}>Solo Ops</SelectItem>
+                        <SelectItem value={ROLES.SOLO_PAYROLL}>Solo Payroll</SelectItem>
                         <SelectItem value={ROLES.EDITOR}>Editor</SelectItem>
                         <SelectItem value={ROLES.ADMIN}>Admin</SelectItem>
                         <SelectItem value={ROLES.OWNER}>Propietario</SelectItem>

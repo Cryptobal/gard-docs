@@ -37,6 +37,10 @@ export default function InvitationsTable({ invitations }: Props) {
       owner: 'Propietario',
       admin: 'Administrador',
       editor: 'Editor',
+      solo_documentos: 'Solo Documentos',
+      solo_crm: 'Solo CRM',
+      solo_ops: 'Solo Ops',
+      solo_payroll: 'Solo Payroll',
       viewer: 'Visualizador',
     };
     return labels[role] || role;

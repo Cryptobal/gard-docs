@@ -198,6 +198,14 @@ export function NotificationConfigClient() {
           prefs={prefs}
           onChange={handleChange}
         />
+        <ToggleRow
+          label="Nueva postulación recibida"
+          description="Cuando alguien envía el formulario de postulación de guardia"
+          icon={<ShieldUser className="h-4 w-4" />}
+          bellKey="postulacionBellEnabled"
+          prefs={prefs}
+          onChange={handleChange}
+        />
       </section>
 
       {/* Firma electrónica */}

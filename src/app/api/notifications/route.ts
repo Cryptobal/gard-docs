@@ -96,13 +96,18 @@ export async function GET(request: NextRequest) {
       prefs.guardiaDocExpiryBellEnabled
     );
 
+    const excludedTypes: string[] = [];
+    if (!prefs.guardiaDocExpiryBellEnabled) {
+      excludedTypes.push("guardia_doc_expiring", "guardia_doc_expired");
+    }
+    if (!prefs.postulacionBellEnabled) {
+      excludedTypes.push("new_postulacion");
+    }
     const notificationsWhere = {
       tenantId: ctx.tenantId,
       ...(unreadOnly ? { read: false } : {}),
-      ...(prefs.guardiaDocExpiryBellEnabled
-        ? {}
-        : { type: { notIn: ["guardia_doc_expiring", "guardia_doc_expired"] } }),
-    } as const;
+      ...(excludedTypes.length > 0 ? { type: { notIn: excludedTypes } } : {}),
+    };
 
     const notifications = await prisma.notification.findMany({
       where: notificationsWhere,
@@ -114,9 +119,7 @@ export async function GET(request: NextRequest) {
       where: {
         tenantId: ctx.tenantId,
         read: false,
-        ...(prefs.guardiaDocExpiryBellEnabled
-          ? {}
-          : { type: { notIn: ["guardia_doc_expiring", "guardia_doc_expired"] } }),
+        ...(excludedTypes.length > 0 ? { type: { notIn: excludedTypes } } : {}),
       },
     });
 
