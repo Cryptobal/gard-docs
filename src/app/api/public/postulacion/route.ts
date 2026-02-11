@@ -4,7 +4,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import {
+  AFP_CHILE,
+  BANK_ACCOUNT_TYPES,
+  CHILE_BANKS,
+  CHILE_BANK_CODES,
   DOCUMENT_TYPES,
+  HEALTH_SYSTEMS,
+  ISAPRES_CHILE,
+  PERSON_SEX,
   isChileanRutFormat,
   isValidChileanRut,
   isValidMobileNineDigits,
@@ -32,9 +39,25 @@ const postulacionSchema = z.object({
     .refine((v) => isValidMobileNineDigits(v), "Celular debe tener exactamente 9 dígitos")
     .transform((v) => normalizeMobileNineDigits(v)),
   addressFormatted: z.string().trim().min(5, "Dirección es requerida").max(300),
+  googlePlaceId: z.string().trim().min(10, "Debes seleccionar dirección desde Google Maps"),
   commune: z.string().trim().max(120).optional().nullable(),
   city: z.string().trim().max(120).optional().nullable(),
   region: z.string().trim().max(120).optional().nullable(),
+  lat: z.union([z.number(), z.string().regex(/^-?\d+(\.\d+)?$/)]),
+  lng: z.union([z.number(), z.string().regex(/^-?\d+(\.\d+)?$/)]),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha de nacimiento inválida"),
+  sex: z.enum(PERSON_SEX),
+  afp: z.enum(AFP_CHILE),
+  healthSystem: z.enum(HEALTH_SYSTEMS),
+  isapreName: z.enum(ISAPRES_CHILE).optional().nullable(),
+  isapreHasExtraPercent: z.boolean(),
+  isapreExtraPercent: z.union([z.number(), z.string().regex(/^\d+(\.\d{1,2})?$/)]).optional().nullable(),
+  hasMobilization: z.boolean(),
+  availableExtraShifts: z.boolean(),
+  bankCode: z.string().trim().refine((v) => CHILE_BANK_CODES.includes(v), "Banco inválido"),
+  accountType: z.enum(BANK_ACCOUNT_TYPES),
+  accountNumber: z.string().trim().min(4, "Número de cuenta requerido").max(100),
+  notes: z.string().trim().max(2000).optional().nullable(),
   documents: z
     .array(
       z.object({
@@ -46,7 +69,25 @@ const postulacionSchema = z.object({
           .refine((value) => value.startsWith("/uploads/guardias/"), "Archivo inválido"),
       })
     )
-    .default([]),
+    .min(1, "Debes subir al menos un documento"),
+}).superRefine((val, ctx) => {
+  if (val.healthSystem === "isapre" && !val.isapreName) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["isapreName"],
+      message: "Debes indicar la Isapre",
+    });
+  }
+  if (val.healthSystem === "isapre" && val.isapreHasExtraPercent) {
+    const pct = Number(val.isapreExtraPercent ?? 0);
+    if (!Number.isFinite(pct) || pct <= 7) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["isapreExtraPercent"],
+        message: "Debe indicar porcentaje mayor a 7%",
+      });
+    }
+  }
 });
 
 function buildNextGuardiaCode(lastCode?: string | null): string {
@@ -92,7 +133,7 @@ export async function POST(request: NextRequest) {
     });
     if (existingByRut) {
       return NextResponse.json(
-        { success: false, error: "Ya existe una persona registrada con ese RUT" },
+        { success: false, error: "RUT ya ingresado / root ya ingresado. Comunicarse con recursos humanos." },
         { status: 409 }
       );
     }
@@ -110,11 +151,24 @@ export async function POST(request: NextRequest) {
               email: normalizeNullable(body.email),
               phoneMobile: normalizeNullable(body.phoneMobile),
               addressFormatted: normalizeNullable(body.addressFormatted),
-              // En autogestión pública no exigimos Google Place ID.
-              addressSource: "manual",
+              googlePlaceId: normalizeNullable(body.googlePlaceId),
+              addressSource: "google_places",
               commune: normalizeNullable(body.commune),
               city: normalizeNullable(body.city),
               region: normalizeNullable(body.region),
+              lat: new Prisma.Decimal(Number(body.lat)),
+              lng: new Prisma.Decimal(Number(body.lng)),
+              birthDate: new Date(`${body.birthDate}T00:00:00.000Z`),
+              sex: body.sex,
+              afp: body.afp,
+              healthSystem: body.healthSystem,
+              isapreName: normalizeNullable(body.isapreName),
+              isapreHasExtraPercent: body.isapreHasExtraPercent,
+              isapreExtraPercent:
+                body.isapreHasExtraPercent && body.isapreExtraPercent !== undefined
+                  ? new Prisma.Decimal(Number(body.isapreExtraPercent))
+                  : null,
+              hasMobilization: body.hasMobilization,
               status: "active",
             },
           });
@@ -127,8 +181,23 @@ export async function POST(request: NextRequest) {
               code,
               lifecycleStatus: "postulante",
               status: lifecycleToLegacyStatus("postulante"),
+              availableExtraShifts: body.availableExtraShifts,
             },
             select: { id: true, code: true },
+          });
+
+          await tx.opsCuentaBancaria.create({
+            data: {
+              tenantId,
+              guardiaId: guardia.id,
+              bankCode: body.bankCode,
+              bankName: CHILE_BANKS.find((item) => item.code === body.bankCode)?.name ?? body.bankCode,
+              accountType: body.accountType,
+              accountNumber: body.accountNumber,
+              holderName: `${body.firstName} ${body.lastName}`.trim(),
+              holderRut: body.rut,
+              isDefault: true,
+            },
           });
 
           if (body.documents.length > 0) {
@@ -140,6 +209,17 @@ export async function POST(request: NextRequest) {
                 fileUrl: doc.fileUrl,
                 status: "pendiente",
               })),
+            });
+          }
+
+          if (body.notes && body.notes.trim()) {
+            await tx.opsComentarioGuardia.create({
+              data: {
+                tenantId,
+                guardiaId: guardia.id,
+                comment: body.notes.trim(),
+                createdBy: "public_postulacion",
+              },
             });
           }
 

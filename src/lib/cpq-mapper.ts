@@ -233,7 +233,7 @@ export function mapCpqDataToPresentation(
 // ─── Defaults genéricos de Gard (sin datos de clientes ficticios) ───
 
 const GARD_ASSETS = {
-  logo: "/uploads/company-logos/Logo Gard 15 x 7 cm Blanco.png",
+  logo: "/uploads/company-logos/Logo%20Gard%2015%20x%207%20cm%20Blanco.png",
   guard_photos: [
     "/guardia_hero.jpg",
     "/guardia_entrada.jpg",

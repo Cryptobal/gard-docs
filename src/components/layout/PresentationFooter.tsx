@@ -26,7 +26,7 @@ interface PresentationFooterProps {
 }
 
 export function PresentationFooter({ 
-  logo = '/uploads/company-logos/Logo Gard 15 x 7 cm Blanco.png',
+  logo = '/uploads/company-logos/Logo%20Gard%2015%20x%207%20cm%20Blanco.png',
   contact,
   address,
   website,
@@ -54,11 +54,11 @@ export function PresentationFooter({
             viewport={{ once: true }}
           >
             <a href="https://gard.cl" target="_blank" rel="noopener noreferrer" className="inline-block group">
-              <div className="w-40 h-16 mb-6 transition-transform group-hover:scale-110">
+              <div className="w-40 h-16 mb-6 transition-transform group-hover:scale-110 flex items-center">
                 <img
                   src={logo}
-                  alt="Gard Security"
-                  className="h-full w-auto object-contain drop-shadow-[0_0_10px_rgba(0,212,170,0.3)]"
+                  alt=""
+                  className="h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(0,212,170,0.3)]"
                 />
               </div>
             </a>

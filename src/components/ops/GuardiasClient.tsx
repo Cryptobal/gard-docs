@@ -18,11 +18,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AFP_CHILE,
   BANK_ACCOUNT_TYPES,
   CHILE_BANKS,
+  completeRutWithDv,
+  formatRutForInput,
   GUARDIA_LIFECYCLE_STATUSES,
+  HEALTH_SYSTEMS,
+  ISAPRES_CHILE,
+  isChileanRutFormat,
+  isValidChileanRut,
   normalizeMobileNineDigits,
   normalizeRut,
+  PERSON_SEX,
 } from "@/lib/personas";
 import { hasOpsCapability } from "@/lib/ops-rbac";
 
@@ -31,6 +39,7 @@ type GuardiaItem = {
   code?: string | null;
   status: string;
   lifecycleStatus: string;
+  availableExtraShifts?: boolean;
   isBlacklisted: boolean;
   blacklistReason?: string | null;
   persona: {
@@ -43,6 +52,13 @@ type GuardiaItem = {
     addressFormatted?: string | null;
     city?: string | null;
     commune?: string | null;
+    birthDate?: string | null;
+    afp?: string | null;
+    healthSystem?: string | null;
+    isapreName?: string | null;
+    isapreHasExtraPercent?: boolean | null;
+    isapreExtraPercent?: string | null;
+    hasMobilization?: boolean | null;
   };
   bankAccounts?: Array<{
     id: string;
@@ -77,13 +93,24 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
     commune: "",
     city: "",
     region: "",
+    sex: "",
     lat: "",
     lng: "",
+    birthDate: "",
+    afp: "",
+    healthSystem: "fonasa",
+    isapreName: "",
+    isapreHasExtraPercent: false,
+    isapreExtraPercent: "",
+    hasMobilization: "si",
+    availableExtraShifts: "si",
+    notes: "",
     bankCode: "",
     accountType: "",
     accountNumber: "",
     holderName: "",
   });
+  const [rutError, setRutError] = useState<string | null>(null);
 
   const LIFECYCLE_LABELS: Record<string, string> = {
     postulante: "Postulante",
@@ -125,10 +152,30 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
   };
 
   const handleCreate = async () => {
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.rut.trim() || !form.email.trim() || !form.phoneMobile.trim()) {
-      toast.error("Nombre, apellido, RUT, email y celular son obligatorios");
+    if (
+      !form.firstName.trim() ||
+      !form.lastName.trim() ||
+      !form.rut.trim() ||
+      !form.email.trim() ||
+      !form.phoneMobile.trim() ||
+      !form.birthDate ||
+      !form.sex ||
+      !form.afp ||
+      !form.bankCode ||
+      !form.accountType ||
+      !form.accountNumber.trim()
+    ) {
+      toast.error("Completa todos los campos obligatorios del postulante");
       return;
     }
+    const completedRut = completeRutWithDv(form.rut);
+    if (!isChileanRutFormat(completedRut) || !isValidChileanRut(completedRut)) {
+      setRutError("RUT inválido. Debe incluir guión y dígito verificador correcto.");
+      toast.error("Corrige el RUT antes de continuar");
+      return;
+    }
+    setForm((prev) => ({ ...prev, rut: completedRut }));
+    setRutError(null);
     if (!form.googlePlaceId || !form.addressFormatted) {
       toast.error("Debes seleccionar la dirección desde Google Maps");
       return;
@@ -142,7 +189,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
         body: JSON.stringify({
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          rut: normalizeRut(form.rut),
+          rut: normalizeRut(completedRut),
           email: form.email.trim(),
           phoneMobile: normalizeMobileNineDigits(form.phoneMobile),
           lifecycleStatus: form.lifecycleStatus,
@@ -151,8 +198,21 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
           commune: form.commune || null,
           city: form.city || null,
           region: form.region || null,
+          sex: form.sex || null,
           lat: form.lat || null,
           lng: form.lng || null,
+          birthDate: form.birthDate || null,
+          afp: form.afp || null,
+          healthSystem: form.healthSystem,
+          isapreName: form.healthSystem === "isapre" ? form.isapreName || null : null,
+          isapreHasExtraPercent: form.healthSystem === "isapre" ? form.isapreHasExtraPercent : false,
+          isapreExtraPercent:
+            form.healthSystem === "isapre" && form.isapreHasExtraPercent
+              ? form.isapreExtraPercent || null
+              : null,
+          hasMobilization: form.hasMobilization === "si",
+          availableExtraShifts: form.availableExtraShifts === "si",
+          notes: form.notes || null,
           bankCode: form.bankCode || null,
           bankName: selectedBank?.name ?? null,
           accountType: form.accountType || null,
@@ -177,18 +237,33 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
         commune: "",
         city: "",
         region: "",
+        sex: "",
         lat: "",
         lng: "",
+        birthDate: "",
+        afp: "",
+        healthSystem: "fonasa",
+        isapreName: "",
+        isapreHasExtraPercent: false,
+        isapreExtraPercent: "",
+        hasMobilization: "si",
+        availableExtraShifts: "si",
+        notes: "",
         bankCode: "",
         accountType: "",
         accountNumber: "",
         holderName: "",
       });
+      setRutError(null);
       toast.success("Guardia creado");
       setCreateModalOpen(false);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo crear guardia");
+      const msg = (error as Error)?.message || "No se pudo crear guardia";
+      if (/rut|root/i.test(msg)) {
+        setRutError("RUT ya ingresado / root ya ingresado. Comunicarse con recursos humanos.");
+      }
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -346,11 +421,28 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                 </select>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
-                <Input
-                  placeholder="RUT * (sin puntos y con guión)"
-                  value={form.rut}
-                  onChange={(e) => setForm((prev) => ({ ...prev, rut: normalizeRut(e.target.value) }))}
-                />
+                <div className="space-y-1">
+                  <Input
+                    placeholder="RUT * (sin puntos y con guión)"
+                    value={form.rut}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        rut: formatRutForInput(e.target.value),
+                      }))
+                    }
+                    onBlur={() => {
+                      const completed = completeRutWithDv(form.rut);
+                      setForm((prev) => ({ ...prev, rut: completed }));
+                      if (completed && (!isChileanRutFormat(completed) || !isValidChileanRut(completed))) {
+                        setRutError("RUT inválido. Debe incluir guión y dígito verificador correcto.");
+                      } else {
+                        setRutError(null);
+                      }
+                    }}
+                  />
+                  {rutError ? <p className="text-xs text-red-400">{rutError}</p> : null}
+                </div>
                 <Input
                   placeholder="Email *"
                   value={form.email}
@@ -372,7 +464,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                 value={form.addressFormatted}
                 onChange={onAddressChange}
                 placeholder="Dirección (Google Maps) *"
-                showMap={false}
+                showMap
               />
               <div className="grid gap-3 md:grid-cols-3">
                 <Input placeholder="Comuna" value={form.commune} readOnly />
@@ -382,10 +474,123 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
               <div className="grid gap-3 md:grid-cols-4">
                 <select
                   className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={form.sex}
+                  onChange={(e) => setForm((prev) => ({ ...prev, sex: e.target.value }))}
+                >
+                  <option value="">Sexo *</option>
+                  {PERSON_SEX.map((sex) => (
+                    <option key={sex} value={sex}>
+                      {sex}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  type="date"
+                  placeholder="Fecha de nacimiento *"
+                  value={form.birthDate}
+                  onChange={(e) => setForm((prev) => ({ ...prev, birthDate: e.target.value }))}
+                />
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={form.afp}
+                  onChange={(e) => setForm((prev) => ({ ...prev, afp: e.target.value }))}
+                >
+                  <option value="">AFP *</option>
+                  {AFP_CHILE.map((afp) => (
+                    <option key={afp} value={afp}>
+                      {afp}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={form.healthSystem}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      healthSystem: e.target.value,
+                      isapreName: "",
+                      isapreHasExtraPercent: false,
+                      isapreExtraPercent: "",
+                    }))
+                  }
+                >
+                  {HEALTH_SYSTEMS.map((health) => (
+                    <option key={health} value={health}>
+                      {health.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={form.hasMobilization}
+                  onChange={(e) => setForm((prev) => ({ ...prev, hasMobilization: e.target.value }))}
+                >
+                  <option value="si">Con movilización</option>
+                  <option value="no">Sin movilización</option>
+                </select>
+              </div>
+              {form.healthSystem === "isapre" ? (
+                <div className="grid gap-3 md:grid-cols-3">
+                  <select
+                    className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                    value={form.isapreName}
+                    onChange={(e) => setForm((prev) => ({ ...prev, isapreName: e.target.value }))}
+                  >
+                    <option value="">Isapre *</option>
+                    {ISAPRES_CHILE.map((isapre) => (
+                      <option key={isapre} value={isapre}>
+                        {isapre}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                    value={form.isapreHasExtraPercent ? "si" : "no"}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        isapreHasExtraPercent: e.target.value === "si",
+                        isapreExtraPercent: e.target.value === "si" ? prev.isapreExtraPercent : "",
+                      }))
+                    }
+                  >
+                    <option value="no">Cotiza solo 7%</option>
+                    <option value="si">Cotiza sobre 7%</option>
+                  </select>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="7.01"
+                    placeholder="Porcentaje ISAPRE"
+                    value={form.isapreExtraPercent}
+                    disabled={!form.isapreHasExtraPercent}
+                    onChange={(e) => setForm((prev) => ({ ...prev, isapreExtraPercent: e.target.value }))}
+                  />
+                </div>
+              ) : null}
+              <div className="grid gap-3 md:grid-cols-2">
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={form.availableExtraShifts}
+                  onChange={(e) => setForm((prev) => ({ ...prev, availableExtraShifts: e.target.value }))}
+                >
+                  <option value="si">Disponible para turnos extra</option>
+                  <option value="no">No disponible para turnos extra</option>
+                </select>
+                <Input
+                  placeholder="Notas / comentarios"
+                  value={form.notes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
                   value={form.bankCode}
                   onChange={(e) => setForm((prev) => ({ ...prev, bankCode: e.target.value }))}
                 >
-                  <option value="">Banco chileno (opcional)</option>
+                  <option value="">Banco chileno *</option>
                   {CHILE_BANKS.map((bank) => (
                     <option key={bank.code} value={bank.code}>
                       {bank.name}
@@ -397,7 +602,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                   value={form.accountType}
                   onChange={(e) => setForm((prev) => ({ ...prev, accountType: e.target.value }))}
                 >
-                  <option value="">Tipo de cuenta</option>
+                  <option value="">Tipo de cuenta *</option>
                   {BANK_ACCOUNT_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {ACCOUNT_TYPE_LABELS[type]}
@@ -405,7 +610,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                   ))}
                 </select>
                 <Input
-                  placeholder="Número de cuenta"
+                  placeholder="Número de cuenta *"
                   value={form.accountNumber}
                   onChange={(e) => setForm((prev) => ({ ...prev, accountNumber: e.target.value }))}
                 />
@@ -459,6 +664,9 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                       {item.persona.rut || "Sin RUT"}
                       {item.code ? ` · Código ${item.code}` : ""}
                       {item.persona.phoneMobile ? ` · +56 ${item.persona.phoneMobile}` : ""}
+                      {typeof item.availableExtraShifts === "boolean"
+                        ? ` · ${item.availableExtraShifts ? "TE disponible" : "Sin TE"}`
+                        : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {item.persona.addressFormatted || "Sin dirección validada"}

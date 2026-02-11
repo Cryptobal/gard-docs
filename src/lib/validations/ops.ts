@@ -1,11 +1,15 @@
 import { z } from "zod";
 import {
+  AFP_CHILE,
   BANK_ACCOUNT_TYPES,
   CHILE_BANK_CODES,
   DOCUMENT_STATUS,
   DOCUMENT_TYPES,
   GUARDIA_COMM_CHANNELS,
   GUARDIA_LIFECYCLE_STATUSES,
+  HEALTH_SYSTEMS,
+  ISAPRES_CHILE,
+  PERSON_SEX,
   isChileanRutFormat,
   isValidChileanRut,
   isValidMobileNineDigits,
@@ -26,6 +30,7 @@ const weekdayEnum = z.enum([
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const decimalCoordinateRegex = /^-?\d+(\.\d+)?$/;
+const percentRegex = /^\d+(\.\d{1,2})?$/;
 
 export const createPuestoSchema = z.object({
   installationId: z.string().uuid("installationId inválido"),
@@ -96,8 +101,18 @@ export const createGuardiaSchema = z.object({
   commune: z.string().trim().max(120).optional().nullable(),
   city: z.string().trim().max(120).optional().nullable(),
   region: z.string().trim().max(120).optional().nullable(),
+  sex: z.enum(PERSON_SEX),
   lat: z.union([z.number(), z.string().regex(decimalCoordinateRegex)]).optional().nullable(),
   lng: z.union([z.number(), z.string().regex(decimalCoordinateRegex)]).optional().nullable(),
+  birthDate: z.string().regex(dateRegex, "birthDate debe tener formato YYYY-MM-DD").optional().nullable(),
+  afp: z.enum(AFP_CHILE).optional().nullable(),
+  healthSystem: z.enum(HEALTH_SYSTEMS).optional().nullable(),
+  isapreName: z.enum(ISAPRES_CHILE).optional().nullable(),
+  isapreHasExtraPercent: z.boolean().optional().nullable(),
+  isapreExtraPercent: z.union([z.number(), z.string().regex(percentRegex)]).optional().nullable(),
+  hasMobilization: z.boolean().optional().nullable(),
+  availableExtraShifts: z.boolean().optional().nullable(),
+  notes: z.string().trim().max(2000).optional().nullable(),
   lifecycleStatus: z.enum(GUARDIA_LIFECYCLE_STATUSES).default("postulante"),
   bankCode: z.string().trim().max(20).optional().nullable(),
   bankName: z.string().trim().max(120).optional().nullable(),
@@ -136,6 +151,30 @@ export const createGuardiaSchema = z.object({
       });
     }
   }
+  if (val.healthSystem === "isapre" && !val.isapreName) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["isapreName"],
+      message: "Debes indicar la Isapre",
+    });
+  }
+  if (val.healthSystem !== "isapre" && val.isapreName) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["isapreName"],
+      message: "Isapre solo aplica cuando salud es ISAPRE",
+    });
+  }
+  if (val.healthSystem === "isapre" && val.isapreHasExtraPercent) {
+    const pct = Number(val.isapreExtraPercent ?? 0);
+    if (!Number.isFinite(pct) || pct <= 7) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["isapreExtraPercent"],
+        message: "Debe indicar porcentaje mayor a 7%",
+      });
+    }
+  }
 });
 
 export const updateGuardiaSchema = z.object({
@@ -160,8 +199,18 @@ export const updateGuardiaSchema = z.object({
   commune: z.string().trim().max(120).optional().nullable(),
   city: z.string().trim().max(120).optional().nullable(),
   region: z.string().trim().max(120).optional().nullable(),
+  sex: z.enum(PERSON_SEX).optional().nullable(),
   lat: z.union([z.number(), z.string().regex(decimalCoordinateRegex)]).optional().nullable(),
   lng: z.union([z.number(), z.string().regex(decimalCoordinateRegex)]).optional().nullable(),
+  birthDate: z.string().regex(dateRegex, "birthDate debe tener formato YYYY-MM-DD").optional().nullable(),
+  afp: z.enum(AFP_CHILE).optional().nullable(),
+  healthSystem: z.enum(HEALTH_SYSTEMS).optional().nullable(),
+  isapreName: z.enum(ISAPRES_CHILE).optional().nullable(),
+  isapreHasExtraPercent: z.boolean().optional().nullable(),
+  isapreExtraPercent: z.union([z.number(), z.string().regex(percentRegex)]).optional().nullable(),
+  hasMobilization: z.boolean().optional().nullable(),
+  availableExtraShifts: z.boolean().optional().nullable(),
+  notes: z.string().trim().max(2000).optional().nullable(),
   lifecycleStatus: z.enum(GUARDIA_LIFECYCLE_STATUSES).optional(),
   status: z.string().trim().max(50).optional(),
   hiredAt: z.string().regex(dateRegex, "hiredAt debe tener formato YYYY-MM-DD").optional().nullable(),

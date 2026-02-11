@@ -23,6 +23,13 @@ function toNullableDecimal(value?: number | string | null): Prisma.Decimal | nul
   return new Prisma.Decimal(value);
 }
 
+function toNullablePercent(value?: number | string | null): Prisma.Decimal | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Prisma.Decimal(parsed);
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<Params> }
@@ -123,8 +130,20 @@ export async function PATCH(
           commune: body.commune !== undefined ? normalizeNullable(body.commune) : undefined,
           city: body.city !== undefined ? normalizeNullable(body.city) : undefined,
           region: body.region !== undefined ? normalizeNullable(body.region) : undefined,
+          sex: body.sex !== undefined ? normalizeNullable(body.sex) : undefined,
           lat: body.lat !== undefined ? toNullableDecimal(body.lat) : undefined,
           lng: body.lng !== undefined ? toNullableDecimal(body.lng) : undefined,
+          birthDate: body.birthDate !== undefined ? toNullableDate(body.birthDate) : undefined,
+          afp: body.afp !== undefined ? normalizeNullable(body.afp) : undefined,
+          healthSystem: body.healthSystem !== undefined ? normalizeNullable(body.healthSystem) : undefined,
+          isapreName: body.isapreName !== undefined ? normalizeNullable(body.isapreName) : undefined,
+          isapreHasExtraPercent:
+            body.isapreHasExtraPercent !== undefined ? body.isapreHasExtraPercent : undefined,
+          isapreExtraPercent:
+            body.isapreExtraPercent !== undefined
+              ? toNullablePercent(body.isapreExtraPercent)
+              : undefined,
+          hasMobilization: body.hasMobilization !== undefined ? body.hasMobilization : undefined,
         },
       });
 
@@ -151,6 +170,8 @@ export async function PATCH(
               : nextLifecycle === "desvinculado" && existing.lifecycleStatus !== "desvinculado"
                 ? "Desvinculación registrada"
                 : undefined,
+          availableExtraShifts:
+            body.availableExtraShifts ?? undefined,
         },
         include: {
           persona: true,
@@ -169,6 +190,17 @@ export async function PATCH(
             previousValue: { lifecycleStatus: prevLifecycle },
             newValue: { lifecycleStatus: nextLifecycle },
             reason: normalizeNullable(body.terminationReason),
+            createdBy: ctx.userId,
+          },
+        });
+      }
+
+      if (body.notes && body.notes.trim()) {
+        await tx.opsComentarioGuardia.create({
+          data: {
+            tenantId: ctx.tenantId,
+            guardiaId: id,
+            comment: body.notes.trim(),
             createdBy: ctx.userId,
           },
         });

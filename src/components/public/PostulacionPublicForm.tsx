@@ -1,12 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { FilePlus2, Upload, X } from "lucide-react";
+import { CalendarDays, FilePlus2, Plus, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DOCUMENT_TYPES, normalizeMobileNineDigits, normalizeRut } from "@/lib/personas";
+import { AddressAutocomplete, type AddressResult } from "@/components/ui/AddressAutocomplete";
+import {
+  AFP_CHILE,
+  BANK_ACCOUNT_TYPES,
+  CHILE_BANKS,
+  completeRutWithDv,
+  DOCUMENT_TYPES,
+  formatRutForInput,
+  HEALTH_SYSTEMS,
+  ISAPRES_CHILE,
+  isChileanRutFormat,
+  isValidChileanRut,
+  normalizeMobileNineDigits,
+  normalizeRut,
+  PERSON_SEX,
+} from "@/lib/personas";
 
 const DOC_LABEL: Record<string, string> = {
   certificado_antecedentes: "Certificado de antecedentes",
@@ -18,8 +33,10 @@ const DOC_LABEL: Record<string, string> = {
 };
 
 type UploadedDoc = {
+  id: string;
   type: string;
   fileUrl: string;
+  fileName?: string;
 };
 
 interface PostulacionPublicFormProps {
@@ -31,6 +48,9 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
   const [docType, setDocType] = useState("cedula_identidad");
+  const [docFileName, setDocFileName] = useState("");
+  const [healthSystem, setHealthSystem] = useState("fonasa");
+  const [isapreHasExtraPercent, setIsapreHasExtraPercent] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -38,21 +58,45 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
     email: "",
     phoneMobile: "",
     addressFormatted: "",
+    googlePlaceId: "",
     commune: "",
     city: "",
     region: "",
+    lat: "",
+    lng: "",
+    birthDate: "",
+    sex: "",
+    afp: "",
+    isapreName: "",
+    isapreExtraPercent: "",
+    hasMobilization: "si",
+    availableExtraShifts: "si",
+    bankCode: "",
+    accountType: "",
+    accountNumber: "",
+    notes: "",
   });
+  const [rutError, setRutError] = useState<string | null>(null);
 
-  const docsByType = useMemo(() => {
-    const map = new Map<string, UploadedDoc>();
-    for (const doc of uploadedDocs) {
-      if (!map.has(doc.type)) map.set(doc.type, doc);
-    }
-    return Array.from(map.values());
-  }, [uploadedDocs]);
+  const onAddressChange = (result: AddressResult) => {
+    setForm((prev) => ({
+      ...prev,
+      addressFormatted: result.address,
+      googlePlaceId: result.placeId || "",
+      commune: result.commune || "",
+      city: result.city || "",
+      region: result.region || "",
+      lat: String(result.lat || ""),
+      lng: String(result.lng || ""),
+    }));
+  };
 
   const handleUpload = async (file?: File | null) => {
     if (!file) return;
+    if (!docType) {
+      toast.error("Selecciona tipo de documento");
+      return;
+    }
     setUploading(true);
     try {
       const body = new FormData();
@@ -66,7 +110,16 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
       if (!response.ok || !payload.success) {
         throw new Error(payload.error || "No se pudo subir el archivo");
       }
-      setUploadedDocs((prev) => [{ type: docType, fileUrl: payload.data.url }, ...prev.filter((d) => d.type !== docType)]);
+      setUploadedDocs((prev) => [
+        {
+          id: crypto.randomUUID(),
+          type: docType,
+          fileUrl: payload.data.url,
+          fileName: file.name,
+        },
+        ...prev,
+      ]);
+      setDocFileName(file.name);
       toast.success("Documento subido");
     } catch (error) {
       console.error(error);
@@ -76,8 +129,8 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
     }
   };
 
-  const removeDoc = (type: string) => {
-    setUploadedDocs((prev) => prev.filter((doc) => doc.type !== type));
+  const removeDoc = (id: string) => {
+    setUploadedDocs((prev) => prev.filter((doc) => doc.id !== id));
   };
 
   const handleSubmit = async () => {
@@ -87,11 +140,35 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
       !form.rut.trim() ||
       !form.email.trim() ||
       !form.phoneMobile.trim() ||
-      !form.addressFormatted.trim()
+      !form.addressFormatted.trim() ||
+      !form.googlePlaceId ||
+      !form.birthDate ||
+      !form.sex ||
+      !form.afp ||
+      !form.bankCode ||
+      !form.accountType ||
+      !form.accountNumber.trim() ||
+      uploadedDocs.length === 0
     ) {
       toast.error("Completa todos los campos obligatorios");
       return;
     }
+    if (healthSystem === "isapre" && !form.isapreName) {
+      toast.error("Debes seleccionar Isapre");
+      return;
+    }
+    if (healthSystem === "isapre" && isapreHasExtraPercent && Number(form.isapreExtraPercent || 0) <= 7) {
+      toast.error("Si cotiza sobre 7%, indica un porcentaje mayor a 7");
+      return;
+    }
+    const completedRut = completeRutWithDv(form.rut);
+    if (!isChileanRutFormat(completedRut) || !isValidChileanRut(completedRut)) {
+      setRutError("RUT inválido. Verifica guión y dígito verificador.");
+      toast.error("Corrige el RUT antes de enviar");
+      return;
+    }
+    setForm((prev) => ({ ...prev, rut: completedRut }));
+    setRutError(null);
 
     setSaving(true);
     try {
@@ -102,14 +179,33 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
           token,
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
-          rut: normalizeRut(form.rut),
+          rut: normalizeRut(completedRut),
           email: form.email.trim(),
           phoneMobile: normalizeMobileNineDigits(form.phoneMobile),
           addressFormatted: form.addressFormatted.trim(),
+          googlePlaceId: form.googlePlaceId,
           commune: form.commune.trim() || null,
           city: form.city.trim() || null,
           region: form.region.trim() || null,
-          documents: docsByType,
+          lat: form.lat,
+          lng: form.lng,
+          birthDate: form.birthDate,
+          sex: form.sex,
+          afp: form.afp,
+          healthSystem,
+          isapreName: healthSystem === "isapre" ? form.isapreName : null,
+          isapreHasExtraPercent: healthSystem === "isapre" ? isapreHasExtraPercent : false,
+          isapreExtraPercent:
+            healthSystem === "isapre" && isapreHasExtraPercent
+              ? form.isapreExtraPercent
+              : null,
+          hasMobilization: form.hasMobilization === "si",
+          availableExtraShifts: form.availableExtraShifts === "si",
+          bankCode: form.bankCode,
+          accountType: form.accountType,
+          accountNumber: form.accountNumber.trim(),
+          notes: form.notes.trim() || null,
+          documents: uploadedDocs.map((doc) => ({ type: doc.type, fileUrl: doc.fileUrl })),
         }),
       });
       const payload = await response.json();
@@ -124,21 +220,57 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
         email: "",
         phoneMobile: "",
         addressFormatted: "",
+        googlePlaceId: "",
         commune: "",
         city: "",
         region: "",
+        lat: "",
+        lng: "",
+        birthDate: "",
+        sex: "",
+        afp: "",
+        isapreName: "",
+        isapreExtraPercent: "",
+        hasMobilization: "si",
+        availableExtraShifts: "si",
+        bankCode: "",
+        accountType: "",
+        accountNumber: "",
+        notes: "",
       });
       setUploadedDocs([]);
+      setDocFileName("");
+      setHealthSystem("fonasa");
+      setIsapreHasExtraPercent(false);
+      setRutError(null);
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo enviar la postulación");
+      const msg = (error as Error)?.message || "No se pudo enviar la postulación";
+      if (/rut|root/i.test(msg)) {
+        setRutError("RUT ya ingresado / root ya ingresado.");
+        toast.error("RUT ya ingresado / root ya ingresado. Comunicarse con recursos humanos.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-4 md:p-6">
+    <div className="mx-auto max-w-4xl p-4 md:p-6">
+      <div className="mb-4 rounded-xl border border-border bg-[#0f2847] px-6 py-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-white/70">Gard Security</p>
+          <p className="text-base text-white font-semibold">Portal corporativo de postulación</p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/uploads/company-logos/Logo%20Gard%2015%20x%207%20cm%20Blanco.png"
+          alt="Logo Gard Security"
+          className="h-8 w-auto"
+        />
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Formulario de postulación</CardTitle>
@@ -158,11 +290,28 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
               value={form.lastName}
               onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
             />
-            <Input
-              placeholder="RUT * (sin puntos y con guión)"
-              value={form.rut}
-              onChange={(e) => setForm((prev) => ({ ...prev, rut: normalizeRut(e.target.value) }))}
-            />
+            <div className="space-y-1">
+              <Input
+                placeholder="RUT * (sin puntos y con guión)"
+                value={form.rut}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    rut: formatRutForInput(e.target.value),
+                  }))
+                }
+                onBlur={() => {
+                  const completed = completeRutWithDv(form.rut);
+                  setForm((prev) => ({ ...prev, rut: completed }));
+                  if (completed && (!isChileanRutFormat(completed) || !isValidChileanRut(completed))) {
+                    setRutError("RUT inválido. Verifica guión y dígito verificador.");
+                  } else {
+                    setRutError(null);
+                  }
+                }}
+              />
+              {rutError ? <p className="text-xs text-red-400">{rutError}</p> : null}
+            </div>
             <Input
               placeholder="Email *"
               value={form.email}
@@ -179,31 +328,183 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
                 }))
               }
             />
-            <Input
-              placeholder="Dirección *"
-              value={form.addressFormatted}
-              onChange={(e) => setForm((prev) => ({ ...prev, addressFormatted: e.target.value }))}
-            />
+            <div
+              className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-1 focus-within:ring-ring"
+              role="group"
+            >
+              <input
+                type="date"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-foreground outline-none [color-scheme:light]"
+                value={form.birthDate}
+                onChange={(e) => setForm((prev) => ({ ...prev, birthDate: e.target.value }))}
+                id="postulacion-birthdate"
+                aria-label="Fecha de nacimiento"
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-8 w-8 shrink-0 border-border bg-muted/50 text-foreground hover:bg-muted"
+                onClick={() => (document.getElementById("postulacion-birthdate") as HTMLInputElement | null)?.showPicker?.()}
+                title="Abrir calendario"
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
+              <span className="shrink-0 text-muted-foreground">Fecha de nacimiento</span>
+            </div>
+            <div className="md:col-span-2">
+              <AddressAutocomplete
+                value={form.addressFormatted}
+                onChange={onAddressChange}
+                placeholder="Dirección (Google Maps) *"
+                showMap
+              />
+            </div>
             <Input
               placeholder="Comuna"
               value={form.commune}
-              onChange={(e) => setForm((prev) => ({ ...prev, commune: e.target.value }))}
+              readOnly
             />
             <Input
               placeholder="Ciudad"
               value={form.city}
-              onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+              readOnly
             />
             <Input
               placeholder="Región"
               value={form.region}
-              onChange={(e) => setForm((prev) => ({ ...prev, region: e.target.value }))}
+              readOnly
+            />
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={form.sex}
+              onChange={(e) => setForm((prev) => ({ ...prev, sex: e.target.value }))}
+            >
+              <option value="">Sexo *</option>
+              {PERSON_SEX.map((sex) => (
+                <option key={sex} value={sex}>
+                  {sex}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={form.afp}
+              onChange={(e) => setForm((prev) => ({ ...prev, afp: e.target.value }))}
+            >
+              <option value="">AFP *</option>
+              {AFP_CHILE.map((afp) => (
+                <option key={afp} value={afp}>
+                  {afp}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={healthSystem}
+              onChange={(e) => {
+                setHealthSystem(e.target.value);
+                if (e.target.value !== "isapre") {
+                  setForm((prev) => ({ ...prev, isapreName: "", isapreExtraPercent: "" }));
+                  setIsapreHasExtraPercent(false);
+                }
+              }}
+            >
+              {HEALTH_SYSTEMS.map((health) => (
+                <option key={health} value={health}>
+                  Salud: {health.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={form.hasMobilization}
+              onChange={(e) => setForm((prev) => ({ ...prev, hasMobilization: e.target.value }))}
+            >
+              <option value="si">Tiene movilización</option>
+              <option value="no">No tiene movilización</option>
+            </select>
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={form.availableExtraShifts}
+              onChange={(e) => setForm((prev) => ({ ...prev, availableExtraShifts: e.target.value }))}
+            >
+              <option value="si">Disponible para turnos extra</option>
+              <option value="no">No disponible para turnos extra</option>
+            </select>
+            {healthSystem === "isapre" ? (
+              <>
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={form.isapreName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, isapreName: e.target.value }))}
+                >
+                  <option value="">Isapre *</option>
+                  {ISAPRES_CHILE.map((isapre) => (
+                    <option key={isapre} value={isapre}>
+                      {isapre}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+                  value={isapreHasExtraPercent ? "si" : "no"}
+                  onChange={(e) => setIsapreHasExtraPercent(e.target.value === "si")}
+                >
+                  <option value="no">Cotiza solo 7%</option>
+                  <option value="si">Cotiza sobre 7%</option>
+                </select>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="7.01"
+                  placeholder="Porcentaje cotización ISAPRE"
+                  value={form.isapreExtraPercent}
+                  disabled={!isapreHasExtraPercent}
+                  onChange={(e) => setForm((prev) => ({ ...prev, isapreExtraPercent: e.target.value }))}
+                />
+              </>
+            ) : null}
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={form.bankCode}
+              onChange={(e) => setForm((prev) => ({ ...prev, bankCode: e.target.value }))}
+            >
+              <option value="">Banco *</option>
+              {CHILE_BANKS.map((bank) => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border border-border bg-background px-3 text-sm"
+              value={form.accountType}
+              onChange={(e) => setForm((prev) => ({ ...prev, accountType: e.target.value }))}
+            >
+              <option value="">Tipo de cuenta *</option>
+              {BANK_ACCOUNT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <Input
+              placeholder="Número de cuenta *"
+              value={form.accountNumber}
+              onChange={(e) => setForm((prev) => ({ ...prev, accountNumber: e.target.value }))}
+            />
+            <Input
+              className="md:col-span-2"
+              placeholder="Notas o comentarios (opcional)"
+              value={form.notes}
+              onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
             />
           </div>
 
           <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4 space-y-3">
             <p className="text-sm font-medium">Documentos</p>
-            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
               <select
                 className="h-10 rounded-md border border-border bg-background px-3 text-sm"
                 value={docType}
@@ -215,6 +516,10 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
                   </option>
                 ))}
               </select>
+              <Button type="button" size="sm" variant="outline" onClick={() => setDocFileName("")}>
+                <Plus className="h-4 w-4 mr-1" />
+                Agregar otro
+              </Button>
               <label className="inline-flex">
                 <input
                   type="file"
@@ -225,15 +530,18 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
                 />
                 <Button type="button" variant="outline" size="sm" disabled={uploading}>
                   <FilePlus2 className="h-4 w-4 mr-1" />
-                  {uploading ? "Subiendo..." : "Subir"}
+                  {uploading ? "Subiendo..." : "Cargar documento"}
                 </Button>
               </label>
             </div>
-            {docsByType.length > 0 ? (
+            {docFileName ? (
+              <p className="text-xs text-muted-foreground">Archivo seleccionado: {docFileName}</p>
+            ) : null}
+            {uploadedDocs.length > 0 ? (
               <div className="space-y-2">
-                {docsByType.map((doc) => (
-                  <div key={doc.type} className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
-                    <span className="text-sm">{DOC_LABEL[doc.type] || doc.type}</span>
+                {uploadedDocs.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
+                    <span className="text-sm">{DOC_LABEL[doc.type] || doc.type}{doc.fileName ? ` · ${doc.fileName}` : ""}</span>
                     <div className="flex items-center gap-2">
                       <a
                         href={doc.fileUrl}
@@ -243,7 +551,7 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
                       >
                         Ver
                       </a>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeDoc(doc.type)}>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeDoc(doc.id)}>
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -252,7 +560,7 @@ export function PostulacionPublicForm({ token }: PostulacionPublicFormProps) {
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Puedes subir cédula, antecedentes, OS-10, currículum, contrato y anexos.
+                Debes subir al menos un documento (puedes cargar varios).
               </p>
             )}
           </div>

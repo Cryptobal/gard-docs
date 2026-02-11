@@ -1300,6 +1300,14 @@ model OpsPersona {
   lat       Decimal? @db.Decimal(10, 7)
   lng       Decimal? @db.Decimal(10, 7)
   addressSource String? @default("google_places") @map("address_source")
+  birthDate DateTime? @map("birth_date") @db.Date
+  sex String?
+  afp String?
+  healthSystem String? @map("health_system")
+  isapreName String? @map("isapre_name")
+  isapreHasExtraPercent Boolean? @default(false) @map("isapre_has_extra_percent")
+  isapreExtraPercent Decimal? @map("isapre_extra_percent") @db.Decimal(5, 2)
+  hasMobilization Boolean? @default(false) @map("has_mobilization")
   status    String   @default("active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1326,6 +1334,7 @@ model OpsGuardia {
   isBlacklisted   Boolean   @default(false) @map("is_blacklisted")
   blacklistReason String?   @map("blacklist_reason")
   blacklistedAt   DateTime? @map("blacklisted_at") @db.Timestamptz(6)
+  availableExtraShifts Boolean @default(false) @map("available_extra_shifts")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 

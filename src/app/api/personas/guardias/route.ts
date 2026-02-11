@@ -34,6 +34,13 @@ function toNullableDate(value?: string | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function toNullablePercent(value?: number | string | null): Prisma.Decimal | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return new Prisma.Decimal(parsed);
+}
+
 function toNullableDecimal(value?: number | string | null): Prisma.Decimal | null {
   if (value === null || value === undefined || value === "") return null;
   return new Prisma.Decimal(value);
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
       : null;
     if (existingByRut) {
       return NextResponse.json(
-        { success: false, error: "Ya existe una persona con ese RUT" },
+        { success: false, error: "RUT ya ingresado. Comunicarse con recursos humanos." },
         { status: 400 }
       );
     }
@@ -138,8 +145,16 @@ export async function POST(request: NextRequest) {
               commune: normalizeNullable(body.commune),
               city: normalizeNullable(body.city),
               region: normalizeNullable(body.region),
+              sex: normalizeNullable(body.sex),
               lat: toNullableDecimal(body.lat),
               lng: toNullableDecimal(body.lng),
+              birthDate: toNullableDate(body.birthDate),
+              afp: normalizeNullable(body.afp),
+              healthSystem: normalizeNullable(body.healthSystem),
+              isapreName: normalizeNullable(body.isapreName),
+              isapreHasExtraPercent: body.isapreHasExtraPercent ?? false,
+              isapreExtraPercent: toNullablePercent(body.isapreExtraPercent),
+              hasMobilization: body.hasMobilization ?? false,
               addressSource: "google_places",
               status: "active",
             },
@@ -154,6 +169,7 @@ export async function POST(request: NextRequest) {
               code: generatedCode,
               lifecycleStatus,
               status: lifecycleToLegacyStatus(lifecycleStatus),
+              availableExtraShifts: body.availableExtraShifts ?? false,
               hiredAt: lifecycleStatus === "contratado_activo" ? new Date() : null,
             },
           });
@@ -187,6 +203,17 @@ export async function POST(request: NextRequest) {
               createdBy: ctx.userId,
             },
           });
+
+          if (body.notes && body.notes.trim()) {
+            await tx.opsComentarioGuardia.create({
+              data: {
+                tenantId: ctx.tenantId,
+                guardiaId: guardia.id,
+                comment: body.notes.trim(),
+                createdBy: ctx.userId,
+              },
+            });
+          }
 
           return tx.opsGuardia.findUnique({
             where: { id: guardia.id },

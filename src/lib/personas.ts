@@ -57,6 +57,28 @@ export const CHILE_BANKS = [
 
 export const CHILE_BANK_CODES = CHILE_BANKS.map((b) => b.code);
 
+export const AFP_CHILE = [
+  "Capital",
+  "Cuprum",
+  "Habitat",
+  "PlanVital",
+  "ProVida",
+  "UNO",
+  "Modelo",
+] as const;
+
+export const HEALTH_SYSTEMS = ["fonasa", "isapre"] as const;
+export const ISAPRES_CHILE = [
+  "Banmédica",
+  "Colmena",
+  "Consalud",
+  "CruzBlanca",
+  "Esencial",
+  "Nueva Masvida",
+  "Vida Tres",
+] as const;
+export const PERSON_SEX = ["masculino", "femenino"] as const;
+
 export function normalizeNullable(value?: string | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -68,6 +90,46 @@ export function normalizeRut(input: string): string {
   return compact;
 }
 
+export function computeRutDv(bodyDigits: string): string {
+  let sum = 0;
+  let multiplier = 2;
+  for (let i = bodyDigits.length - 1; i >= 0; i -= 1) {
+    sum += Number(bodyDigits[i]) * multiplier;
+    multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  }
+  const remainder = 11 - (sum % 11);
+  return remainder === 11 ? "0" : remainder === 10 ? "K" : String(remainder);
+}
+
+export function completeRutWithDv(input: string): string {
+  const normalized = normalizeRut(input).replace(/[^0-9K-]/g, "");
+  if (normalized.includes("-")) {
+    const [rawBody, ...rawDvParts] = normalized.split("-");
+    const body = rawBody.replace(/\D/g, "").slice(0, 8);
+    const dv = rawDvParts.join("").replace(/[^0-9K]/g, "").slice(0, 1);
+    if (body.length < 7 || body.length > 8) return normalized;
+    return dv ? `${body}-${dv}` : `${body}-${computeRutDv(body)}`;
+  }
+  const compact = normalized.replace(/[^0-9K]/g, "").slice(0, 9);
+  if (/^\d{7,8}$/.test(compact)) return `${compact}-${computeRutDv(compact)}`;
+  if (/^\d{8}[0-9K]$/.test(compact)) return `${compact.slice(0, 8)}-${compact.slice(8)}`;
+  if (/^\d{7}K$/.test(compact)) return `${compact.slice(0, 7)}-${compact.slice(7)}`;
+  return compact;
+}
+
+export function formatRutForInput(input: string): string {
+  const normalized = normalizeRut(input).replace(/[^0-9K-]/g, "");
+  if (normalized.includes("-")) {
+    const [rawBody, ...rawDvParts] = normalized.split("-");
+    const body = rawBody.replace(/\D/g, "").slice(0, 8);
+    if (!body) return "";
+    const dv = rawDvParts.join("").replace(/[^0-9K]/g, "").slice(0, 1);
+    if (dv) return `${body}-${dv}`;
+    return normalized.endsWith("-") ? `${body}-` : body;
+  }
+  return normalized.replace(/[^0-9K]/g, "").slice(0, 9);
+}
+
 export function isChileanRutFormat(input: string): boolean {
   return /^\d{7,8}-[\dK]$/.test(normalizeRut(input));
 }
@@ -76,15 +138,7 @@ export function isValidChileanRut(input: string): boolean {
   const rut = normalizeRut(input);
   if (!isChileanRutFormat(rut)) return false;
   const [body, dvInput] = rut.split("-");
-  let sum = 0;
-  let multiplier = 2;
-  for (let i = body.length - 1; i >= 0; i -= 1) {
-    sum += Number(body[i]) * multiplier;
-    multiplier = multiplier === 7 ? 2 : multiplier + 1;
-  }
-  const remainder = 11 - (sum % 11);
-  const dvExpected =
-    remainder === 11 ? "0" : remainder === 10 ? "K" : String(remainder);
+  const dvExpected = computeRutDv(body);
   return dvInput === dvExpected;
 }
 

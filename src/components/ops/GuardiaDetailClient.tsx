@@ -12,7 +12,9 @@ import {
   Landmark,
   Mail,
   MessageCircle,
+  MessageSquare,
   Link2,
+  MapPin,
   Save,
   Send,
   Trash2,
@@ -24,11 +26,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/opai";
 import {
+  AFP_CHILE,
   BANK_ACCOUNT_TYPES,
   CHILE_BANKS,
   DOCUMENT_STATUS,
   DOCUMENT_TYPES,
   GUARDIA_COMM_TEMPLATES,
+  HEALTH_SYSTEMS,
+  ISAPRES_CHILE,
 } from "@/lib/personas";
 import { hasOpsCapability } from "@/lib/ops-rbac";
 
@@ -38,6 +43,7 @@ const SECTIONS = [
   { id: "docs-vinculados", label: "Docs vinculados", icon: Link2 },
   { id: "cuentas", label: "Cuentas bancarias", icon: Landmark },
   { id: "comunicaciones", label: "Comunicaciones", icon: Mail },
+  { id: "comentarios", label: "Comentarios", icon: MessageSquare },
   { id: "historial", label: "Historial", icon: History },
 ] as const;
 
@@ -58,7 +64,18 @@ type GuardiaDetail = {
     commune?: string | null;
     city?: string | null;
     region?: string | null;
+    sex?: string | null;
+    lat?: string | null;
+    lng?: string | null;
+    birthDate?: string | null;
+    afp?: string | null;
+    healthSystem?: string | null;
+    isapreName?: string | null;
+    isapreHasExtraPercent?: boolean | null;
+    isapreExtraPercent?: string | null;
+    hasMobilization?: boolean | null;
   };
+  availableExtraShifts?: boolean;
   bankAccounts: Array<{
     id: string;
     bankCode?: string | null;
@@ -82,6 +99,12 @@ type GuardiaDetail = {
     eventType: string;
     newValue?: Record<string, unknown> | null;
     reason?: string | null;
+    createdAt: string;
+  }>;
+  comments?: Array<{
+    id: string;
+    comment: string;
+    createdBy?: string | null;
     createdAt: string;
   }>;
 };
@@ -138,6 +161,8 @@ export function GuardiaDetailClient({ initialGuardia, userRole }: GuardiaDetailC
   const [docEdits, setDocEdits] = useState<
     Record<string, { status: string; issuedAt: string; expiresAt: string }>
   >({});
+  const [commentText, setCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
   const [availableDocs, setAvailableDocs] = useState<
     Array<{
       id: string;
@@ -513,6 +538,41 @@ export function GuardiaDetailClient({ initialGuardia, userRole }: GuardiaDetailC
     }
   };
 
+  const handleCreateComment = async () => {
+    if (!commentText.trim()) {
+      toast.error("Escribe un comentario");
+      return;
+    }
+    setCommentSaving(true);
+    try {
+      const response = await fetch(`/api/personas/guardias/${guardia.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: commentText.trim() }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "No se pudo guardar comentario");
+      }
+      setGuardia((prev) => ({
+        ...prev,
+        comments: [payload.data, ...(prev.comments || [])],
+      }));
+      setCommentText("");
+      toast.success("Comentario guardado");
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo guardar comentario");
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  const mapUrl =
+    guardia.persona.lat && guardia.persona.lng && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      ? `https://maps.googleapis.com/maps/api/staticmap?center=${guardia.persona.lat},${guardia.persona.lng}&zoom=15&size=160x120&scale=2&markers=color:red%7C${guardia.persona.lat},${guardia.persona.lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      : null;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -553,12 +613,59 @@ export function GuardiaDetailClient({ initialGuardia, userRole }: GuardiaDetailC
         <CardHeader>
           <CardTitle>Datos personales</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
+        <CardContent className="grid gap-3 md:grid-cols-3">
           <Input value={`${guardia.persona.firstName} ${guardia.persona.lastName}`} readOnly />
           <Input value={guardia.persona.rut || "Sin RUT"} readOnly />
           <Input value={guardia.persona.email || "Sin email"} readOnly />
           <Input value={guardia.persona.phoneMobile || "Sin celular"} readOnly />
+          <Input value={guardia.persona.birthDate ? toDateInput(guardia.persona.birthDate) : "Sin fecha nacimiento"} readOnly />
+          <Input
+            value={
+              guardia.persona.sex
+                ? guardia.persona.sex.charAt(0).toUpperCase() + guardia.persona.sex.slice(1)
+                : "Sin sexo"
+            }
+            readOnly
+          />
+          <Input value={guardia.persona.afp || "Sin AFP"} readOnly />
+          <Input
+            value={
+              guardia.persona.healthSystem === "isapre"
+                ? `ISAPRE${guardia.persona.isapreName ? ` · ${guardia.persona.isapreName}` : ""}`
+                : guardia.persona.healthSystem
+                  ? guardia.persona.healthSystem.toUpperCase()
+                  : "Sin sistema de salud"
+            }
+            readOnly
+          />
+          <Input
+            value={
+              guardia.persona.healthSystem === "isapre" && guardia.persona.isapreHasExtraPercent
+                ? `Cotización ${guardia.persona.isapreExtraPercent || "N/D"}%`
+                : "Cotización legal"
+            }
+            readOnly
+          />
+          <Input value={guardia.persona.hasMobilization ? "Con movilización" : "Sin movilización"} readOnly />
+          <Input value={guardia.availableExtraShifts ? "Disponible para TE" : "No disponible para TE"} readOnly />
           <Input className="md:col-span-2" value={guardia.persona.addressFormatted || "Sin dirección"} readOnly />
+          {mapUrl ? (
+            <a
+              href={`https://www.google.com/maps/@${guardia.persona.lat},${guardia.persona.lng},17z`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg overflow-hidden border border-border h-[120px] w-[160px]"
+              title="Abrir en Google Maps"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={mapUrl} alt="Mapa guardia" className="h-full w-full object-cover" />
+            </a>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border h-[120px] w-[160px] flex items-center justify-center text-xs text-muted-foreground">
+              <MapPin className="h-4 w-4 mr-1" />
+              Sin mapa
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1024,6 +1131,46 @@ export function GuardiaDetailClient({ initialGuardia, userRole }: GuardiaDetailC
               })
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card id="comentarios">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Comentarios internos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Escribe una nota o comentario sobre este guardia"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+            />
+            <Button
+              type="button"
+              onClick={() => void handleCreateComment()}
+              disabled={commentSaving || !canManageGuardias}
+            >
+              {commentSaving ? "Guardando..." : "Comentar"}
+            </Button>
+          </div>
+          {guardia.comments && guardia.comments.length > 0 ? (
+            <div className="space-y-2">
+              {guardia.comments.map((comment) => (
+                <div key={comment.id} className="rounded-md border border-border p-3">
+                  <p className="text-sm">{comment.comment}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(comment.createdAt).toLocaleString("es-CL")}
+                    {comment.createdBy ? ` · ${comment.createdBy}` : ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin comentarios.</p>
+          )}
         </CardContent>
       </Card>
 

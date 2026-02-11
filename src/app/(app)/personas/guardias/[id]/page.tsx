@@ -27,6 +27,7 @@ export default async function GuardiaDetailPage({
     include: {
       persona: true,
       bankAccounts: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
+      comments: { orderBy: [{ createdAt: "desc" }], take: 100 },
       documents: { orderBy: [{ createdAt: "desc" }] },
       historyEvents: { orderBy: [{ createdAt: "desc" }], take: 100 },
     },
