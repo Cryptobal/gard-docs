@@ -92,12 +92,12 @@ export default function RolesHelpCard() {
           <span>Ver permisos</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[96vw] max-w-[1400px] h-[92vh] flex flex-col">
+      <DialogContent className="w-[95vw] sm:!max-w-[min(95vw,1920px)] max-w-[1920px] h-[92vh] flex flex-col overflow-x-hidden">
         <DialogHeader className="flex-shrink-0 pb-2">
           <DialogTitle className="text-xl">Matriz de Permisos por Rol</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+        <div className="space-y-4 flex-1 overflow-y-auto overflow-x-hidden pr-1 min-w-0">
           <p className="text-sm text-muted-foreground">
             Vista real del sistema basada en la política central de roles. Si se agrega un rol nuevo, esta vista se actualiza desde esa misma fuente.
           </p>
