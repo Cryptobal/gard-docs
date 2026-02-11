@@ -4,6 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { requireAuth, unauthorized } from "@/lib/api-auth";
 import { openai } from "@/lib/openai";
 
@@ -61,7 +64,39 @@ function collectRegexMatches(content: string, regex: RegExp, max = 5): string[] 
   return matches;
 }
 
-function detectLogoUrl(html: string, baseUrl: string): string | null {
+function collectRawMatches(content: string, regex: RegExp, max = 5): string[] {
+  const matches: string[] = [];
+  for (const m of content.matchAll(regex)) {
+    const raw = (m[0] || "").trim();
+    if (!raw) continue;
+    matches.push(raw);
+    if (matches.length >= max) break;
+  }
+  return matches;
+}
+
+type LogoCandidate = {
+  url: string;
+  source: string;
+  score: number;
+};
+
+function normalizeToken(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getCompanyTokens(companyName: string): string[] {
+  const normalized = normalizeToken(companyName || "");
+  return normalized
+    .split(/[^a-z0-9]+/g)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 3);
+}
+
+function detectLogoCandidates(html: string, baseUrl: string, companyName: string): LogoCandidate[] {
   const metaCandidates = [
     firstMatch(
       html,
@@ -92,16 +127,130 @@ function detectLogoUrl(html: string, baseUrl: string): string | null {
     /"logo"\s*:\s*"([^"]+)"/i
   );
 
-  const orderedCandidates = [...metaCandidates, jsonLdLogo, ...linkCandidates].filter(Boolean);
-  for (const c of orderedCandidates) {
+  const companyTokens = getCompanyTokens(companyName);
+  const allCandidates: LogoCandidate[] = [];
+
+  // 1) Meta-based candidates (útiles, pero no siempre son logo corporativo)
+  for (const c of [...metaCandidates, jsonLdLogo, ...linkCandidates].filter(Boolean)) {
     const absolute = resolveUrl(c, baseUrl);
     if (!absolute) continue;
-    return absolute;
+    allCandidates.push({ url: absolute, source: "meta", score: 10 });
   }
-  return null;
+
+  // 2) Header/nav image candidates (prioridad principal solicitada por usuario)
+  const headerBlocks = [
+    ...collectRawMatches(html, /<header[\s\S]*?<\/header>/gi, 4),
+    ...collectRawMatches(html, /<nav[\s\S]*?<\/nav>/gi, 4),
+  ];
+  const imgTagRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  const attrRegex = (attr: string) => new RegExp(`${attr}=["']([^"']+)["']`, "i");
+
+  for (const block of headerBlocks) {
+    for (const match of block.matchAll(imgTagRegex)) {
+      const fullTag = match[0] || "";
+      const src = match[1] || "";
+      const absolute = resolveUrl(src, baseUrl);
+      if (!absolute) continue;
+
+      const alt = (fullTag.match(attrRegex("alt"))?.[1] || "").toLowerCase();
+      const cls = (fullTag.match(attrRegex("class"))?.[1] || "").toLowerCase();
+      const id = (fullTag.match(attrRegex("id"))?.[1] || "").toLowerCase();
+      const srcLower = absolute.toLowerCase();
+
+      let score = 120; // Header/nav base
+      if (srcLower.includes("logo")) score += 55;
+      if (alt.includes("logo")) score += 45;
+      if (cls.includes("logo") || id.includes("logo")) score += 35;
+      if (srcLower.endsWith(".svg")) score += 24;
+      if (srcLower.endsWith(".png")) score += 18;
+      if (srcLower.includes("favicon") || srcLower.endsWith(".ico")) score -= 80;
+      if (srcLower.includes("icon")) score -= 20;
+
+      for (const token of companyTokens) {
+        if (srcLower.includes(token) || alt.includes(token) || cls.includes(token) || id.includes(token)) {
+          score += 18;
+        }
+      }
+
+      allCandidates.push({ url: absolute, source: "header", score });
+    }
+  }
+
+  // 3) Global IMG fallback: por si no hay header estructurado
+  for (const match of html.matchAll(imgTagRegex)) {
+    const fullTag = match[0] || "";
+    const src = match[1] || "";
+    const absolute = resolveUrl(src, baseUrl);
+    if (!absolute) continue;
+
+    const alt = (fullTag.match(attrRegex("alt"))?.[1] || "").toLowerCase();
+    const cls = (fullTag.match(attrRegex("class"))?.[1] || "").toLowerCase();
+    const id = (fullTag.match(attrRegex("id"))?.[1] || "").toLowerCase();
+    const srcLower = absolute.toLowerCase();
+
+    let score = 30;
+    if (srcLower.includes("logo")) score += 35;
+    if (alt.includes("logo")) score += 25;
+    if (cls.includes("logo") || id.includes("logo")) score += 20;
+    if (srcLower.includes("favicon") || srcLower.endsWith(".ico")) score -= 60;
+    if (srcLower.endsWith(".svg")) score += 16;
+    if (srcLower.endsWith(".png")) score += 10;
+    for (const token of companyTokens) {
+      if (srcLower.includes(token) || alt.includes(token)) score += 12;
+    }
+    allCandidates.push({ url: absolute, source: "img", score });
+  }
+
+  // Dedup por URL manteniendo mejor score
+  const bestByUrl = new Map<string, LogoCandidate>();
+  for (const candidate of allCandidates) {
+    const prev = bestByUrl.get(candidate.url);
+    if (!prev || candidate.score > prev.score) bestByUrl.set(candidate.url, candidate);
+  }
+  return Array.from(bestByUrl.values()).sort((a, b) => b.score - a.score);
 }
 
-async function scrapeWebsite(websiteNormalized: string): Promise<ExtractedWebData> {
+function pickBestLogoCandidate(candidates: LogoCandidate[]): string | null {
+  if (candidates.length === 0) return null;
+  return candidates[0]?.url || null;
+}
+
+async function downloadLogoToPublic(logoUrl: string): Promise<string | null> {
+  const response = await fetch(logoUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; OPAI-Bot/1.0; +https://gard.cl)",
+      Accept: "image/svg+xml,image/png,image/webp,image/jpeg,image/*",
+    },
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+
+  const mime = (response.headers.get("content-type") || "").toLowerCase().split(";")[0];
+  const allowed: Record<string, string> = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/webp": ".webp",
+    "image/svg+xml": ".svg",
+  };
+  const ext = allowed[mime];
+  if (!ext) return null;
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.byteLength <= 0 || buffer.byteLength > 5 * 1024 * 1024) {
+    return null;
+  }
+
+  const hash = createHash("sha1").update(logoUrl).digest("hex").slice(0, 12);
+  const fileName = `logo-${Date.now()}-${hash}${ext}`;
+  const relDir = path.join("public", "uploads", "company-logos");
+  const absDir = path.join(process.cwd(), relDir);
+  await mkdir(absDir, { recursive: true });
+  const absFile = path.join(absDir, fileName);
+  await writeFile(absFile, buffer);
+  return `/uploads/company-logos/${fileName}`;
+}
+
+async function scrapeWebsite(websiteNormalized: string, companyName: string): Promise<ExtractedWebData> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
@@ -130,7 +279,8 @@ async function scrapeWebsite(websiteNormalized: string): Promise<ExtractedWebDat
     const paragraphs = collectRegexMatches(html, /<p[^>]*>([\s\S]*?)<\/p>/gi, 10).filter(
       (p) => p.length > 40
     );
-    const logoUrl = detectLogoUrl(html, websiteNormalized);
+    const logoCandidates = detectLogoCandidates(html, websiteNormalized, companyName);
+    const logoUrl = pickBestLogoCandidate(logoCandidates);
 
     return {
       websiteNormalized,
@@ -198,11 +348,20 @@ export async function POST(request: NextRequest) {
     }
 
     const websiteNormalized = normalizeWebsiteUrl(rawWebsite);
-    const extracted = await scrapeWebsite(websiteNormalized);
+    const companyName = body.companyName?.trim() || "";
+    const extracted = await scrapeWebsite(websiteNormalized, companyName);
+    let localLogoUrl: string | null = null;
+    if (extracted.logoUrl) {
+      try {
+        localLogoUrl = await downloadLogoToPublic(extracted.logoUrl);
+      } catch (logoError) {
+        console.error("Error downloading company logo:", logoError);
+      }
+    }
 
     let summary = "";
     try {
-      summary = await summarizeInSpanish(body.companyName?.trim() || "", websiteNormalized, extracted);
+      summary = await summarizeInSpanish(companyName, websiteNormalized, extracted);
     } catch (aiError) {
       console.error("Error generating AI company summary:", aiError);
       summary =
@@ -216,6 +375,7 @@ export async function POST(request: NextRequest) {
       data: {
         websiteNormalized,
         logoUrl: extracted.logoUrl,
+        localLogoUrl,
         summary,
         title: extracted.title,
       },

@@ -22,6 +22,31 @@ const WEEKDAY_ALIAS: Record<string, string> = {
   domingo: "domingo", Domingo: "domingo", DOMINGO: "domingo",
 };
 
+const ACCOUNT_LOGO_MARKER_PREFIX = "[[ACCOUNT_LOGO_URL:";
+const ACCOUNT_LOGO_MARKER_SUFFIX = "]]";
+
+function sanitizeAccountLogoUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("/uploads/company-logos/")) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === "https:" || url.protocol === "http:") return url.toString();
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function buildAccountNotesWithLogo(baseNotes: string | null, logoUrl: string | null): string | null {
+  const cleanBase = (baseNotes || "").trim();
+  if (!logoUrl && !cleanBase) return null;
+  if (!logoUrl) return cleanBase || null;
+  const marker = `${ACCOUNT_LOGO_MARKER_PREFIX}${logoUrl}${ACCOUNT_LOGO_MARKER_SUFFIX}`;
+  return cleanBase ? `${marker}\n${cleanBase}` : marker;
+}
+
 function normalizeWeekdays(dias: unknown): string[] {
   if (!Array.isArray(dias) || dias.length === 0) return [...CPQ_WEEKDAYS];
   const normalized = dias
@@ -149,6 +174,9 @@ export async function POST(
 
     const dealTitle = body?.dealTitle?.trim() || `Oportunidad ${accountName}`;
     const installationsPayload = Array.isArray(body?.installations) ? body.installations : [];
+    const accountLogoUrl = sanitizeAccountLogoUrl(body?.accountLogoUrl);
+    const accountNotesBase = body?.accountNotes?.trim() || lead.notes || null;
+    const accountNotesWithLogo = buildAccountNotesWithLogo(accountNotesBase, accountLogoUrl);
 
     const result = await prisma.$transaction(async (tx) => {
       let account: { id: string };
@@ -172,7 +200,7 @@ export async function POST(
             segment: body?.segment?.trim() || null,
             website: body?.website?.trim() || null,
             address: body?.address?.trim() || null,
-            notes: body?.accountNotes?.trim() || lead.notes || null,
+            notes: accountNotesWithLogo,
             ownerId: ctx.userId,
           },
         });

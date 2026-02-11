@@ -41,6 +41,34 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NotesSection } from "./NotesSection";
 
+const ACCOUNT_LOGO_MARKER_PREFIX = "[[ACCOUNT_LOGO_URL:";
+const ACCOUNT_LOGO_MARKER_SUFFIX = "]]";
+
+function extractAccountLogoUrl(notes?: string | null): string | null {
+  if (!notes) return null;
+  const start = notes.indexOf(ACCOUNT_LOGO_MARKER_PREFIX);
+  if (start === -1) return null;
+  const end = notes.indexOf(ACCOUNT_LOGO_MARKER_SUFFIX, start);
+  if (end === -1) return null;
+  const raw = notes
+    .slice(start + ACCOUNT_LOGO_MARKER_PREFIX.length, end)
+    .trim();
+  return raw || null;
+}
+
+function stripAccountLogoMarker(notes?: string | null): string {
+  if (!notes) return "";
+  const pattern = /\[\[ACCOUNT_LOGO_URL:[^\]]+\]\]\n?/g;
+  return notes.replace(pattern, "").trim();
+}
+
+function withAccountLogoMarker(notes: string, logoUrl: string | null): string {
+  const cleanNotes = stripAccountLogoMarker(notes);
+  if (!logoUrl) return cleanNotes;
+  const marker = `${ACCOUNT_LOGO_MARKER_PREFIX}${logoUrl}${ACCOUNT_LOGO_MARKER_SUFFIX}`;
+  return cleanNotes ? `${marker}\n${cleanNotes}` : marker;
+}
+
 type ContactRow = {
   id: string;
   firstName: string;
@@ -92,6 +120,9 @@ type AccountDetail = {
 export function CrmAccountDetailClient({ account: initialAccount, currentUserId }: { account: AccountDetail; currentUserId: string }) {
   const router = useRouter();
   const [account, setAccount] = useState(initialAccount);
+  const [accountLogoUrl, setAccountLogoUrl] = useState<string | null>(
+    extractAccountLogoUrl(initialAccount.notes)
+  );
 
   // ── Account edit state ──
   const [editAccountOpen, setEditAccountOpen] = useState(false);
@@ -104,7 +135,7 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
     size: account.size || "",
     website: account.website || "",
     address: account.address || "",
-    notes: account.notes || "",
+    notes: stripAccountLogoMarker(account.notes),
   });
 
   // ── Contact edit state ──
@@ -133,7 +164,7 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
       size: account.size || "",
       website: account.website || "",
       address: account.address || "",
-      notes: account.notes || "",
+      notes: stripAccountLogoMarker(account.notes),
     });
     setEditAccountOpen(true);
   };
@@ -145,11 +176,18 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
       const res = await fetch(`/api/crm/accounts/${account.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(accountForm),
+        body: JSON.stringify({
+          ...accountForm,
+          notes: withAccountLogoMarker(accountForm.notes, accountLogoUrl),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error);
-      setAccount((prev) => ({ ...prev, ...accountForm }));
+      setAccount((prev) => ({
+        ...prev,
+        ...accountForm,
+        notes: withAccountLogoMarker(accountForm.notes, accountLogoUrl),
+      }));
       setEditAccountOpen(false);
       toast.success("Cuenta actualizada");
     } catch {
@@ -311,6 +349,16 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
                 "—"
               )}
             </InfoRow>
+            {accountLogoUrl && (
+              <div className="rounded-md border border-border bg-muted/20 p-2">
+                <p className="text-[10px] text-muted-foreground mb-1">Logo de la empresa</p>
+                <img
+                  src={accountLogoUrl}
+                  alt={`Logo ${account.name}`}
+                  className="h-20 w-20 rounded border border-border bg-background object-contain"
+                />
+              </div>
+            )}
             {account.address && (
               <InfoRow label="Dirección">
                 <span className="flex items-center gap-1">
@@ -319,12 +367,12 @@ export function CrmAccountDetailClient({ account: initialAccount, currentUserId 
                 </span>
               </InfoRow>
             )}
-            {account.notes && (
+            {stripAccountLogoMarker(account.notes) && (
               <div className="rounded-md border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-                {account.notes}
+                {stripAccountLogoMarker(account.notes)}
               </div>
             )}
-            {!account.address && !account.notes && (
+            {!account.address && !stripAccountLogoMarker(account.notes) && !accountLogoUrl && (
               <p className="text-muted-foreground text-xs">Sin dirección ni notas.</p>
             )}
           </div>
