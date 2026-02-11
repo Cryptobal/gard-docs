@@ -154,13 +154,28 @@ type DuplicateAccount = { id: string; name: string; rut?: string | null; type?: 
 type ExistingContact = { id: string; firstName: string | null; lastName: string | null; email: string | null };
 type InstallationConflict = { name: string; id: string };
 
-export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
+type LeadStatusFilter = "all" | "pending" | "approved" | "rejected";
+
+function getLeadFilterLabel(filter: LeadStatusFilter): string | null {
+  if (filter === "pending") return "Mostrando leads pendientes";
+  if (filter === "approved") return "Mostrando leads aprobados";
+  if (filter === "rejected") return "Mostrando leads rechazados";
+  return null;
+}
+
+export function CrmLeadsClient({
+  initialLeads,
+  initialStatusFilter = "all",
+}: {
+  initialLeads: CrmLead[];
+  initialStatusFilter?: LeadStatusFilter;
+}) {
   const [leads, setLeads] = useState<CrmLead[]>(initialLeads);
   const [form, setForm] = useState<LeadFormState>(DEFAULT_FORM);
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<LeadStatusFilter>(initialStatusFilter);
   const [sort, setSort] = useState("newest");
   const [view, setView] = useState<ViewMode>("list");
 
@@ -579,8 +594,14 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
     { key: "rejected", label: "Rechazados", count: counts.rejected },
   ];
 
+  const initialFilterLabel = getLeadFilterLabel(initialStatusFilter);
+
   return (
     <div className="space-y-4">
+      {initialFilterLabel && (
+        <p className="text-xs text-muted-foreground">{initialFilterLabel}</p>
+      )}
+
       {/* ── Toolbar ── */}
       <CrmToolbar
         search={search}
@@ -588,7 +609,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: CrmLead[] }) {
         searchPlaceholder="Buscar por empresa, contacto o email..."
         filters={statusFilters}
         activeFilter={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilterChange={(value) => setStatusFilter((value as LeadStatusFilter) || "all")}
         activeSort={sort}
         onSortChange={setSort}
         viewModes={["list", "cards"]}

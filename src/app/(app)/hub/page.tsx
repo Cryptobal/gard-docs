@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma';
 import { getDefaultTenantId } from '@/lib/tenant';
 import { hasAppAccess } from '@/lib/app-access';
 import {
+  hasConfigSubmoduleAccess,
   hasCrmSubmoduleAccess,
   hasDocsSubmoduleAccess,
 } from '@/lib/module-access';
@@ -66,6 +67,7 @@ export default async function HubPage() {
   const canOpenDeals = hasCrmSubmoduleAccess(role, 'deals');
   const canOpenQuotes = hasCrmSubmoduleAccess(role, 'quotes');
   const canCreateProposal = hasDocsSubmoduleAccess(role, 'document_editor');
+  const canConfigureCrm = hasConfigSubmoduleAccess(role, 'crm');
 
   const docsSignals = canUseDocsOverview
     ? await getDocsSignals(tenantId, thirtyDaysAgo)
@@ -151,7 +153,7 @@ export default async function HubPage() {
         <>
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
             <KpiLinkCard
-              href="/crm/leads"
+              href="/crm/leads?status=pending"
               title="Leads Abiertos"
               value={crmMetrics.pendingLeadsCount}
               icon={<Users className="h-4 w-4" />}
@@ -159,7 +161,7 @@ export default async function HubPage() {
               variant="sky"
             />
             <KpiLinkCard
-              href="/crm/leads"
+              href="/crm/leads?status=approved"
               title="Conv. Lead → Negocio"
               value={`${crmMetrics.leadToDealRate30}%`}
               icon={<Target className="h-4 w-4" />}
@@ -169,7 +171,7 @@ export default async function HubPage() {
               titleInfoTooltip="Leads creados en 30 días que terminaron convertidos a negocio."
             />
             <KpiLinkCard
-              href="/crm/deals"
+              href="/crm/deals?focus=proposals-sent-30d"
               title="Propuestas Enviadas"
               value={crmMetrics.proposalsSent30}
               icon={<Send className="h-4 w-4" />}
@@ -177,7 +179,7 @@ export default async function HubPage() {
               variant="blue"
             />
             <KpiLinkCard
-              href="/crm/deals"
+              href="/crm/deals?focus=won-after-proposal-30d"
               title="Tasa Propuesta → Ganado"
               value={`${crmMetrics.proposalToWonRate30}%`}
               icon={<CheckCircle2 className="h-4 w-4" />}
@@ -187,7 +189,7 @@ export default async function HubPage() {
               titleInfoTooltip="Negocios movidos a etapa ganada en 30 días, sobre propuestas enviadas en el mismo período."
             />
             <KpiLinkCard
-              href="/crm/deals"
+              href="/crm/deals?focus=followup-open"
               title="Negocios en Seguimiento"
               value={crmMetrics.openDealsInFollowUpCount}
               icon={<BriefcaseBusiness className="h-4 w-4" />}
@@ -195,7 +197,7 @@ export default async function HubPage() {
               variant="purple"
             />
             <KpiLinkCard
-              href="/crm/deals"
+              href="/crm/deals?focus=followup-overdue"
               title="Seguimientos Vencidos"
               value={crmMetrics.followUpsOverdueCount}
               icon={<AlertTriangle className="h-4 w-4" />}
@@ -302,7 +304,17 @@ export default async function HubPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Seguimiento de negocios</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">Seguimiento de negocios</CardTitle>
+                  {canConfigureCrm && (
+                    <Link
+                      href="/opai/configuracion/crm#seguimientos-automaticos"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Configurar 1er y 2do seguimiento
+                    </Link>
+                  )}
+                </div>
                 <CardDescription>
                   {crmMetrics.overdueFollowUps.length > 0
                     ? 'Priorizando seguimientos vencidos y para hoy.'

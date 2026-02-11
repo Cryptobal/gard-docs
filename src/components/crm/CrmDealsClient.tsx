@@ -78,6 +78,21 @@ type QuoteOption = {
   status: string;
 };
 
+type DealsFocus =
+  | "all"
+  | "proposals-sent-30d"
+  | "won-after-proposal-30d"
+  | "followup-open"
+  | "followup-overdue";
+
+function getDealsFocusLabel(focus: DealsFocus): string | null {
+  if (focus === "proposals-sent-30d") return "Mostrando propuestas enviadas en los últimos 30 días";
+  if (focus === "won-after-proposal-30d") return "Mostrando negocios ganados tras propuesta en 30 días";
+  if (focus === "followup-open") return "Mostrando negocios abiertos en seguimiento";
+  if (focus === "followup-overdue") return "Mostrando negocios con seguimientos vencidos";
+  return null;
+}
+
 type DealCardProps = {
   deal: CrmDeal;
   stages: CrmPipelineStage[];
@@ -300,11 +315,13 @@ export function CrmDealsClient({
   accounts,
   stages,
   quotes,
+  initialFocus = "all",
 }: {
   initialDeals: CrmDeal[];
   accounts: CrmAccount[];
   stages: CrmPipelineStage[];
   quotes: QuoteOption[];
+  initialFocus?: DealsFocus;
 }) {
   const [deals, setDeals] = useState<CrmDeal[]>(initialDeals);
   const [form, setForm] = useState<DealFormState>(DEFAULT_FORM);
@@ -322,6 +339,7 @@ export function CrmDealsClient({
   // Mobile sheet for deal actions
   const [sheetDealId, setSheetDealId] = useState<string | null>(null);
   const sheetDeal = sheetDealId ? deals.find((d) => d.id === sheetDealId) : null;
+  const focusLabel = getDealsFocusLabel(initialFocus);
 
   const inputClassName =
     "bg-background text-foreground placeholder:text-muted-foreground border-input focus-visible:ring-ring";
@@ -546,6 +564,10 @@ export function CrmDealsClient({
 
   return (
     <div className="space-y-4">
+      {focusLabel && (
+        <p className="text-xs text-muted-foreground">{focusLabel}</p>
+      )}
+
       {/* ── Toolbar ── */}
       <CrmToolbar
         search={search}
