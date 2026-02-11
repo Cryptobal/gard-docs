@@ -11,6 +11,7 @@
 | [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) | Vision completa de la plataforma, TODAS las fases, que esta hecho y que falta | Para entender a donde va el producto |
 | [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) | Estado real de TODOS los modulos, tecnologias, metricas | Para saber donde estamos HOY |
 | [000-opai-suite-master.md](./00-product/000-opai-suite-master.md) | Arquitectura, principios, multi-tenancy, RBAC, convenciones | Para decisiones tecnicas |
+| [role-policy-single-source.md](./02-implementation/role-policy-single-source.md) | Fuente unica de verdad para roles/permisos y protocolo de cambios | Antes de tocar RBAC o agregar roles |
 
 ---
 
@@ -37,7 +38,8 @@ docs/
 │   ├── ESTADO_GENERAL.md                ← ESTADO REAL de todos los modulos
 │   ├── database-schema.md               ← Esquema de base de datos
 │   ├── checklist-multitenant.md         ← Validacion multi-tenant
-│   └── usuarios-roles.md               ← Sistema de usuarios y RBAC
+│   ├── usuarios-roles.md               ← Sistema de usuarios y RBAC
+│   └── role-policy-single-source.md    ← Politica unica de roles y permisos
 │
 ├── 03-integrations/                     ← Integraciones externas
 │   ├── zoho-integration.md              ← Webhook Zoho CRM
@@ -50,7 +52,7 @@ docs/
 ├── 05-pdf-generation/                   ← Generacion de PDFs
 │   └── playwright-pdf.md               ← Playwright + Chromium
 │
-├── 05-etapa-1/                          ← Plan de implementacion Fase 1 OPI
+├── 05-etapa-1/                          ← Implementacion Fase 1 OPI (MVP + hardening)
 │   └── ETAPA_1_IMPLEMENTACION.md        ← Plan maestro (Ops + TE + Personas)
 │
 ├── 06-etapa-2/                          ← Plan de implementacion Fase 2 OPI
@@ -104,7 +106,7 @@ docs/
 
 1. Lee [MASTER_SPEC_OPI.md](./00-product/MASTER_SPEC_OPI.md) para entender la vision completa
 2. Lee [ESTADO_GENERAL.md](./02-implementation/ESTADO_GENERAL.md) para saber que esta implementado
-3. Para continuar Fase 1, lee [docs/05-etapa-1/](./05-etapa-1/)
+3. Para hardening/cierre de Fase 1, lee [docs/05-etapa-1/](./05-etapa-1/)
 4. Si se prioriza Fase 2, usa [docs/06-etapa-2/](./06-etapa-2/)
 
 ---

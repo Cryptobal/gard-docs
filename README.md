@@ -20,12 +20,12 @@ OPAI Suite es una plataforma unificada que cubre el ciclo completo: desde la ven
 | **Payroll** | `/payroll/*` | Simulador de liquidaciones Chile (parcial) |
 | **Configuracion** | `/opai/configuracion/*` | Usuarios, integraciones, firmas, categorias |
 
-## Modulos planificados (OPI)
+## Modulos OPI (estado actual)
 
 | Fase | Modulo | Estado |
 |:----:|--------|:------:|
-| 1 | Ops (puestos, pauta, asistencia, TE, personas) | Pendiente |
-| 2 | Postventa (check-in/out, bitacora) + Tickets (SLA) | Planificado |
+| 1 | Ops (puestos, pauta, asistencia, TE, personas) | ✅ MVP v1 implementado (hardening en curso) |
+| 2 | Postventa (check-in/out, bitacora) + Tickets (SLA) | 🚧 Planificado (siguiente fase) |
 | 3 | Portal guardias (comunicados, solicitudes) | Pendiente |
 | 4 | Inventario (stock, kits, asignaciones) | Pendiente |
 | 5 | Asistencia externa (FaceID/API) | Pendiente |
@@ -34,7 +34,7 @@ OPAI Suite es una plataforma unificada que cubre el ciclo completo: desde la ven
 
 - **Framework:** Next.js 15 (App Router)
 - **Lenguaje:** TypeScript 5.6
-- **DB:** PostgreSQL (Neon) + Prisma (6 schemas, 56 modelos)
+- **DB:** PostgreSQL (Neon) + Prisma (7 schemas, 77 modelos)
 - **Auth:** Auth.js v5 (4 roles: owner, admin, editor, viewer)
 - **UI:** Tailwind CSS + Radix UI + shadcn/ui
 - **Email:** Resend

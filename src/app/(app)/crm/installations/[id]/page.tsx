@@ -27,16 +27,50 @@ export default async function CrmInstallationDetailPage({
   }
 
   const tenantId = session.user?.tenantId ?? (await getDefaultTenantId());
-  const installation = await prisma.crmInstallation.findFirst({
-    where: { id, tenantId },
-    include: { account: { select: { id: true, name: true } } },
-  });
+  const [installation, puestosActivos, quotesInstalacion] = await Promise.all([
+    prisma.crmInstallation.findFirst({
+      where: { id, tenantId },
+      include: { account: { select: { id: true, name: true } } },
+    }),
+    prisma.opsPuestoOperativo.findMany({
+      where: { tenantId, installationId: id, active: true },
+      orderBy: [{ createdAt: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        shiftStart: true,
+        shiftEnd: true,
+        weekdays: true,
+        requiredGuards: true,
+        teMontoClp: true,
+      },
+    }),
+    prisma.cpqQuote.findMany({
+      where: { tenantId, installationId: id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        code: true,
+        status: true,
+        totalPositions: true,
+        totalGuards: true,
+        updatedAt: true,
+      },
+      take: 20,
+    }),
+  ]);
 
   if (!installation) {
     redirect("/crm/installations");
   }
 
-  const data = JSON.parse(JSON.stringify(installation));
+  const data = JSON.parse(
+    JSON.stringify({
+      ...installation,
+      puestosActivos,
+      quotesInstalacion,
+    })
+  );
 
   return (
     <>

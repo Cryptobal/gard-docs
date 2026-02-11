@@ -20,7 +20,10 @@ export default async function OpsPuestosPage() {
 
   const [installations, puestos] = await Promise.all([
     prisma.crmInstallation.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        account: { type: "client" },
+      },
       select: { id: true, name: true, teMontoClp: true },
       orderBy: { name: "asc" },
     }),

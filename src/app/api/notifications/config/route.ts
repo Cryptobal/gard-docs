@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, unauthorized } from "@/lib/api-auth";
+import { hasPermission, PERMISSIONS, type Role } from "@/lib/rbac";
 
 function settingKey(tenantId: string) {
   return `notification_preferences:${tenantId}`;
@@ -70,9 +71,9 @@ export async function POST(request: NextRequest) {
     const ctx = await requireAuth();
     if (!ctx) return unauthorized();
 
-    if (ctx.userRole !== "owner" && ctx.userRole !== "admin") {
+    if (!hasPermission(ctx.userRole as Role, PERMISSIONS.MANAGE_SETTINGS)) {
       return NextResponse.json(
-        { success: false, error: "Solo administradores pueden cambiar la configuración" },
+        { success: false, error: "Sin permisos para cambiar la configuración" },
         { status: 403 }
       );
     }

@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Building2, ExternalLink, Trash2, ArrowLeft, Info, Pencil } from "lucide-react";
+import { MapPin, Building2, ExternalLink, Trash2, ArrowLeft, Info, FileText } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/opai/EmptyState";
 import { CollapsibleSection } from "./CollapsibleSection";
@@ -22,6 +22,24 @@ export type InstallationDetail = {
   lat?: number | null;
   lng?: number | null;
   notes?: string | null;
+  metadata?: Record<string, unknown> | null;
+  puestosActivos?: Array<{
+    id: string;
+    name: string;
+    shiftStart: string;
+    shiftEnd: string;
+    weekdays: string[];
+    requiredGuards: number;
+    teMontoClp?: number | string | null;
+  }>;
+  quotesInstalacion?: Array<{
+    id: string;
+    code: string;
+    status: string;
+    totalPositions: number;
+    totalGuards: number;
+    updatedAt: string;
+  }>;
   account?: { id: string; name: string } | null;
 };
 
@@ -33,6 +51,33 @@ export function CrmInstallationDetailClient({
   const router = useRouter();
   const hasCoords = installation.lat != null && installation.lng != null;
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  const dotacionDesdeCotizacion = (
+    installation.metadata &&
+    typeof installation.metadata === "object" &&
+    "dotacionActiva" in installation.metadata &&
+    (installation.metadata.dotacionActiva as Record<string, unknown>) &&
+    typeof installation.metadata.dotacionActiva === "object"
+      ? (installation.metadata.dotacionActiva as Record<string, unknown>)
+      : null
+  );
+
+  const dotacionItems = Array.isArray(dotacionDesdeCotizacion?.items)
+    ? (dotacionDesdeCotizacion?.items as Array<Record<string, unknown>>)
+    : [];
+
+  const sourceQuoteId =
+    typeof dotacionDesdeCotizacion?.sourceQuoteId === "string"
+      ? dotacionDesdeCotizacion.sourceQuoteId
+      : null;
+  const sourceQuoteCode =
+    typeof dotacionDesdeCotizacion?.sourceQuoteCode === "string"
+      ? dotacionDesdeCotizacion.sourceQuoteCode
+      : null;
+  const sourceUpdatedAt =
+    typeof dotacionDesdeCotizacion?.updatedAt === "string"
+      ? dotacionDesdeCotizacion.updatedAt
+      : null;
 
   const deleteInstallation = async () => {
     try {
@@ -143,6 +188,121 @@ export function CrmInstallationDetailClient({
         ) : (
           <EmptyState icon={<Building2 className="h-8 w-8" />} title="Sin cuenta" description="Esta instalación no está vinculada a una cuenta." compact />
         )}
+      </CollapsibleSection>
+
+      {/* ── Section 3: Dotación activa ── */}
+      <CollapsibleSection
+        icon={<FileText className="h-4 w-4" />}
+        title="Dotación activa"
+      >
+        <div className="space-y-3">
+          {sourceQuoteId && sourceQuoteCode ? (
+            <div className="rounded-md border border-emerald-500/25 bg-emerald-500/5 p-3 text-xs text-emerald-200">
+              Dotación sincronizada desde cotización{" "}
+              <Link href={`/cpq/${sourceQuoteId}`} className="underline underline-offset-2 hover:text-emerald-100">
+                {sourceQuoteCode}
+              </Link>
+              {sourceUpdatedAt ? (
+                <span className="text-emerald-300/80"> · {new Date(sourceUpdatedAt).toLocaleString("es-CL")}</span>
+              ) : null}
+            </div>
+          ) : null}
+
+          {dotacionItems.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="min-w-full text-xs sm:text-sm">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Puesto</th>
+                    <th className="px-3 py-2 text-left font-medium">Cargo / Rol</th>
+                    <th className="px-3 py-2 text-left font-medium">Horario</th>
+                    <th className="px-3 py-2 text-left font-medium">Días</th>
+                    <th className="px-3 py-2 text-right font-medium">Dotación</th>
+                    <th className="px-3 py-2 text-right font-medium">Sueldo base</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dotacionItems.map((item, idx) => {
+                    const puesto = (typeof item.customName === "string" && item.customName) || (item.puestoTrabajoName as string) || "Puesto";
+                    const cargo = (item.cargoName as string) || "—";
+                    const rol = (item.rolName as string) || "—";
+                    const shiftStart = (item.shiftStart as string) || "--:--";
+                    const shiftEnd = (item.shiftEnd as string) || "--:--";
+                    const weekdays = Array.isArray(item.weekdays) ? item.weekdays.join(", ") : "—";
+                    const requiredGuards = Number(item.requiredGuards ?? 0);
+                    const baseSalary = Number(item.baseSalary ?? 0);
+
+                    return (
+                      <tr key={`${String(item.positionId ?? idx)}-${idx}`} className="border-t border-border/60">
+                        <td className="px-3 py-2">{puesto}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{cargo} / {rol}</td>
+                        <td className="px-3 py-2">{shiftStart} - {shiftEnd}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{weekdays}</td>
+                        <td className="px-3 py-2 text-right">{requiredGuards}</td>
+                        <td className="px-3 py-2 text-right">${baseSalary.toLocaleString("es-CL")}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : installation.puestosActivos && installation.puestosActivos.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="min-w-full text-xs sm:text-sm">
+                <thead className="bg-muted/30">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Puesto</th>
+                    <th className="px-3 py-2 text-left font-medium">Horario</th>
+                    <th className="px-3 py-2 text-left font-medium">Días</th>
+                    <th className="px-3 py-2 text-right font-medium">Dotación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {installation.puestosActivos.map((item) => (
+                    <tr key={item.id} className="border-t border-border/60">
+                      <td className="px-3 py-2">{item.name}</td>
+                      <td className="px-3 py-2">{item.shiftStart} - {item.shiftEnd}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{item.weekdays.join(", ")}</td>
+                      <td className="px-3 py-2 text-right">{item.requiredGuards}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              icon={<FileText className="h-8 w-8" />}
+              title="Sin dotación activa"
+              description="Aún no hay estructura activa para esta instalación."
+              compact
+            />
+          )}
+
+          {installation.quotesInstalacion && installation.quotesInstalacion.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Cotizaciones asociadas a esta instalación</p>
+              <div className="space-y-2">
+                {installation.quotesInstalacion.map((quote) => (
+                  <Link
+                    key={quote.id}
+                    href={`/cpq/${quote.id}`}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent/30"
+                  >
+                    <div>
+                      <p className="font-medium">{quote.code}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {quote.totalPositions} puestos · {quote.totalGuards} guardias · {quote.status}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(quote.updatedAt).toLocaleDateString("es-CL")}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </CollapsibleSection>
 
       <ConfirmDialog

@@ -25,7 +25,10 @@ export async function GET() {
     if (forbidden) return forbidden;
 
     const installations = await prisma.crmInstallation.findMany({
-      where: { tenantId: ctx.tenantId },
+      where: {
+        tenantId: ctx.tenantId,
+        account: { type: "client" },
+      },
       include: {
         account: { select: { id: true, name: true } },
         _count: {

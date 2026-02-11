@@ -1,6 +1,6 @@
 # Sistema de Usuarios y Roles - OPAI Docs
 
-**Resumen:** Sistema completo de gestión de usuarios internos con invitación por email, RBAC (4 roles), y auditoría integrada.
+**Resumen:** Sistema completo de gestión de usuarios internos con invitación por email, RBAC y política unificada de acceso por rol.
 
 **Estado:** Vigente - Implementado y operativo
 
@@ -23,7 +23,7 @@ Sistema completo de administración de usuarios internos con invitación por ema
 
 ### Acceso
 
-**Ruta:** `/usuarios`
+**Ruta:** `/opai/configuracion/usuarios`
 
 **Permisos requeridos:** `owner` o `admin`
 
@@ -42,7 +42,7 @@ Sistema completo de administración de usuarios internos con invitación por ema
 - Botón "Invitar Usuario" en el header
 - Modal con formulario:
   - Email del invitado
-  - Rol inicial (viewer/editor/admin/owner)
+- Rol inicial (11 roles válidos definidos en `src/lib/role-policy.ts`)
 - Envía email automático con link de activación
 - Token seguro con expiración de 48 horas
 
@@ -66,63 +66,48 @@ Sistema completo de administración de usuarios internos con invitación por ema
 
 ---
 
-## 🔐 ROLES Y PERMISOS (RBAC)
+## 🔐 ROLES Y PERMISOS (FUENTE ÚNICA)
 
-### Jerarquía de Roles
+### Política oficial (Single Source of Truth)
 
-```
-owner (nivel 4)
-  ↓
-admin (nivel 3)
-  ↓
-editor (nivel 2)
-  ↓
-viewer (nivel 1)
-```
+- **Archivo único obligatorio:** `src/lib/role-policy.ts`
+- Este archivo define **roles**, **permisos**, **acceso a módulos**, **submódulos** y **capacidades Ops**.
+- `src/lib/rbac.ts`, `src/lib/app-access.ts`, `src/lib/module-access.ts` y `src/lib/ops-rbac.ts` son wrappers que derivan de esa política.
+- **Regla de mantenimiento:** no se permiten matrices manuales divergentes en UI ni en documentación.
 
-### Matriz de Permisos
+### Roles vigentes
 
-| Funcionalidad | Owner | Admin | Editor | Viewer |
-|--------------|-------|-------|--------|--------|
-| **Usuarios** |  |  |  |  |
-| Invitar usuarios | ✅ | ✅ | ❌ | ❌ |
-| Cambiar roles | ✅ | ✅ | ❌ | ❌ |
-| Activar/desactivar | ✅ | ✅ | ❌ | ❌ |
-| **Templates** |  |  |  |  |
-| Crear/editar templates | ✅ | ✅ | ✅ | ❌ |
-| Ver templates | ✅ | ✅ | ✅ | ✅ |
-| **Presentaciones** |  |  |  |  |
-| Crear presentaciones | ✅ | ✅ | ✅ | ❌ |
-| Enviar por email | ✅ | ✅ | ✅ | ❌ |
-| Ver presentaciones | ✅ | ✅ | ✅ | ✅ |
-| **Analytics** |  |  |  |  |
-| Ver estadísticas | ✅ | ✅ | ❌ | ❌ |
-| **Configuración** |  |  |  |  |
-| Gestionar settings | ✅ | ❌ | ❌ | ❌ |
+`owner`, `admin`, `editor`, `rrhh`, `operaciones`, `reclutamiento`, `solo_ops`, `solo_crm`, `solo_documentos`, `solo_payroll`, `viewer`.
 
-### Descripción de Roles
+### Matriz de visibilidad por módulo (runtime actual)
 
-#### Owner (Propietario)
-- Máximo control sobre el tenant
-- Puede gestionar todos los aspectos
-- Solo un owner puede crear/modificar owners
-- Mínimo 1 owner activo por tenant
+| Rol | Hub | Docs | CRM | CPQ | Payroll | Ops | Configuración |
+|-----|-----|------|-----|-----|---------|-----|---------------|
+| owner | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| admin | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| editor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| rrhh | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| operaciones | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| reclutamiento | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| solo_ops | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| solo_crm | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| solo_documentos | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| solo_payroll | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| viewer | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-#### Admin (Administrador)
-- Gestión completa de usuarios y contenido
-- No puede modificar configuración global
-- Ideal para team leads
+### Reglas clave acordadas
 
-#### Editor
-- Puede crear y enviar presentaciones
-- Puede editar templates
-- No puede gestionar usuarios
-- Ideal para equipo comercial
+- `owner` ve y gestiona todo.
+- `admin` ve y gestiona todo.
+- `editor` ve módulos operativos completos (incluye `Ops`) pero no `Configuración`.
 
-#### Viewer (Visualizador)
-- Solo lectura
-- No puede crear ni modificar contenido
-- Ideal para stakeholders o clientes internos
+### Proceso obligatorio para agregar/editar roles
+
+1. Editar `src/lib/role-policy.ts` (único punto de verdad).
+2. Validar `Ver permisos` en `/opai/configuracion/usuarios`.
+3. Validar guards de páginas y APIs críticas de configuración.
+4. Actualizar esta tabla (documentación) en el mismo PR.
+5. Adjuntar test plan con al menos `owner`, `admin`, `editor` y un rol operativo.
 
 ---
 
@@ -131,7 +116,7 @@ viewer (nivel 1)
 ### Paso 1: Invitación
 
 ```
-1. Owner/Admin → /usuarios → "Invitar Usuario"
+1. Owner/Admin → `/opai/configuracion/usuarios` → "Invitar Usuario"
 2. Completa formulario:
    - Email: usuario@ejemplo.com
    - Rol: editor
@@ -215,7 +200,7 @@ viewer (nivel 1)
 #### Al Invitar
 - ✅ Email no puede existir en Admin
 - ✅ No puede haber invitación pendiente para el mismo email
-- ✅ Rol debe ser válido (owner/admin/editor/viewer)
+- ✅ Rol debe ser válido (definido en `src/lib/role-policy.ts`)
 - ✅ Solo owner/admin pueden invitar
 
 #### Al Cambiar Rol
@@ -384,7 +369,7 @@ const logs = await prisma.auditLog.findMany({
 ## ✅ CHECKLIST DE FUNCIONALIDADES
 
 ### Core Features
-- [x] Página /usuarios visible solo para owner/admin
+- [x] Página `/opai/configuracion/usuarios` visible para roles con permisos de gestión de usuarios
 - [x] Tabla de usuarios activos
 - [x] Tabla de invitaciones pendientes
 - [x] Botón "Invitar Usuario" con modal

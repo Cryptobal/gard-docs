@@ -3,7 +3,7 @@
  * GET - Sincroniza UF y UTM del día desde CMF (ex-SBIF)
  *
  * Se ejecuta diariamente vía Vercel Cron.
- * También puede invocarse manualmente con ?force=true
+ * También puede invocarse manualmente con autorización válida.
  */
 
 import { NextRequest, NextResponse } from "next/server";

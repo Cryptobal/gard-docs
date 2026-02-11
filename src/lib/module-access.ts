@@ -8,34 +8,15 @@
  */
 
 import { hasAppAccess } from "./app-access";
-import { type Role } from "./rbac";
+import {
+  ROLE_POLICIES,
+  type ConfigSubmoduleKey,
+  type CrmSubmoduleKey,
+  type DocsSubmoduleKey,
+  type Role,
+} from "./role-policy";
 
-export type CrmSubmoduleKey =
-  | "overview"
-  | "leads"
-  | "accounts"
-  | "installations"
-  | "contacts"
-  | "deals"
-  | "quotes";
-
-export type ConfigSubmoduleKey =
-  | "overview"
-  | "users"
-  | "integrations"
-  | "signatures"
-  | "doc_categories"
-  | "notifications"
-  | "crm"
-  | "cpq"
-  | "payroll";
-
-export type DocsSubmoduleKey =
-  | "overview"
-  | "documents"
-  | "document_editor"
-  | "templates"
-  | "template_editor";
+export type { ConfigSubmoduleKey, CrmSubmoduleKey, DocsSubmoduleKey };
 
 export interface SubmoduleNavItem<K extends string> {
   key: K;
@@ -64,45 +45,45 @@ export const CONFIG_SUBMODULE_NAV_ITEMS: SubmoduleNavItem<ConfigSubmoduleKey>[] 
 ];
 
 const ROLE_CRM_SUBMODULE_ACCESS: Record<Role, CrmSubmoduleKey[]> = {
-  owner: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
-  admin: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
-  editor: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
-  rrhh: [],
-  operaciones: [],
-  reclutamiento: [],
-  solo_ops: [],
-  solo_crm: ["overview", "leads", "accounts", "installations", "contacts", "deals", "quotes"],
-  solo_documentos: [],
-  solo_payroll: [],
-  viewer: [],
+  owner: ROLE_POLICIES.owner.crmSubmodules,
+  admin: ROLE_POLICIES.admin.crmSubmodules,
+  editor: ROLE_POLICIES.editor.crmSubmodules,
+  rrhh: ROLE_POLICIES.rrhh.crmSubmodules,
+  operaciones: ROLE_POLICIES.operaciones.crmSubmodules,
+  reclutamiento: ROLE_POLICIES.reclutamiento.crmSubmodules,
+  solo_ops: ROLE_POLICIES.solo_ops.crmSubmodules,
+  solo_crm: ROLE_POLICIES.solo_crm.crmSubmodules,
+  solo_documentos: ROLE_POLICIES.solo_documentos.crmSubmodules,
+  solo_payroll: ROLE_POLICIES.solo_payroll.crmSubmodules,
+  viewer: ROLE_POLICIES.viewer.crmSubmodules,
 };
 
 const ROLE_CONFIG_SUBMODULE_ACCESS: Record<Role, ConfigSubmoduleKey[]> = {
-  owner: ["overview", "users", "integrations", "signatures", "doc_categories", "notifications", "crm", "cpq", "payroll"],
-  admin: ["overview", "users", "integrations", "signatures", "doc_categories", "notifications", "crm", "cpq", "payroll"],
-  editor: [],
-  rrhh: [],
-  operaciones: [],
-  reclutamiento: [],
-  solo_ops: [],
-  solo_crm: [],
-  solo_documentos: [],
-  solo_payroll: [],
-  viewer: [],
+  owner: ROLE_POLICIES.owner.configSubmodules,
+  admin: ROLE_POLICIES.admin.configSubmodules,
+  editor: ROLE_POLICIES.editor.configSubmodules,
+  rrhh: ROLE_POLICIES.rrhh.configSubmodules,
+  operaciones: ROLE_POLICIES.operaciones.configSubmodules,
+  reclutamiento: ROLE_POLICIES.reclutamiento.configSubmodules,
+  solo_ops: ROLE_POLICIES.solo_ops.configSubmodules,
+  solo_crm: ROLE_POLICIES.solo_crm.configSubmodules,
+  solo_documentos: ROLE_POLICIES.solo_documentos.configSubmodules,
+  solo_payroll: ROLE_POLICIES.solo_payroll.configSubmodules,
+  viewer: ROLE_POLICIES.viewer.configSubmodules,
 };
 
 const ROLE_DOCS_SUBMODULE_ACCESS: Record<Role, DocsSubmoduleKey[]> = {
-  owner: ["overview", "documents", "document_editor", "templates", "template_editor"],
-  admin: ["overview", "documents", "document_editor", "templates", "template_editor"],
-  editor: ["overview", "documents", "document_editor", "templates", "template_editor"],
-  rrhh: [],
-  operaciones: [],
-  reclutamiento: [],
-  solo_ops: [],
-  solo_crm: [],
-  solo_documentos: ["overview", "documents", "templates"],
-  solo_payroll: [],
-  viewer: ["overview", "documents", "templates"],
+  owner: ROLE_POLICIES.owner.docsSubmodules,
+  admin: ROLE_POLICIES.admin.docsSubmodules,
+  editor: ROLE_POLICIES.editor.docsSubmodules,
+  rrhh: ROLE_POLICIES.rrhh.docsSubmodules,
+  operaciones: ROLE_POLICIES.operaciones.docsSubmodules,
+  reclutamiento: ROLE_POLICIES.reclutamiento.docsSubmodules,
+  solo_ops: ROLE_POLICIES.solo_ops.docsSubmodules,
+  solo_crm: ROLE_POLICIES.solo_crm.docsSubmodules,
+  solo_documentos: ROLE_POLICIES.solo_documentos.docsSubmodules,
+  solo_payroll: ROLE_POLICIES.solo_payroll.docsSubmodules,
+  viewer: ROLE_POLICIES.viewer.docsSubmodules,
 };
 
 function hasRoleSubmoduleAccess<K extends string>(

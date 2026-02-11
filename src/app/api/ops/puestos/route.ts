@@ -49,12 +49,22 @@ export async function POST(request: NextRequest) {
 
     const installation = await prisma.crmInstallation.findFirst({
       where: { id: body.installationId, tenantId: ctx.tenantId },
-      select: { id: true, teMontoClp: true },
+      select: {
+        id: true,
+        teMontoClp: true,
+        account: { select: { type: true } },
+      },
     });
     if (!installation) {
       return NextResponse.json(
         { success: false, error: "Instalación no encontrada" },
         { status: 404 }
+      );
+    }
+    if (installation.account?.type !== "client") {
+      return NextResponse.json(
+        { success: false, error: "Solo puedes crear puestos para cuentas cliente" },
+        { status: 400 }
       );
     }
 

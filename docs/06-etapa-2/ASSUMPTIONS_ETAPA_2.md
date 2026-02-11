@@ -1,9 +1,9 @@
 # ETAPA 2 — Supuestos y Decisiones Pendientes
 
-> **Versión:** 1.0  
-> **Fecha:** 2026-02-10  
+> **Versión:** 1.1  
+> **Fecha:** 2026-02-11  
 > **Referencia:** `docs/ETAPA_2_IMPLEMENTACION.md`  
-> **Estado:** Pendiente de revisión y confirmación
+> **Estado:** Vigente para ejecución de Etapa 2 (con decisiones abiertas)
 
 ---
 
@@ -16,7 +16,7 @@ Estos supuestos se adoptaron para poder avanzar con el diseño. Si alguno es inc
 **Supuesto:** El check-in postventa lo realiza un usuario `Admin` con rol `supervisor`, no un `guardia`.
 
 **Justificación:** 
-- La tabla `persona`/`guardia` no existe (es parte de Fase 1 — Ops + Personas MVP)
+- La tabla `persona`/`guardia` ya existe (Fase 1 MVP), pero el flujo de postventa sigue siendo de supervisores
 - El MASTER_SPEC (sección 1.3 Mobile-first) dice: "Supervisores: check-in/out, bitácora, tickets, solicitudes en terreno"
 - Los guardias tienen su propio portal (Fase 3) pero no hacen check-in de postventa
 
@@ -162,15 +162,11 @@ owner > admin > editor > supervisor > viewer
 
 Estas son preguntas que necesitan respuesta del stakeholder antes de implementar.
 
-### D1 — ¿Implementar Fase 1 antes que Fase 2?
+### D1 — Orden de implementación Fase 1 vs Fase 2
 
-**Contexto:** El MASTER_SPEC define un orden: Fase 1 (Ops + TE + Personas) → Fase 2 (Postventa + Tickets). Sin embargo, Fase 2 puede funcionar de forma independiente usando `Admin` como actor y `CrmInstallation` como eje.
+**Contexto:** El MASTER_SPEC define un orden: Fase 1 (Ops + TE + Personas) → Fase 2 (Postventa + Tickets). Al 2026-02-11, Fase 1 ya está implementada en MVP.
 
-**Opciones:**
-- (A) Implementar Fase 2 primero, sin dependencia de Fase 1
-- (B) Implementar Fase 1 primero, luego Fase 2 con integración completa
-
-**Recomendación:** (A) — Fase 2 es más aislada y genera valor operacional inmediato.
+**Decisión actual:** Continuar con Fase 2 sobre la base ya implementada de Fase 1, manteniendo integración progresiva para evitar regresiones.
 
 ---
 

@@ -13,10 +13,10 @@ OPAI Suite es una plataforma SaaS para empresas de seguridad que opera en `opai.
 | Dato | Valor |
 |------|-------|
 | Páginas implementadas | 44 |
-| Endpoints API | 81 |
-| Modelos de datos (Prisma) | 56 |
+| Endpoints API | 135 |
+| Modelos de datos (Prisma) | 77 |
 | Componentes UI | ~160 |
-| Schemas PostgreSQL | 6 (public, crm, cpq, docs, payroll, fx) |
+| Schemas PostgreSQL | 7 (public, crm, cpq, docs, payroll, fx, ops) |
 | Roles RBAC | 4 (owner, admin, editor, viewer) |
 | Stack | Next.js 15, TypeScript, Prisma, Neon PostgreSQL, Auth.js v5 |
 | Deploy | Vercel |
@@ -195,6 +195,7 @@ OPAI Suite es una plataforma SaaS para empresas de seguridad que opera en `opai.
 - UF diaria (fuente SBIF)
 - UTM mensual (fuente SII)
 - Sync automático
+- Sync manual con autorización válida (sin `force=true` público)
 - Indicadores globales en UI
 
 ---
@@ -282,6 +283,7 @@ Resumen de lo incompleto dentro de los módulos actuales:
 |-----|----------|-----------|:------:|
 | Follow-up emails | `/api/cron/followup-emails` | Diario | ✅ Activo |
 | Document alerts | `/api/cron/document-alerts` | Diario | ✅ Activo |
+| FX sync | `/api/fx/sync` | Diario (cron) + manual autorizado | ✅ Activo |
 
 ---
 

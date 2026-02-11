@@ -1,37 +1,19 @@
-export type OpsCapability =
-  | "guardias_manage"
-  | "guardias_blacklist"
-  | "guardias_documents"
-  | "ops_execution"
-  | "te_execution"
-  | "rrhh_events";
+import { ROLE_POLICIES, type OpsCapability } from "./role-policy";
+
+export type { OpsCapability };
 
 const ROLE_OPS_CAPABILITIES: Record<string, OpsCapability[]> = {
-  owner: [
-    "guardias_manage",
-    "guardias_blacklist",
-    "guardias_documents",
-    "ops_execution",
-    "te_execution",
-    "rrhh_events",
-  ],
-  admin: [
-    "guardias_manage",
-    "guardias_blacklist",
-    "guardias_documents",
-    "ops_execution",
-    "te_execution",
-    "rrhh_events",
-  ],
-  editor: ["guardias_manage", "guardias_documents", "ops_execution", "te_execution"],
-  rrhh: ["guardias_manage", "guardias_blacklist", "guardias_documents", "rrhh_events"],
-  operaciones: ["guardias_documents", "ops_execution", "te_execution"],
-  reclutamiento: ["guardias_manage", "guardias_documents"],
-  solo_ops: ["guardias_documents", "ops_execution", "te_execution"],
-  solo_crm: [],
-  solo_documentos: [],
-  solo_payroll: [],
-  viewer: [],
+  owner: ROLE_POLICIES.owner.opsCapabilities,
+  admin: ROLE_POLICIES.admin.opsCapabilities,
+  editor: ROLE_POLICIES.editor.opsCapabilities,
+  rrhh: ROLE_POLICIES.rrhh.opsCapabilities,
+  operaciones: ROLE_POLICIES.operaciones.opsCapabilities,
+  reclutamiento: ROLE_POLICIES.reclutamiento.opsCapabilities,
+  solo_ops: ROLE_POLICIES.solo_ops.opsCapabilities,
+  solo_crm: ROLE_POLICIES.solo_crm.opsCapabilities,
+  solo_documentos: ROLE_POLICIES.solo_documentos.opsCapabilities,
+  solo_payroll: ROLE_POLICIES.solo_payroll.opsCapabilities,
+  viewer: ROLE_POLICIES.viewer.opsCapabilities,
 };
 
 export function hasOpsCapability(role: string, capability: OpsCapability): boolean {

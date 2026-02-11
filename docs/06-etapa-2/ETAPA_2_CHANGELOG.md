@@ -1,7 +1,7 @@
 # ETAPA 2 — Changelog de Archivos e Intervenciones
 
-> **Versión:** 1.0  
-> **Fecha:** 2026-02-10  
+> **Versión:** 1.1  
+> **Fecha:** 2026-02-11  
 > **Referencia:** `docs/ETAPA_2_IMPLEMENTACION.md`
 
 ---
@@ -20,13 +20,13 @@ Este documento lista todos los archivos que se planean **crear** o **modificar**
 
 | Archivo | Tipo de cambio | Detalle |
 |---------|---------------|---------|
-| `prisma/schema.prisma` | **Modificar** | Agregar schema `ops`, 6 modelos nuevos, 2 campos en CrmInstallation |
+| `prisma/schema.prisma` | **Modificar** | Reutilizar schema `ops` existente y agregar modelos de postventa/tickets si faltan |
 
 ### Cambios específicos en `schema.prisma`
 
-1. Línea ~9: Agregar `"ops"` a `schemas = ["public", "payroll", "fx", "cpq", "crm", "docs", "ops"]`
-2. Modelo `CrmInstallation`: Agregar `geo_radius_m Int?` y `te_monto_clp Int?`
-3. Agregar relaciones desde `CrmInstallation` a nuevos modelos
+1. Verificar schema `ops` ya declarado en `datasource.db.schemas`
+2. Verificar campos operativos existentes en `CrmInstallation` (`te_monto_clp` y relacionados)
+3. Agregar relaciones desde `CrmInstallation` a modelos de postventa/tickets cuando corresponda
 4. Crear modelo `OpsVisitCheckin` (~30 campos)
 5. Crear modelo `OpsSiteLogEntry` (~15 campos)
 6. Crear modelo `OpsTicketCategory` (~12 campos)

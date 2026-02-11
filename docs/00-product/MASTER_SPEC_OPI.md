@@ -55,20 +55,21 @@ Fase 1: Ops + TE + Personas           ████████░░ 80% (MVP v1
  Fase 5: Asistencia externa            ░░░░░░░░░░ 0%
 ```
 
-### Lo que YA existe en producción
+### Lo que YA existe en producción/repositorio
 
-| Módulo | Estado | Páginas | APIs | Modelos DB |
-|--------|:------:|:-------:|:----:|:----------:|
-| Hub | ✅ 100% | 1 | 0 | — |
-| CRM | ✅ 100% | 12 | 33 | 25 |
-| CPQ | ✅ 100% | 3 | 22 | 11 |
-| Presentaciones | ✅ 100% | 6 | 7 | 3 |
-| Documentos | ✅ 100% | 6 | 8 | 6 |
-| Payroll | ⚠️ 60% | 3 | 3 | 4 |
-| FX (UF/UTM) | ✅ 100% | 0 | 3 | 2 |
-| Config | ✅ 100% | 9 | 4 | 2 |
-| Auth | ✅ 100% | 4 | 1 | 3 |
-| **Total existente** | | **44** | **81** | **56** |
+| Módulo | Estado | Nota |
+|--------|:------:|------|
+| Hub | ✅ 100% | Operativo |
+| CRM | ✅ 100% | Operativo |
+| CPQ | ✅ 100% | Operativo |
+| Presentaciones | ✅ 100% | Operativo |
+| Documentos | ✅ 100% | Operativo |
+| Payroll | ⚠️ 60% | Parcial (simulador + parámetros) |
+| FX (UF/UTM) | ✅ 100% | Operativo |
+| Config | ✅ 100% | Operativo |
+| Auth | ✅ 100% | Operativo |
+| Ops + TE + Personas | ✅ MVP v1 | Implementado en Fase 1 |
+| **Totales técnicos** | ✅ | Ver `docs/02-implementation/ESTADO_GENERAL.md` (77 modelos, 7 schemas, 135 endpoints) |
 
 ### Lo que FALTA (Fases OPI)
 
@@ -149,36 +150,36 @@ Bloquea contratación, TE y portal. Sin apelación. Solo Admin/SuperAdmin revier
 | `/opai/perfil` | Perfil de usuario | ✅ |
 | `/p/[uniqueId]` | Vista pública de presentación | ✅ |
 
-### Por implementar (Fases OPI)
+### Fases OPI (estado por ruta)
 
 | Ruta | Módulo | Fase |
 |------|--------|:----:|
-| `/personas/postulantes` | Pipeline de postulantes | 1 |
-| `/personas/guardias` | Gestión de guardias (360) | 1 |
-| `/personas/lista-negra` | Lista negra | 1 |
-| `/ops/instalaciones/[id]` | Estructura, supervisor, geofence | 1 |
-| `/ops/puestos` | Puestos operativos | 1 |
-| `/ops/pauta-mensual` | Planificación mensual | 1 |
-| `/ops/pauta-diaria` | Pauta diaria | 1 |
-| `/ops/ppc` | Puestos por cubrir | 1 |
-| `/te/registro` | Registro de turnos extra | 1 |
-| `/te/aprobaciones` | Aprobación RRHH de TE | 1 |
-| `/te/lotes` | Lotes de pago semanales | 1 |
-| `/te/pagos` | Pagos y exportación Santander | 1 |
-| `/postventa/checkin` | Check-in/out georreferenciado | 2 |
-| `/postventa/instalaciones/[id]/bitacora` | Bitácora de instalación | 2 |
-| `/postventa/incidentes` | Incidentes con severidad | 2 |
-| `/postventa/kpis` | KPIs de postventa | 2 |
-| `/tickets` | Bandeja de tickets | 2 |
-| `/tickets/[id]` | Detalle de ticket | 2 |
-| `/portal/login` | Login portal guardias (OTP) | 3 |
-| `/portal/comunicados` | Comunicados | 3 |
-| `/portal/solicitudes` | Solicitudes RRHH | 3 |
-| `/portal/tickets` | Tickets desde portal | 3 |
-| `/inventario/catalogo` | Catálogo de items | 4 |
-| `/inventario/stock` | Stock y warehouse | 4 |
-| `/inventario/kits` | Kits de uniforme | 4 |
-| `/inventario/asignaciones` | Asignaciones a guardias | 4 |
+| `/personas/postulantes` | Pipeline de postulantes | ✅ Fase 1 (MVP) |
+| `/personas/guardias` | Gestión de guardias (360) | ✅ Fase 1 (MVP) |
+| `/personas/lista-negra` | Lista negra | ✅ Fase 1 (MVP) |
+| `/ops/instalaciones/[id]` | Estructura, supervisor, geofence | ✅ Fase 1 (MVP) |
+| `/ops/puestos` | Puestos operativos | ✅ Fase 1 (MVP) |
+| `/ops/pauta-mensual` | Planificación mensual | ✅ Fase 1 (MVP) |
+| `/ops/pauta-diaria` | Pauta diaria | ✅ Fase 1 (MVP) |
+| `/ops/ppc` | Puestos por cubrir | ✅ Fase 1 (MVP) |
+| `/te/registro` | Registro de turnos extra | ✅ Fase 1 (MVP) |
+| `/te/aprobaciones` | Aprobación RRHH de TE | ✅ Fase 1 (MVP) |
+| `/te/lotes` | Lotes de pago semanales | ✅ Fase 1 (MVP) |
+| `/te/pagos` | Pagos y exportación Santander | ✅ Fase 1 (MVP) |
+| `/postventa/checkin` | Check-in/out georreferenciado | ❌ Fase 2 |
+| `/postventa/instalaciones/[id]/bitacora` | Bitácora de instalación | ❌ Fase 2 |
+| `/postventa/incidentes` | Incidentes con severidad | ❌ Fase 2 |
+| `/postventa/kpis` | KPIs de postventa | ❌ Fase 2 |
+| `/tickets` | Bandeja de tickets | ❌ Fase 2 |
+| `/tickets/[id]` | Detalle de ticket | ❌ Fase 2 |
+| `/portal/login` | Login portal guardias (OTP) | ❌ Fase 3 |
+| `/portal/comunicados` | Comunicados | ❌ Fase 3 |
+| `/portal/solicitudes` | Solicitudes RRHH | ❌ Fase 3 |
+| `/portal/tickets` | Tickets desde portal | ❌ Fase 3 |
+| `/inventario/catalogo` | Catálogo de items | ❌ Fase 4 |
+| `/inventario/stock` | Stock y warehouse | ❌ Fase 4 |
+| `/inventario/kits` | Kits de uniforme | ❌ Fase 4 |
+| `/inventario/asignaciones` | Asignaciones a guardias | ❌ Fase 4 |
 
 ---
 
@@ -195,16 +196,16 @@ Bloquea contratación, TE y portal. Sin apelación. Solo Admin/SuperAdmin revier
 | `payroll` | 4 | Parameters, Assumptions, Simulations, Salary Components |
 | `fx` | 2 | UF Rates, UTM Rates |
 
-### Schemas por crear (Fases OPI)
+### Schema `ops` (implementado y planificado)
 
-| Schema | Modelos planificados | Fase |
-|--------|---------------------|:----:|
-| `ops` | visit_checkin, site_log_entry, ticket, ticket_comment, ticket_attachment, ticket_category | 2 |
-| `ops` | puesto_operativo, pauta_mensual, asistencia_diaria, evento_rrhh, turno_extra, pago_te_lote, pago_te_item | 1 |
-| `ops` | persona, guardia, guardia_flag, documento_persona, cuenta_bancaria, comentario_guardia | 1 |
-| `ops` | announcement, announcement_delivery | 3 |
-| `ops` | inventory_item, inventory_variant, warehouse, purchase, stock_ledger, kit_template, assignment | 4 |
-| `ops` | attendance_event | 5 |
+| Estado | Modelos | Fase |
+|--------|---------|:----:|
+| ✅ Implementado (MVP) | puesto_operativo, pauta_mensual, asistencia_diaria, evento_rrhh, turno_extra, pago_te_lote, pago_te_item | 1 |
+| ✅ Implementado (MVP) | persona, guardia, guardia_flag, documento_persona, cuenta_bancaria, comentario_guardia, guardia_history | 1 |
+| ❌ Pendiente | visit_checkin, site_log_entry, ticket, ticket_comment, ticket_attachment, ticket_category | 2 |
+| ❌ Pendiente | announcement, announcement_delivery | 3 |
+| ❌ Pendiente | inventory_item, inventory_variant, warehouse, purchase, stock_ledger, kit_template, assignment | 4 |
+| ❌ Pendiente | attendance_event | 5 |
 
 ---
 
@@ -330,9 +331,9 @@ Lo que ya existe y funciona en producción:
 
 ---
 
-## 9) APIs planificadas (Fases OPI)
+## 9) APIs OPI (estado actual y roadmap)
 
-### Fase 1: Ops
+### Fase 1: Ops (implementado MVP v1)
 - `GET/POST /api/ops/instalaciones`
 - `PATCH /api/ops/instalaciones/:id` (incluye geofence, te_monto_clp)
 - `POST /api/ops/puestos/bulk-create`
@@ -342,7 +343,7 @@ Lo que ya existe y funciona en producción:
 - `GET /api/ops/asistencia?fecha&instalacion_id`
 - `PATCH /api/ops/asistencia/:id`
 
-### Fase 1: TE & Pagos
+### Fase 1: TE & Pagos (implementado MVP v1)
 - `GET /api/te?desde&hasta&estado`
 - `PATCH /api/te/:id/aprobar`
 - `PATCH /api/te/:id/rechazar`

@@ -43,7 +43,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddressAutocomplete, type AddressResult } from "@/components/ui/AddressAutocomplete";
-import { ArrowLeft, Copy, RefreshCw, FileText, Users, Layers, Calculator, ChevronLeft, ChevronRight, Check, Trash2, Download, Send, Sparkles, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, FileText, Users, Layers, Calculator, ChevronLeft, ChevronRight, Check, Trash2, Download, Send, Sparkles, Loader2, Plus, Building2 } from "lucide-react";
 
 interface CpqQuoteDetailProps {
   quoteId: string;
@@ -92,6 +92,7 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
   const [statusChangePending, setStatusChangePending] = useState<"draft" | "sent" | null>(null);
   const [changingStatus, setChangingStatus] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [sendingDotacion, setSendingDotacion] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [savingFinancials, setSavingFinancials] = useState(false);
@@ -600,6 +601,44 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
     }
   };
 
+  const handleSendDotacionToInstallation = async () => {
+    if (!quote) return;
+    if (!crmContext.installationId) {
+      toast.error("Selecciona una instalación en Contexto CRM antes de enviar dotación");
+      return;
+    }
+    if (!positions.length) {
+      toast.error("La cotización no tiene puestos para enviar");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Esta acción reemplazará la dotación activa de la instalación con los puestos de esta cotización. ¿Continuar?"
+    );
+    if (!confirmed) return;
+
+    setSendingDotacion(true);
+    try {
+      const response = await fetch(`/api/cpq/quotes/${quoteId}/send-to-installation`, {
+        method: "POST",
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "No se pudo enviar la dotación");
+      }
+
+      toast.success(
+        `Dotación enviada a ${payload.data.installationName}: ${payload.data.createdPuestos} puestos creados`
+      );
+    } catch (error) {
+      console.error("Error sending staffing to installation:", error);
+      toast.error("No se pudo enviar la dotación a instalación");
+    } finally {
+      setSendingDotacion(false);
+    }
+  };
+
   const stats = useMemo(() => {
     const totalGuards = quote?.totalGuards ?? positions.reduce((sum, p) => sum + p.numGuards, 0);
     const monthly = quote?.monthlyCost ?? positions.reduce((sum, p) => sum + Number(p.monthlyPositionCost), 0);
@@ -816,6 +855,25 @@ export function CpqQuoteDetail({ quoteId }: CpqQuoteDetailProps) {
             <Copy className="h-4 w-4" />
             <span className="hidden sm:inline">
               {cloning ? "Clonando..." : "Clonar"}
+            </span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={handleSendDotacionToInstallation}
+            disabled={sendingDotacion || !crmContext.installationId || positions.length === 0}
+            title={
+              !crmContext.installationId
+                ? "Vincula una instalación para enviar la dotación"
+                : positions.length === 0
+                ? "Agrega al menos un puesto"
+                : "Enviar dotación a instalación"
+            }
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {sendingDotacion ? "Enviando..." : "Enviar dotación"}
             </span>
           </Button>
           <Button

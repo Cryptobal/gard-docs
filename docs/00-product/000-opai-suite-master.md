@@ -45,7 +45,7 @@ OPAI es una suite SaaS para empresas de seguridad que unifica:
 - `/payroll` → Simulador de liquidaciones Chile, parámetros legales ⚠️ PARCIAL (60%)
 - `/opai/configuracion` → Usuarios, integraciones, firmas, categorías ✅ IMPLEMENTADO
 - `/opai/usuarios` → Gestión de usuarios y permisos RBAC ✅ IMPLEMENTADO
-- `/ops`     → Operación: puestos, pauta, asistencia, TE ❌ FASE 1 OPI
+- `/ops`     → Operación: puestos, pauta, asistencia, TE ✅ FASE 1 OPI (MVP v1)
 - `/postventa` → Check-in/out georreferenciado, bitácora, incidentes ❌ FASE 2 OPI
 - `/tickets` → Sistema de tickets con SLA y categorías ❌ FASE 2 OPI
 - `/portal`  → Portal guardias: comunicados, solicitudes, tickets ❌ FASE 3 OPI

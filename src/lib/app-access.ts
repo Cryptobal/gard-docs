@@ -12,7 +12,7 @@
  * Este archivo es el ÚNICO punto de verdad para App Access.
  */
 
-import { type Role } from './rbac';
+import { ROLE_POLICIES, type Role } from './role-policy';
 import { type AppKey } from './app-keys';
 
 /**
@@ -22,24 +22,17 @@ import { type AppKey } from './app-keys';
  * Esta es la ÚNICA fuente de verdad para App Access Phase 1.
  */
 export const ROLE_APP_ACCESS: Record<Role, AppKey[]> = {
-  // Owner y Admin: acceso completo a todos los módulos
-  owner: ["hub", "docs", "crm", "cpq", "payroll", "ops", "portal", "admin"],
-  admin: ["hub", "docs", "crm", "cpq", "payroll", "ops", "portal", "admin"],
-
-  // Editor: acceso a hub y módulos operativos (sin admin)
-  editor: ["hub", "docs", "crm", "cpq", "payroll"],
-
-  // Roles operacionales finos (Phase 1 hardening)
-  rrhh: ["hub", "ops"],
-  operaciones: ["hub", "ops"],
-  reclutamiento: ["hub", "ops"],
-  solo_ops: ["hub", "ops"],
-  solo_crm: ["hub", "crm"],
-  solo_documentos: ["hub", "docs"],
-  solo_payroll: ["hub", "payroll"],
-
-  // Viewer: solo lectura (hub y docs)
-  viewer: ["hub", "docs"],
+  owner: ROLE_POLICIES.owner.appAccess,
+  admin: ROLE_POLICIES.admin.appAccess,
+  editor: ROLE_POLICIES.editor.appAccess,
+  rrhh: ROLE_POLICIES.rrhh.appAccess,
+  operaciones: ROLE_POLICIES.operaciones.appAccess,
+  reclutamiento: ROLE_POLICIES.reclutamiento.appAccess,
+  solo_ops: ROLE_POLICIES.solo_ops.appAccess,
+  solo_crm: ROLE_POLICIES.solo_crm.appAccess,
+  solo_documentos: ROLE_POLICIES.solo_documentos.appAccess,
+  solo_payroll: ROLE_POLICIES.solo_payroll.appAccess,
+  viewer: ROLE_POLICIES.viewer.appAccess,
 };
 
 /**

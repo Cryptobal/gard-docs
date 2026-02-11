@@ -10,7 +10,7 @@ import {
   formatDateOnlyMonthYearEs,
   formatDateOnlyShortEs,
   formatDateOnlyShortWithYearEs,
-  todayChileDate,
+  todayChileStr,
 } from "@/lib/fx-date";
 import { ensureCurrentFxRates } from "@/lib/fx-sync";
 
@@ -25,7 +25,7 @@ export async function GET() {
       console.warn("FX ensureCurrentFxRates failed:", error);
     }
 
-    const today = todayChileDate();
+    const today = new Date(`${todayChileStr()}T00:00:00Z`);
 
     // UF: preferir la del día de hoy (Chile); si no existe, usar la más reciente
     const ufToday = await prisma.fxUfRate.findUnique({

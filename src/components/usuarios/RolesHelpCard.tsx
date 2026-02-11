@@ -5,7 +5,8 @@
  * Muestra una tabla visual de qué puede hacer cada rol
  */
 
-import { ROLES, PERMISSIONS, hasPermission, type Role } from '@/lib/rbac';
+import { PERMISSIONS, hasPermission, type Role } from '@/lib/rbac';
+import { hasAppAccess } from '@/lib/app-access';
 import {
   hasConfigSubmoduleAccess,
   hasCrmSubmoduleAccess,
@@ -26,6 +27,9 @@ const ROLE_LABELS: Record<string, string> = {
   owner: 'Propietario',
   admin: 'Admin',
   editor: 'Editor',
+  rrhh: 'RRHH',
+  operaciones: 'Operaciones',
+  reclutamiento: 'Reclutamiento',
   solo_documentos: 'Solo Documentos',
   solo_crm: 'Solo CRM',
   solo_ops: 'Solo Ops',
@@ -33,53 +37,35 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: 'Visualizador',
 };
 
-const PERMISSION_GROUPS = [
-  {
-    name: 'Usuarios',
-    permissions: [
-      { key: PERMISSIONS.MANAGE_USERS, label: 'Gestionar usuarios' },
-      { key: PERMISSIONS.INVITE_USERS, label: 'Invitar usuarios' },
-    ],
-  },
-  {
-    name: 'Templates',
-    permissions: [
-      { key: PERMISSIONS.MANAGE_TEMPLATES, label: 'Gestionar templates' },
-      { key: PERMISSIONS.EDIT_TEMPLATES, label: 'Editar templates' },
-      { key: PERMISSIONS.VIEW_TEMPLATES, label: 'Ver templates' },
-    ],
-  },
-  {
-    name: 'Presentaciones',
-    permissions: [
-      { key: PERMISSIONS.SEND_PRESENTATIONS, label: 'Enviar propuestas' },
-      { key: PERMISSIONS.CREATE_PRESENTATIONS, label: 'Crear presentaciones' },
-      { key: PERMISSIONS.VIEW_PRESENTATIONS, label: 'Ver presentaciones' },
-    ],
-  },
-  {
-    name: 'Sistema',
-    permissions: [
-      { key: PERMISSIONS.VIEW_ANALYTICS, label: 'Ver analytics' },
-      { key: PERMISSIONS.MANAGE_SETTINGS, label: 'Configuración' },
-    ],
-  },
+const MODULE_RULES: Array<{ label: string; check: (role: Role) => boolean }> = [
+  { label: 'Hub', check: (role) => hasAppAccess(role, 'hub') },
+  { label: 'Documentos', check: (role) => hasAppAccess(role, 'docs') },
+  { label: 'CRM', check: (role) => hasAppAccess(role, 'crm') },
+  { label: 'CPQ', check: (role) => hasAppAccess(role, 'cpq') },
+  { label: 'Payroll', check: (role) => hasAppAccess(role, 'payroll') },
+  { label: 'Ops', check: (role) => hasAppAccess(role, 'ops') },
+  { label: 'Configuración', check: (role) => hasConfigSubmoduleAccess(role, 'overview') },
 ];
 
-const VISIBILITY_RULES: Array<{
-  label: string;
-  check: (role: Role) => boolean;
-}> = [
-  { label: 'Docs · Dashboard', check: (role) => hasDocsSubmoduleAccess(role, 'overview') },
-  { label: 'Docs · Gestión documental', check: (role) => hasDocsSubmoduleAccess(role, 'documents') },
+const SUBMODULE_RULES: Array<{ label: string; check: (role: Role) => boolean }> = [
   { label: 'Docs · Editor de texto', check: (role) => hasDocsSubmoduleAccess(role, 'document_editor') },
-  { label: 'CRM · Módulo principal', check: (role) => hasCrmSubmoduleAccess(role, 'overview') },
   { label: 'CRM · Leads', check: (role) => hasCrmSubmoduleAccess(role, 'leads') },
-  { label: 'CRM · Cuentas', check: (role) => hasCrmSubmoduleAccess(role, 'accounts') },
-  { label: 'CRM · Negocios', check: (role) => hasCrmSubmoduleAccess(role, 'deals') },
-  { label: 'CRM · Cotizaciones', check: (role) => hasCrmSubmoduleAccess(role, 'quotes') },
-  { label: 'Configuración · Módulo principal', check: (role) => hasConfigSubmoduleAccess(role, 'overview') },
   { label: 'Configuración · Usuarios', check: (role) => hasConfigSubmoduleAccess(role, 'users') },
+  { label: 'Configuración · Integraciones', check: (role) => hasConfigSubmoduleAccess(role, 'integrations') },
+  { label: 'Configuración · Notificaciones', check: (role) => hasConfigSubmoduleAccess(role, 'notifications') },
+];
+
+const PERMISSION_RULES: Array<{ label: string; key: (typeof PERMISSIONS)[keyof typeof PERMISSIONS] }> = [
+  { label: 'Gestionar usuarios', key: PERMISSIONS.MANAGE_USERS },
+  { label: 'Invitar usuarios', key: PERMISSIONS.INVITE_USERS },
+  { label: 'Gestionar templates', key: PERMISSIONS.MANAGE_TEMPLATES },
+  { label: 'Editar templates', key: PERMISSIONS.EDIT_TEMPLATES },
+  { label: 'Ver templates', key: PERMISSIONS.VIEW_TEMPLATES },
+  { label: 'Enviar propuestas', key: PERMISSIONS.SEND_PRESENTATIONS },
+  { label: 'Crear presentaciones', key: PERMISSIONS.CREATE_PRESENTATIONS },
+  { label: 'Ver presentaciones', key: PERMISSIONS.VIEW_PRESENTATIONS },
+  { label: 'Ver analytics', key: PERMISSIONS.VIEW_ANALYTICS },
+  { label: 'Gestionar configuración', key: PERMISSIONS.MANAGE_SETTINGS },
 ];
 
 export default function RolesHelpCard() {
@@ -88,6 +74,9 @@ export default function RolesHelpCard() {
     'owner',
     'admin',
     'editor',
+    'rrhh',
+    'operaciones',
+    'reclutamiento',
     'solo_documentos',
     'solo_crm',
     'solo_ops',
@@ -103,101 +92,90 @@ export default function RolesHelpCard() {
           <span>Ver permisos</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-5xl h-[95vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="w-[96vw] max-w-[1400px] h-[92vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-2">
           <DialogTitle className="text-xl">Matriz de Permisos por Rol</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4 flex-1 overflow-y-auto">
+
+        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
           <p className="text-sm text-muted-foreground">
-            Permisos reales del sistema. Los roles superiores heredan todos los permisos de los inferiores.
+            Vista real del sistema basada en la política central de roles. Si se agrega un rol nuevo, esta vista se actualiza desde esa misma fuente.
           </p>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Permiso</th>
-                  {rolesOrder.map((role) => (
-                    <th key={role} className="text-center py-3 px-4 text-foreground font-medium">
-                      {ROLE_LABELS[role]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {PERMISSION_GROUPS.map((group, groupIdx) => (
-                  <>
-                    <tr key={`group-${groupIdx}`} className="border-t border-border">
-                      <td colSpan={rolesOrder.length + 1} className="py-2 px-4 text-xs uppercase tracking-wider text-muted-foreground font-semibold bg-muted/50">
-                        {group.name}
-                      </td>
-                    </tr>
-                    {group.permissions.map((perm, permIdx) => (
-                      <tr key={`${groupIdx}-${permIdx}`} className="border-t border-border/30 hover:bg-muted/30">
-                        <td className="py-3 px-4 text-muted-foreground">{perm.label}</td>
-                        {rolesOrder.map((role) => {
-                          const has = hasPermission(role, perm.key);
-                          return (
-                            <td key={role} className="text-center py-3 px-4">
-                              {has ? (
-                                <Check className="w-5 h-5 text-emerald-400 mx-auto" />
-                              ) : (
-                                <XIcon className="w-5 h-5 text-muted-foreground/50 mx-auto" />
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {rolesOrder.map((role) => (
+              <section
+                key={role}
+                className="rounded-xl border border-border bg-card/40 p-4 space-y-4"
+              >
+                <h3 className="text-base font-semibold">{ROLE_LABELS[role]}</h3>
 
-          <div className="overflow-x-auto pt-2">
-            <h3 className="mb-2 text-sm font-semibold text-foreground">Visibilidad de módulos y submódulos</h3>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Módulo/Submódulo</th>
-                  {rolesOrder.map((role) => (
-                    <th key={`visibility-${role}`} className="text-center py-3 px-4 text-foreground font-medium">
-                      {ROLE_LABELS[role]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {VISIBILITY_RULES.map((rule) => (
-                  <tr key={rule.label} className="border-t border-border/30 hover:bg-muted/30">
-                    <td className="py-3 px-4 text-muted-foreground">{rule.label}</td>
-                    {rolesOrder.map((role) => {
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Módulos visibles</p>
+                  <div className="flex flex-wrap gap-2">
+                    {MODULE_RULES.filter((rule) => rule.check(role)).map((rule) => (
+                      <span
+                        key={`${role}-module-${rule.label}`}
+                        className="inline-flex items-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300"
+                      >
+                        {rule.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Submódulos clave</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {SUBMODULE_RULES.map((rule) => {
                       const has = rule.check(role);
                       return (
-                        <td key={`${rule.label}-${role}`} className="text-center py-3 px-4">
+                        <div
+                          key={`${role}-submodule-${rule.label}`}
+                          className="flex items-center gap-2 text-xs"
+                        >
                           {has ? (
-                            <Check className="w-5 h-5 text-emerald-400 mx-auto" />
+                            <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                           ) : (
-                            <XIcon className="w-5 h-5 text-muted-foreground/50 mx-auto" />
+                            <XIcon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                           )}
-                        </td>
+                          <span className={has ? "text-foreground" : "text-muted-foreground"}>
+                            {rule.label}
+                          </span>
+                        </div>
                       );
                     })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Permisos funcionales</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {PERMISSION_RULES.map((perm) => {
+                      const has = hasPermission(role, perm.key);
+                      return (
+                        <div key={`${role}-permission-${perm.key}`} className="flex items-center gap-2 text-xs">
+                          {has ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                          ) : (
+                            <XIcon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                          )}
+                          <span className={has ? "text-foreground" : "text-muted-foreground"}>{perm.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            ))}
           </div>
 
           <div className="bg-muted/50 rounded-lg p-4 text-xs text-muted-foreground space-y-2">
-            <p><strong className="text-foreground">Nota:</strong> Esta matriz muestra los permisos REALES del sistema.</p>
-            <p><strong className="text-purple-400">Propietario:</strong> Control total, puede gestionar configuración del tenant.</p>
-            <p><strong className="text-blue-400">Administrador:</strong> Igual que Propietario excepto configuración.</p>
-            <p><strong className="text-green-400">Editor:</strong> Puede crear y enviar presentaciones, editar templates.</p>
-            <p><strong className="text-cyan-400">Roles Solo módulo:</strong> acceso exclusivo a su módulo (sin configuración).</p>
-            <p><strong className="text-muted-foreground">Visualizador:</strong> Solo puede ver presentaciones y templates (sin editar ni enviar).</p>
+            <p><strong className="text-foreground">Fuente única:</strong> `src/lib/role-policy.ts`.</p>
+            <p><strong className="text-purple-400">Propietario:</strong> acceso total a módulos, submódulos y permisos.</p>
+            <p><strong className="text-blue-400">Administrador:</strong> acceso total a módulos, submódulos y permisos.</p>
+            <p><strong className="text-green-400">Editor:</strong> ve módulos operativos (incluye Ops) sin acceso a Configuración.</p>
+            <p><strong className="text-cyan-400">Roles Solo módulo:</strong> acceso exclusivo a su módulo asignado.</p>
           </div>
         </div>
       </DialogContent>

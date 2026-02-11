@@ -341,24 +341,27 @@ model UserInvitation {
 
 ### Roles y Permisos (RBAC)
 
-#### Jerarquía de Roles
+#### Política de roles (fuente única)
 
-```
-owner > admin > editor > viewer
-```
+- **Fuente de verdad:** `src/lib/role-policy.ts`
+- `rbac`, `app-access`, `module-access` y `ops-rbac` derivan de esa política.
+- Si se agrega o cambia un rol, la edición parte siempre en ese archivo.
 
-#### Matriz de Permisos
+#### Matriz de acceso por módulo (runtime)
 
-| Permiso | Owner | Admin | Editor | Viewer |
-|---------|-------|-------|--------|--------|
-| Gestionar usuarios | ✅ | ✅ | ❌ | ❌ |
-| Invitar usuarios | ✅ | ✅ | ❌ | ❌ |
-| Gestionar templates | ✅ | ✅ | ❌ | ❌ |
-| Editar templates | ✅ | ✅ | ✅ | ❌ |
-| Enviar presentaciones | ✅ | ✅ | ✅ | ❌ |
-| Ver presentaciones | ✅ | ✅ | ✅ | ✅ |
-| Ver analytics | ✅ | ✅ | ❌ | ❌ |
-| Gestionar configuración | ✅ | ❌ | ❌ | ❌ |
+| Rol | Hub | Docs | CRM | CPQ | Payroll | Ops | Configuración |
+|-----|-----|------|-----|-----|---------|-----|---------------|
+| owner | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| admin | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| editor | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| rrhh | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| operaciones | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| reclutamiento | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| solo_ops | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| solo_crm | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| solo_documentos | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| solo_payroll | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| viewer | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ### API Reference
 

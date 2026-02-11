@@ -2,10 +2,10 @@
 
 ## Postventa + Tickets Core
 
-> **Versión:** 1.0  
-> **Fecha:** 2026-02-10  
+> **Versión:** 1.1  
+> **Fecha:** 2026-02-11  
 > **Fuente de verdad:** `Desarrollo Opai/fase-2.md` (MASTER_SPEC vFinal)  
-> **Estado:** Pendiente de validación por stakeholder  
+> **Estado:** Lista para implementación (sobre base Fase 1 MVP)
 
 ---
 
@@ -44,9 +44,9 @@ La Etapa 2 incorpora dos capacidades operacionales críticas para Gard:
 
 ### Qué NO incluye (fuera de alcance)
 
-- **Ops core** (puestos operativos, pauta mensual, asistencia diaria, PPC) — Fase 1 pendiente
-- **Turnos Extra y pagos** — Fase 1 pendiente
-- **Personas / Guardias** (modelo completo con documentos, OS10, cuenta bancaria) — Fase 1 pendiente
+- **Ops core** (puestos operativos, pauta mensual, asistencia diaria, PPC) — ya implementado en Fase 1 (MVP)
+- **Turnos Extra y pagos** — ya implementado en Fase 1 (MVP)
+- **Personas / Guardias** (modelo completo con documentos, OS10, cuenta bancaria) — base MVP ya implementada en Fase 1
 - **Portal de Guardias** — Fase 3
 - **Comunicados** — Fase 3
 - **Solicitudes RRHH completas** — Fase 3
@@ -55,7 +55,7 @@ La Etapa 2 incorpora dos capacidades operacionales críticas para Gard:
 - **Portal de cliente** — Fuera de todas las fases actuales
 - **Integración con sistemas de asistencia externos** — Fase 5
 
-> **Nota crítica:** La Fase 1 (Ops + TE + Personas MVP) NO está implementada en el repositorio actual. El repositorio tiene CRM, CPQ, Documentos y Payroll. Para Etapa 2, se diseña con la mínima dependencia posible de Fase 1, usando el modelo `Admin` existente como actor de supervisión y `CrmInstallation` como eje de postventa. Ver sección [H) Supuestos](#h-supuestos-y-preguntas-abiertas).
+> **Nota crítica (actualizada):** La Fase 1 (Ops + TE + Personas MVP) ya está implementada en el repositorio. Etapa 2 se diseña para extender esa base con Postventa + Tickets, reutilizando `CrmInstallation`, `Admin`, `AuditLog` y el schema `ops` ya existente.
 
 ---
 
@@ -75,7 +75,7 @@ La Etapa 2 incorpora dos capacidades operacionales críticas para Gard:
 | **FX** | ✅ Producción | `/api/fx/*` | Indicadores financieros (UF, UTM) |
 | **Postventa** | ❌ No existe | — | — |
 | **Tickets** | ❌ No existe | — | — |
-| **Ops** | ❌ No existe | — | Definido en `app-access.ts` como futuro |
+| **Ops** | ✅ MVP implementado | `/ops/*`, `/te/*`, `/personas/*` | Base operativa ya disponible (Fase 1) |
 | **Portal** | ❌ No existe | — | Definido en `app-access.ts` como futuro |
 
 ### Stack tecnológico
@@ -84,7 +84,7 @@ La Etapa 2 incorpora dos capacidades operacionales críticas para Gard:
 |------------|-----------|
 | Framework | Next.js 15 (App Router) |
 | Base de datos | PostgreSQL (Neon) |
-| ORM | Prisma (multi-schema: public, payroll, fx, cpq, crm, docs) |
+| ORM | Prisma (multi-schema: public, payroll, fx, cpq, crm, docs, ops) |
 | Auth | Auth.js v5 (NextAuth) con Credentials |
 | UI | Tailwind CSS + Radix UI + shadcn/ui |
 | Email | Resend |
@@ -179,10 +179,10 @@ La Etapa 2 incorpora dos capacidades operacionales críticas para Gard:
 | 12 | **Bandeja única de tickets** con filtros | ❌ No | — | Página `/tickets`, filtros por status/team/prioridad/instalación | UX confusa con muchos filtros; performance con muchos tickets | Filtros en sidebar. Paginación server-side. Contador por estado |
 | 13 | **KPI Postventa** | ❌ No | — | Página `/postventa/kpis`, API de métricas, cálculos agregados | Métricas lentas en grandes volúmenes; datos inconsistentes | Queries con índices apropiados. Rangos de fecha obligatorios |
 | 14 | **Rol Supervisor** en RBAC | ❌ No | `src/lib/rbac.ts`, `src/lib/app-access.ts` | Rol con permisos de postventa + tickets (sin aprobación) | Supervisor con más permisos de los necesarios | Agregar rol `supervisor` con permisos acotados |
-| 15 | **Monto TE por instalación** (`te_monto_clp`) | ❌ No | `CrmInstallation` en schema | Campo `te_monto_clp` en instalación | Dato necesario para Fase 1 (TE) | Agregar campo ahora; se usa en Fase 1. No bloquea Etapa 2 |
+| 15 | **Monto TE por instalación** (`te_monto_clp`) | ✅ Sí | `CrmInstallation` en schema + modelos `ops` | Campo disponible y usado por flujo TE de Fase 1 | Alinear consumo con Postventa/Tickets si aplica | Mantener como dato compartido instalación-ops |
 | 16 | **Auditoría de acciones postventa/tickets** | 🟡 Parcial | `AuditLog` en schema `public` | Reutilizar `AuditLog`. Asegurar que se registra cada acción | Acciones sin auditar; imposible reconstruir historial | Usar `AuditLog` existente con `entity = 'visit_checkin' / 'ticket'` |
 
-### Dependencias con Fase 1 (no implementada)
+### Dependencias con Fase 1 (implementada MVP)
 
 | Dependencia | Impacto en Etapa 2 | Decisión |
 |-------------|--------------------|---------| 
@@ -902,7 +902,7 @@ const AssignedTeam = z.enum(["postventa", "ops", "rrhh", "inventario", "finanzas
 - `prisma/migrations/XXXXXX_etapa2_ops_schema/migration.sql`
 
 **Archivos a modificar:**
-- `prisma/schema.prisma` — Agregar schema `ops`, 6 modelos nuevos, 2 campos en `CrmInstallation`
+- `prisma/schema.prisma` — Reutilizar schema `ops` y agregar/ajustar modelos de postventa + tickets
 
 **Detalle de cambios en `schema.prisma`:**
 
@@ -1349,7 +1349,7 @@ Scenario: Ticket ya marcado como breach (idempotencia)
 
 | # | Supuesto | Justificación | Impacto si es incorrecto |
 |---|----------|---------------|--------------------------|
-| S1 | El actor del check-in es un `Admin` con rol `supervisor` (no un `guardia`) | La tabla `persona`/`guardia` no existe aún (Fase 1 pendiente). El MASTER_SPEC dice que supervisores hacen check-in/out postventa | Si se quiere que guardias hagan check-in, se necesita crear la tabla `guardia` primero o agregar FK opcional |
+| S1 | El actor del check-in es un `Admin` con rol `supervisor` (no un `guardia`) | Aunque Fase 1 ya implementa `persona/guardia`, el flujo de postventa del MASTER_SPEC sigue centrado en supervisores | Si se quiere que guardias hagan check-in, agregar FK opcional o endpoint específico para portal |
 | S2 | Las fotos de override y bitácora se suben a Vercel Blob (mismo provider que `CrmFile`) | El repo ya usa un storage provider para archivos CRM | Si se usa otro provider, ajustar lógica de upload |
 | S3 | Los tickets no tienen workflow de aprobación (solo cambios de estado lineales) | El MASTER_SPEC define tickets como seguimiento, no como aprobación formal | Si se necesita aprobación, agregar estado `pending_approval` |
 | S4 | El SLA se calcula en horas calendario (no horas hábiles) | El MASTER_SPEC dice `sla_hours` sin especificar hábil/calendario | Si se necesita horas hábiles, la lógica de cálculo se complejiza significativamente |
@@ -1438,4 +1438,4 @@ function haversineDistance(
 
 ---
 
-*Documento generado como parte del proceso de planificación de Etapa 2. No se ha implementado código. Este documento debe ser validado antes de proceder con los PRs.*
+*Documento de planificación vigente para la implementación de Etapa 2 sobre una base Fase 1 ya implementada.*
