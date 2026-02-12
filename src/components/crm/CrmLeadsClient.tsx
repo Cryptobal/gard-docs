@@ -467,6 +467,11 @@ export function CrmLeadsClient({
     rejected: leads.filter((l) => l.status === "rejected").length,
   }), [leads]);
 
+  const approvingLead = useMemo(
+    () => (approveLeadId ? leads.find((l) => l.id === approveLeadId) ?? null : null),
+    [approveLeadId, leads]
+  );
+
   const filteredLeads = useMemo(() => {
     const q = search.trim().toLowerCase();
     let result = leads.filter((lead) => {
@@ -1363,14 +1368,14 @@ export function CrmLeadsClient({
             </div>
           )}
 
-          {selectedLead?.source === "email_forward" && selectedLead?.metadata && typeof selectedLead.metadata === "object" && !Array.isArray(selectedLead.metadata) && (
+          {approvingLead?.source === "email_forward" && approvingLead?.metadata && typeof approvingLead.metadata === "object" && !Array.isArray(approvingLead.metadata) && (
             <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Mailbox className="h-3.5 w-3.5" />
                 Correo original
               </h4>
               {(() => {
-                const meta = selectedLead.metadata as { inboundEmail?: { subject?: string; from?: string; text?: string; html?: string; receivedAt?: string } };
+                const meta = approvingLead.metadata as { inboundEmail?: { subject?: string; from?: string; text?: string; html?: string; receivedAt?: string } };
                 const email = meta?.inboundEmail;
                 if (!email) return null;
                 return (
@@ -1384,7 +1389,7 @@ export function CrmLeadsClient({
                   </div>
                 );
               })()}
-              <FileAttachments entityType="lead" entityId={selectedLead.id} readOnly title="Archivos adjuntos del correo" />
+              <FileAttachments entityType="lead" entityId={approvingLead.id} readOnly title="Archivos adjuntos del correo" />
             </div>
           )}
 
