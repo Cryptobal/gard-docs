@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       htmlBody: html,
       textBody: text,
       fromEmail: from,
+      ownDomain: "gard.cl",
     });
 
     const firstName = toSentenceCase(extracted.contactFirstName?.trim() || "") ?? null;
