@@ -57,14 +57,6 @@ export default async function CrmDealsPage({
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const includeRelations = {
-    account: {
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        status: true,
-      },
-    },
     stage: true,
     primaryContact: true,
     quotes: true,
@@ -167,7 +159,15 @@ export default async function CrmDealsPage({
     }),
   ]);
 
-  const initialDeals = JSON.parse(JSON.stringify(deals));
+  const accountById = new Map(
+    accounts.map((account: { id: string; name: string; type: string; status: string }) => [account.id, account])
+  );
+  const dealsWithAccount = deals.map((deal: { accountId: string | null }) => ({
+    ...deal,
+    account: deal.accountId ? accountById.get(deal.accountId) ?? null : null,
+  }));
+
+  const initialDeals = JSON.parse(JSON.stringify(dealsWithAccount));
   const initialAccounts = JSON.parse(JSON.stringify(accounts));
   const initialStages = JSON.parse(JSON.stringify(stages));
   const initialQuotes = JSON.parse(JSON.stringify(quotes));
