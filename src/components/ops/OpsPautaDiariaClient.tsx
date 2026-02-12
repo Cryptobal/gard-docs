@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/opai";
-import { CalendarCheck2, RefreshCw, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { CalendarCheck2, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { hasOpsCapability } from "@/lib/ops-rbac";
@@ -101,7 +101,7 @@ export function OpsPautaDiariaClient({
   const [clientId, setClientId] = useState<string>("all");
   const [installationId, setInstallationId] = useState<string>("all");
   const [date, setDate] = useState<string>(toDateInput(new Date()));
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [items, setItems] = useState<AsistenciaItem[]>([]);
   const [replacementOpenId, setReplacementOpenId] = useState<string | null>(null);
@@ -295,10 +295,17 @@ export function OpsPautaDiariaClient({
               </div>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" onClick={() => void fetchAsistencia()} disabled={loading}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Recargar
-              </Button>
+              {loading ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-400 h-9">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando asistencia…
+                </div>
+              ) : items.length > 0 ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-400 h-9">
+                  <CalendarCheck2 className="h-4 w-4" />
+                  Asistencia cargada
+                </div>
+              ) : null}
             </div>
           </div>
         </CardContent>

@@ -175,7 +175,7 @@ export function OpsPautaMensualClient({
   const [month, setMonth] = useState<number>(today.getUTCMonth() + 1);
   const [year, setYear] = useState<number>(today.getUTCFullYear());
   const [overwrite, setOverwrite] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [items, setItems] = useState<PautaItem[]>([]);
   const [series, setSeries] = useState<SerieInfo[]>([]);
   const [slotAsignaciones, setSlotAsignaciones] = useState<SlotAsignacion[]>([]);
@@ -579,12 +579,17 @@ export function OpsPautaMensualClient({
 
           <div className="flex items-center justify-between rounded-md border border-border bg-muted/20 px-3 py-2">
             <div className="flex items-center gap-3">
-              {loading && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {loading ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Cargando pauta…
                 </div>
-              )}
+              ) : items.length > 0 ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-400">
+                  <CalendarDays className="h-4 w-4" />
+                  Pauta cargada · {items.length} registros
+                </div>
+              ) : null}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleExportPdf} disabled={loading || items.length === 0} size="sm">
