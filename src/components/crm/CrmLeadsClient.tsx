@@ -17,8 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CrmLead } from "@/types";
-import { Plus, Loader2, Trash2, ChevronRight, UserPlus, Phone, Mail, MessageSquare, Clock, Users, Calendar, Briefcase } from "lucide-react";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Plus, Loader2, ChevronRight, UserPlus, Phone, Mail, MessageSquare, Clock, Users, Calendar, Briefcase } from "lucide-react";
 import { StatusBadge } from "@/components/opai/StatusBadge";
 import { EmptyState } from "@/components/opai/EmptyState";
 import { CrmDates } from "@/components/crm/CrmDates";
@@ -139,7 +138,6 @@ export function CrmLeadsClient({
   const [sort, setSort] = useState("newest");
   const [view, setView] = useState<ViewMode>("cards");
   const [rejectReasonFilter, setRejectReasonFilter] = useState<LeadRejectReasonFilter>("all");
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
 
   const inputClassName = "bg-background text-foreground placeholder:text-muted-foreground border-input focus-visible:ring-ring";
 
@@ -209,18 +207,6 @@ export function CrmLeadsClient({
   const leadDisplayName = (lead: CrmLead) => {
     const parts = [lead.firstName, lead.lastName].filter(Boolean);
     return parts.length > 0 ? parts.join(" ") : "Sin contacto";
-  };
-
-  const deleteLead = async (id: string) => {
-    try {
-      const res = await fetch(`/api/crm/leads/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      setLeads((prev) => prev.filter((l) => l.id !== id));
-      setDeleteConfirm({ open: false, id: "" });
-      toast.success("Prospecto eliminado");
-    } catch {
-      toast.error("No se pudo eliminar");
-    }
   };
 
   const statusFilters = [
@@ -397,17 +383,7 @@ export function CrmLeadsClient({
                     )}
                     <div className="flex items-center justify-between pt-1">
                       <CrmDates createdAt={lead.createdAt} />
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteConfirm({ open: true, id: lead.id }); }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
                   </Link>
                 );
@@ -505,14 +481,6 @@ export function CrmLeadsClient({
                             {lead.status === "in_review" ? "Revisar" : "Revisar y aprobar"}
                           </span>
                         )}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteConfirm({ open: true, id: lead.id }); }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </div>
                     </div>
@@ -563,13 +531,6 @@ export function CrmLeadsClient({
         </CardContent>
       </Card>
 
-      <ConfirmDialog
-        open={deleteConfirm.open}
-        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
-        title="Eliminar prospecto"
-        description="El prospecto será eliminado permanentemente. Esta acción no se puede deshacer."
-        onConfirm={() => deleteLead(deleteConfirm.id)}
-      />
     </div>
   );
 }
