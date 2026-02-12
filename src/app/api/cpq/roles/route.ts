@@ -61,11 +61,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const patternWork = typeof body.patternWork === "number" ? body.patternWork : null;
+    const patternOff = typeof body.patternOff === "number" ? body.patternOff : null;
+
     const rol = await prisma.cpqRol.create({
       data: {
         name: body.name.trim(),
         description: body.description?.trim() || null,
         colorHex: normalizeColorHex(body.colorHex),
+        patternWork,
+        patternOff,
         active: body.active ?? true,
       },
     });

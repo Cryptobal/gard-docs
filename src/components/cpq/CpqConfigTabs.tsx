@@ -108,9 +108,10 @@ export function CpqConfigTabs() {
         {activeTab === "roles" && (
           <CpqSimpleCatalogConfig
             title="Roles / Turnos"
-            description="Define los roles o turnos de trabajo disponibles (ej: 4x4, 7x7, 5x2, 6x1)."
+            description="Define los roles o turnos de trabajo disponibles (ej: 4x4 = 4 trabajo, 4 descanso). Estos patrones se usan en la pauta mensual para pintar series."
             apiPath="/api/cpq/roles"
             hasDescription={true}
+            hasPattern={true}
           />
         )}
       </div>

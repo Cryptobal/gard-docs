@@ -28,7 +28,8 @@ const checkSchema = z.object({
 
 /**
  * Cleans pauta mensual entries for a guard from a date forward.
- * Removes the guard from planned slots (sets plannedGuardiaId to null, shiftCode to null).
+ * Removes the guard from planned slots (sets plannedGuardiaId to null).
+ * Does NOT erase shiftCode — the series pattern stays painted.
  */
 async function cleanPautaFromDate(
   tenantId: string,
@@ -37,8 +38,8 @@ async function cleanPautaFromDate(
   guardiaId: string,
   fromDate: Date
 ) {
-  // Clean entries where the guard is assigned (work days)
-  const cleaned1 = await prisma.opsPautaMensual.updateMany({
+  // Remove guard from work days but keep shiftCode (series stays painted)
+  const cleaned = await prisma.opsPautaMensual.updateMany({
     where: {
       tenantId,
       puestoId,
@@ -48,27 +49,10 @@ async function cleanPautaFromDate(
     },
     data: {
       plannedGuardiaId: null,
-      shiftCode: null,
     },
   });
 
-  // Also clean rest days ("-") for this slot that have no guard but have a shiftCode
-  // These are the descanso days from the painted serie
-  const cleaned2 = await prisma.opsPautaMensual.updateMany({
-    where: {
-      tenantId,
-      puestoId,
-      slotNumber,
-      plannedGuardiaId: null,
-      shiftCode: { not: null },
-      date: { gte: fromDate },
-    },
-    data: {
-      shiftCode: null,
-    },
-  });
-
-  return cleaned1.count + cleaned2.count;
+  return cleaned.count;
 }
 
 /**
@@ -269,7 +253,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Create new assignment
+    // 3. Check if slot has a painted series (required for assignment)
+    const activeSerie = await prisma.opsSerieAsignacion.findFirst({
+      where: {
+        tenantId: ctx.tenantId,
+        puestoId: body.puestoId,
+        slotNumber: body.slotNumber,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    if (!activeSerie) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Este slot no tiene una serie de turno pintada. Primero ve a Pauta mensual y pinta la serie para este puesto/slot.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4. Create new assignment
     const asignacion = await prisma.opsAsignacionGuardia.create({
       data: {
         tenantId: ctx.tenantId,
@@ -294,11 +300,37 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // 5. Write plannedGuardiaId on all "T" days from startDate forward
+    const pautaUpdated = await prisma.opsPautaMensual.updateMany({
+      where: {
+        tenantId: ctx.tenantId,
+        puestoId: body.puestoId,
+        slotNumber: body.slotNumber,
+        shiftCode: "T",
+        date: { gte: startDate },
+      },
+      data: {
+        plannedGuardiaId: body.guardiaId,
+      },
+    });
+
+    // Also update the serie to reference the new guard
+    await prisma.opsSerieAsignacion.updateMany({
+      where: {
+        tenantId: ctx.tenantId,
+        puestoId: body.puestoId,
+        slotNumber: body.slotNumber,
+        isActive: true,
+      },
+      data: { guardiaId: body.guardiaId },
+    });
+
     await createOpsAuditLog(ctx, "ops.asignacion.created", "ops_asignacion", asignacion.id, {
       guardiaId: body.guardiaId,
       puestoId: body.puestoId,
       slotNumber: body.slotNumber,
       startDate: toISODate(startDate),
+      pautaUpdated: pautaUpdated.count,
     });
 
     return NextResponse.json({ success: true, data: asignacion }, { status: 201 });

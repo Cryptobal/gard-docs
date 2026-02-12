@@ -18,7 +18,7 @@ export default async function OpsPautaMensualPage() {
 
   const tenantId = session.user.tenantId ?? (await getDefaultTenantId());
 
-  const [clients, guardias] = await Promise.all([
+  const [clients, guardias, shiftPatterns] = await Promise.all([
     prisma.crmAccount.findMany({
       where: {
         tenantId,
@@ -56,6 +56,11 @@ export default async function OpsPautaMensualPage() {
       },
       orderBy: [{ persona: { lastName: "asc" } }],
     }),
+    prisma.cpqRol.findMany({
+      where: { active: true, patternWork: { not: null }, patternOff: { not: null } },
+      select: { id: true, name: true, patternWork: true, patternOff: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (
@@ -68,6 +73,7 @@ export default async function OpsPautaMensualPage() {
       <OpsPautaMensualClient
         initialClients={JSON.parse(JSON.stringify(clients))}
         guardias={JSON.parse(JSON.stringify(guardias))}
+        shiftPatterns={JSON.parse(JSON.stringify(shiftPatterns))}
       />
     </div>
   );

@@ -41,13 +41,19 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
-    const data: { name: string; description: string | null; active: boolean; colorHex?: string | null } = {
+    const data: Record<string, unknown> = {
       name: body.name.trim(),
       description: body.description?.trim() || null,
       active: body.active ?? true,
     };
     if (body.colorHex !== undefined) {
       data.colorHex = normalizeColorHex(body.colorHex);
+    }
+    if (body.patternWork !== undefined) {
+      data.patternWork = typeof body.patternWork === "number" ? body.patternWork : null;
+    }
+    if (body.patternOff !== undefined) {
+      data.patternOff = typeof body.patternOff === "number" ? body.patternOff : null;
     }
 
     const rol = await prisma.cpqRol.update({

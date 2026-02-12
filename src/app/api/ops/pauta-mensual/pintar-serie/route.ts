@@ -12,13 +12,6 @@ import {
 
 /**
  * Generates shift codes for a month based on a rotation pattern.
- *
- * @param startDate - When this assignment begins (the day the user clicked)
- * @param startPosition - 1-based position in the cycle on startDate
- * @param patternWork - Number of work days in the cycle
- * @param patternOff - Number of off days in the cycle
- * @param monthDates - All dates of the month
- * @returns Array of { date, shiftCode } for each day
  */
 function generateSerieForMonth(
   startDate: Date,
@@ -34,8 +27,7 @@ function generateSerieForMonth(
     const diffMs = d.getTime() - startDate.getTime();
     const daysDiff = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-    // Position in cycle: adjust by startPosition (0-based internally)
-    let positionInCycle =
+    const positionInCycle =
       ((daysDiff + (startPosition - 1)) % cycleLength + cycleLength) % cycleLength;
 
     const isWorkDay = positionInCycle < patternWork;
@@ -78,59 +70,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate guardia
-    const guardia = await prisma.opsGuardia.findFirst({
-      where: { id: body.guardiaId, tenantId: ctx.tenantId },
-      select: { id: true, isBlacklisted: true, status: true },
-    });
-    if (!guardia) {
-      return NextResponse.json(
-        { success: false, error: "Guardia no encontrado" },
-        { status: 404 }
-      );
-    }
-    if (guardia.isBlacklisted || guardia.status !== "active") {
-      return NextResponse.json(
-        { success: false, error: "El guardia debe estar activo y fuera de lista negra" },
-        { status: 400 }
-      );
-    }
-
-    // Validate guard is assigned to this puesto+slot
+    // Check if there's a guard assigned to this slot (for plannedGuardiaId)
     const asignacion = await prisma.opsAsignacionGuardia.findFirst({
       where: {
         tenantId: ctx.tenantId,
-        guardiaId: body.guardiaId,
         puestoId: body.puestoId,
         slotNumber: body.slotNumber,
         isActive: true,
       },
+      select: { guardiaId: true, startDate: true },
     });
-    if (!asignacion) {
-      return NextResponse.json(
-        { success: false, error: "El guardia no está asignado a este puesto/slot. Asígnalo primero en Puestos operativos." },
-        { status: 400 }
-      );
-    }
 
     const startDate = parseDateOnly(body.startDate);
-
-    // Don't allow painting before the assignment start date
-    if (startDate < asignacion.startDate) {
-      const assignDateStr = asignacion.startDate.toISOString().slice(0, 10);
-      return NextResponse.json(
-        { success: false, error: `No se puede pintar antes de la fecha de asignación (${assignDateStr}). El guardia fue asignado desde esa fecha.` },
-        { status: 400 }
-      );
-    }
-
     const { start: monthStart, end: monthEnd } = getMonthDateRange(body.year, body.month);
+    const paintDates = listDatesBetween(monthStart, monthEnd);
 
-    // Only paint from the assignment start date (or click date), not before
-    const effectiveStart = asignacion.startDate > monthStart ? asignacion.startDate : monthStart;
-    const paintDates = listDatesBetween(effectiveStart, monthEnd);
-
-    // Generate the series pattern (only for dates from effectiveStart)
+    // Generate the series pattern for the full month
     const serieEntries = generateSerieForMonth(
       startDate,
       body.startPosition,
@@ -155,7 +110,7 @@ export async function POST(request: NextRequest) {
         tenantId: ctx.tenantId,
         puestoId: body.puestoId,
         slotNumber: body.slotNumber,
-        guardiaId: body.guardiaId,
+        guardiaId: asignacion?.guardiaId ?? null,
         patternCode: body.patternCode,
         patternWork: body.patternWork,
         patternOff: body.patternOff,
@@ -166,10 +121,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Determine plannedGuardiaId: only set if guard is assigned AND date >= assignment start
+    const getPlannedGuardiaId = (entry: { date: Date; shiftCode: string }) => {
+      if (entry.shiftCode !== "T") return null;
+      if (!asignacion) return null;
+      if (entry.date < asignacion.startDate) return null;
+      return asignacion.guardiaId;
+    };
+
     // Update pauta entries for this slot
     let updated = 0;
     for (const entry of serieEntries) {
       try {
+        const plannedGuardiaId = getPlannedGuardiaId(entry);
         await prisma.opsPautaMensual.upsert({
           where: {
             puestoId_slotNumber_date: {
@@ -184,13 +148,13 @@ export async function POST(request: NextRequest) {
             puestoId: body.puestoId,
             slotNumber: body.slotNumber,
             date: entry.date,
-            plannedGuardiaId: entry.shiftCode === "T" ? body.guardiaId : null,
+            plannedGuardiaId,
             shiftCode: entry.shiftCode,
             status: "planificado",
             createdBy: ctx.userId,
           },
           update: {
-            plannedGuardiaId: entry.shiftCode === "T" ? body.guardiaId : null,
+            plannedGuardiaId,
             shiftCode: entry.shiftCode,
           },
         });
@@ -203,7 +167,7 @@ export async function POST(request: NextRequest) {
     await createOpsAuditLog(ctx, "ops.pauta.serie_painted", "ops_pauta", undefined, {
       puestoId: body.puestoId,
       slotNumber: body.slotNumber,
-      guardiaId: body.guardiaId,
+      guardiaId: asignacion?.guardiaId ?? null,
       patternCode: body.patternCode,
       startDate: body.startDate,
       startPosition: body.startPosition,
@@ -215,7 +179,7 @@ export async function POST(request: NextRequest) {
       data: {
         updated,
         patternCode: body.patternCode,
-        guardiaId: body.guardiaId,
+        guardiaId: asignacion?.guardiaId ?? null,
         slotNumber: body.slotNumber,
       },
     });

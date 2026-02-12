@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
       ? { installationId }
       : {};
 
-    // Auto-create asistencia rows from pauta mensual (only for active puestos)
+    // Auto-create asistencia rows from pauta mensual
+    // ONLY for days with shiftCode = "T" (work days from painted series)
     const pauta = await prisma.opsPautaMensual.findMany({
       where: {
         tenantId: ctx.tenantId,
         ...installationFilter,
         date,
         puesto: { active: true },
+        shiftCode: "T",
       },
       select: {
         puestoId: true,

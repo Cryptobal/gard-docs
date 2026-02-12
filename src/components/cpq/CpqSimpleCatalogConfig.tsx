@@ -26,6 +26,8 @@ type CatalogEntry = {
   name: string;
   description?: string | null;
   colorHex?: string | null;
+  patternWork?: number | null;
+  patternOff?: number | null;
   active: boolean;
   createdAt: string;
 };
@@ -35,6 +37,7 @@ interface CpqSimpleCatalogConfigProps {
   description: string;
   apiPath: string; // e.g. "/api/cpq/puestos"
   hasDescription?: boolean;
+  hasPattern?: boolean;
 }
 
 export function CpqSimpleCatalogConfig({
@@ -42,16 +45,21 @@ export function CpqSimpleCatalogConfig({
   description,
   apiPath,
   hasDescription = false,
+  hasPattern = false,
 }: CpqSimpleCatalogConfigProps) {
   const [items, setItems] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newColorHex, setNewColorHex] = useState("#64748b");
+  const [newPatternWork, setNewPatternWork] = useState<string>("");
+  const [newPatternOff, setNewPatternOff] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editColorHex, setEditColorHex] = useState("#64748b");
+  const [editPatternWork, setEditPatternWork] = useState<string>("");
+  const [editPatternOff, setEditPatternOff] = useState<string>("");
   const [deleteConfirm, setDeleteConfirm] = useState<CatalogEntry | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -97,6 +105,8 @@ export function CpqSimpleCatalogConfig({
           name: newName.trim(),
           colorHex: normalizeColorHex(newColorHex),
           ...(hasDescription ? { description: newDesc.trim() || null } : {}),
+          ...(hasPattern && newPatternWork ? { patternWork: Number(newPatternWork) } : {}),
+          ...(hasPattern && newPatternOff ? { patternOff: Number(newPatternOff) } : {}),
         }),
       });
       const data = await res.json();
@@ -105,6 +115,8 @@ export function CpqSimpleCatalogConfig({
         setNewName("");
         setNewDesc("");
         setNewColorHex("#64748b");
+        setNewPatternWork("");
+        setNewPatternOff("");
         toast.success("Agregado correctamente");
       } else {
         toast.error(data.error || "Error al agregar");
@@ -127,6 +139,8 @@ export function CpqSimpleCatalogConfig({
           name: editName.trim(),
           colorHex: normalizeColorHex(editColorHex),
           ...(hasDescription ? { description: editDesc.trim() || null } : {}),
+          ...(hasPattern ? { patternWork: editPatternWork ? Number(editPatternWork) : null } : {}),
+          ...(hasPattern ? { patternOff: editPatternOff ? Number(editPatternOff) : null } : {}),
         }),
       });
       const data = await res.json();
@@ -170,6 +184,8 @@ export function CpqSimpleCatalogConfig({
     setEditName(item.name);
     setEditDesc(item.description || "");
     setEditColorHex(item.colorHex || "#64748b");
+    setEditPatternWork(item.patternWork != null ? String(item.patternWork) : "");
+    setEditPatternOff(item.patternOff != null ? String(item.patternOff) : "");
   };
 
   const cancelEdit = () => {
@@ -204,6 +220,28 @@ export function CpqSimpleCatalogConfig({
               className={`${inputClass} flex-1`}
               onKeyDown={(e) => e.key === "Enter" && addItem()}
             />
+          )}
+          {hasPattern && (
+            <>
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                value={newPatternWork}
+                onChange={(e) => setNewPatternWork(e.target.value)}
+                placeholder="Días trabajo"
+                className={`${inputClass} w-28`}
+              />
+              <Input
+                type="number"
+                min={0}
+                max={30}
+                value={newPatternOff}
+                onChange={(e) => setNewPatternOff(e.target.value)}
+                placeholder="Días descanso"
+                className={`${inputClass} w-28`}
+              />
+            </>
           )}
           <label
             className="flex items-center gap-1 rounded-md border border-border/60 px-2 h-9 text-xs text-muted-foreground"
@@ -276,6 +314,28 @@ export function CpqSimpleCatalogConfig({
                         }}
                       />
                     )}
+                    {hasPattern && (
+                      <>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={editPatternWork}
+                          onChange={(e) => setEditPatternWork(e.target.value)}
+                          placeholder="Trabajo"
+                          className={`${inputClass} w-20`}
+                        />
+                        <Input
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={editPatternOff}
+                          onChange={(e) => setEditPatternOff(e.target.value)}
+                          placeholder="Descanso"
+                          className={`${inputClass} w-20`}
+                        />
+                      </>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -302,7 +362,14 @@ export function CpqSimpleCatalogConfig({
                       title={item.colorHex || "Sin color"}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.name}</p>
+                      <p className="text-sm font-medium truncate">
+                        {item.name}
+                        {hasPattern && item.patternWork != null && item.patternOff != null && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({item.patternWork} trabajo, {item.patternOff} descanso)
+                          </span>
+                        )}
+                      </p>
                       {hasDescription && item.description && (
                         <p className="text-xs text-muted-foreground truncate">
                           {item.description}

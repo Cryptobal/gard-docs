@@ -29,12 +29,14 @@ const WEEKDAY_SHORT: Record<number, string> = {
   0: "Dom", 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb",
 };
 
-const PATTERNS = [
+// Fallback patterns if no CPQ roles with pattern are configured
+const FALLBACK_PATTERNS = [
   { code: "4x4", work: 4, off: 4, label: "4x4" },
   { code: "5x2", work: 5, off: 2, label: "5x2" },
   { code: "7x7", work: 7, off: 7, label: "7x7" },
   { code: "6x1", work: 6, off: 1, label: "6x1" },
   { code: "2x2", work: 2, off: 2, label: "2x2" },
+  { code: "2x5", work: 2, off: 5, label: "2x5" },
 ];
 
 const SHIFT_COLORS: Record<string, string> = {
@@ -59,6 +61,13 @@ type GuardiaOption = {
   id: string;
   code?: string | null;
   persona: { firstName: string; lastName: string; rut?: string | null };
+};
+
+type ShiftPatternOption = {
+  id: string;
+  name: string;
+  patternWork: number | null;
+  patternOff: number | null;
 };
 
 type PautaItem = {
@@ -116,6 +125,7 @@ type ExecutionCell = { state: ExecutionState; teStatus?: string };
 interface OpsPautaMensualClientProps {
   initialClients: ClientOption[];
   guardias: GuardiaOption[];
+  shiftPatterns?: ShiftPatternOption[];
 }
 
 /* ── helper ────────────────────────────────────── */
@@ -141,7 +151,21 @@ function daysInMonth(year: number, month: number): Date[] {
 export function OpsPautaMensualClient({
   initialClients,
   guardias,
+  shiftPatterns = [],
 }: OpsPautaMensualClientProps) {
+  const PATTERNS = useMemo(() => {
+    if (shiftPatterns.length > 0) {
+      return shiftPatterns
+        .filter((sp) => sp.patternWork != null && sp.patternOff != null)
+        .map((sp) => ({
+          code: sp.name,
+          work: sp.patternWork!,
+          off: sp.patternOff!,
+          label: sp.name,
+        }));
+    }
+    return FALLBACK_PATTERNS;
+  }, [shiftPatterns]);
   const today = new Date();
   const [clients] = useState<ClientOption[]>(initialClients);
   const [clientId, setClientId] = useState<string>(initialClients[0]?.id ?? "");
@@ -162,8 +186,7 @@ export function OpsPautaMensualClient({
   const [serieForm, setSerieForm] = useState({
     puestoId: "",
     slotNumber: 1,
-    guardiaId: "",
-    patternCode: "4x4",
+    patternCode: "",
     startDate: "",
     startPosition: 1,
   });
@@ -332,8 +355,7 @@ export function OpsPautaMensualClient({
     setSerieForm({
       puestoId,
       slotNumber,
-      guardiaId: "",
-      patternCode: "4x4",
+      patternCode: PATTERNS[0]?.code ?? "4x4",
       startDate: dateKey,
       startPosition: 1,
     });
@@ -342,12 +364,11 @@ export function OpsPautaMensualClient({
 
   // Paint serie
   const handlePaintSerie = async () => {
-    if (!serieForm.guardiaId) {
-      toast.error("Selecciona un guardia");
+    const pattern = PATTERNS.find((p) => p.code === serieForm.patternCode);
+    if (!pattern) {
+      toast.error("Selecciona un patrón de turno");
       return;
     }
-    const pattern = PATTERNS.find((p) => p.code === serieForm.patternCode);
-    if (!pattern) return;
 
     setSerieSaving(true);
     try {
@@ -357,7 +378,6 @@ export function OpsPautaMensualClient({
         body: JSON.stringify({
           puestoId: serieForm.puestoId,
           slotNumber: serieForm.slotNumber,
-          guardiaId: serieForm.guardiaId,
           patternCode: pattern.code,
           patternWork: pattern.work,
           patternOff: pattern.off,
@@ -745,24 +765,6 @@ export function OpsPautaMensualClient({
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Guardia</Label>
-              <select
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={serieForm.guardiaId}
-                onChange={(e) => setSerieForm((p) => ({ ...p, guardiaId: e.target.value }))}
-              >
-                <option value="">Seleccionar guardia...</option>
-                {guardias.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.persona.firstName} {g.persona.lastName}
-                    {g.code ? ` (${g.code})` : ""}
-                    {g.persona.rut ? ` - ${g.persona.rut}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="space-y-1.5">
               <Label>Patrón de turno</Label>
               <select

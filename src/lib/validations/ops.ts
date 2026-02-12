@@ -107,7 +107,6 @@ export const generatePautaSchema = z.object({
 export const pintarSerieSchema = z.object({
   puestoId: z.string().uuid("puestoId inválido"),
   slotNumber: z.number().int().min(1).max(20),
-  guardiaId: z.string().uuid("guardiaId inválido"),
   patternCode: z.string().trim().min(1).max(20),
   patternWork: z.number().int().min(1).max(30),
   patternOff: z.number().int().min(0).max(30),
