@@ -76,7 +76,16 @@ export async function GET(request: NextRequest) {
             puestoId: { in: puestoIds },
             isActive: true,
           },
-          include: {
+          select: {
+            id: true,
+            puestoId: true,
+            slotNumber: true,
+            guardiaId: true,
+            patternCode: true,
+            patternWork: true,
+            patternOff: true,
+            startDate: true,
+            startPosition: true,
             guardia: {
               select: {
                 id: true,
@@ -168,9 +177,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "No se pudo obtener la pauta mensual";
     console.error("[OPS] Error listing pauta mensual:", error);
     return NextResponse.json(
-      { success: false, error: "No se pudo obtener la pauta mensual" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
