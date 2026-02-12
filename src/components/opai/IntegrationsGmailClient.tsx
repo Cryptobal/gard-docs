@@ -39,7 +39,9 @@ export function IntegrationsGmailClient({
           <CardTitle>Gmail</CardTitle>
           <CardDescription>Conecta tu cuenta para enviar y registrar correos.</CardDescription>
         </div>
-        <Badge variant="outline">{connected ? "Conectado" : "No conectado"}</Badge>
+        <Badge variant={connected ? "success" : "destructive"}>
+          {connected ? "Conectado" : "Desconectado"}
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         {connected ? (
