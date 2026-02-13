@@ -105,7 +105,7 @@ export async function updateDisplayName(name: string) {
       action: 'user.name_changed',
       entity: 'user',
       entityId: user.id,
-      metadata: {
+      details: {
         fromName: user.name,
         toName: normalizedName,
       },
