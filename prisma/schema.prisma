@@ -787,7 +787,10 @@ model CrmAccount {
   isActive                Boolean  @default(false) @map("is_active") // legacy compat, derived from status
   website                 String?
   address                 String?
+  commune                 String?
   notes                   String?
+  startDate               DateTime? @map("start_date") @db.Date
+  endDate                 DateTime? @map("end_date") @db.Date
   createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -821,6 +824,8 @@ model CrmInstallation {
   teMontoClp Decimal @default(0) @map("te_monto_clp") @db.Decimal(12, 2)
   notes     String?
   metadata  Json?    @db.JsonB // dotacion sugerida, datos extra
+  startDate DateTime? @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -833,6 +838,7 @@ model CrmInstallation {
   opsTurnosExtra       OpsTurnoExtra[]
   opsAsignacionGuardias OpsAsignacionGuardia[] @relation("ops_asignacion_installation")
   opsMarcaciones       OpsMarcacion[]
+  guardiasActuales     OpsGuardia[]           @relation("ops_guardia_current_installation")
 
   @@index([tenantId], map: "idx_crm_installations_tenant")
   @@index([accountId], map: "idx_crm_installations_account")
@@ -1373,10 +1379,14 @@ model OpsGuardia {
   blacklistedAt   DateTime? @map("blacklisted_at") @db.Timestamptz(6)
   availableExtraShifts Boolean @default(false) @map("available_extra_shifts")
   marcacionPin    String?   @map("marcacion_pin") // bcrypt hash del PIN de 4-6 dígitos
+  currentInstallationId String? @map("current_installation_id") @db.Uuid
+  montoAnticipo   Int       @default(0) @map("monto_anticipo")
+  recibeAnticipo  Boolean   @default(false) @map("recibe_anticipo")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   persona               OpsPersona              @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  currentInstallation   CrmInstallation?        @relation("ops_guardia_current_installation", fields: [currentInstallationId], references: [id], onDelete: SetNull)
   bankAccounts          OpsCuentaBancaria[]
   flags                 OpsGuardiaFlag[]
   comments              OpsComentarioGuardia[]
@@ -1397,6 +1407,7 @@ model OpsGuardia {
   @@index([tenantId], map: "idx_ops_guardias_tenant")
   @@index([status], map: "idx_ops_guardias_status")
   @@index([isBlacklisted], map: "idx_ops_guardias_blacklist")
+  @@index([currentInstallationId], map: "idx_ops_guardias_current_installation")
   @@map("guardias")
   @@schema("ops")
 }
