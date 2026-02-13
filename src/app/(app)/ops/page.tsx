@@ -5,11 +5,13 @@ import { hasAppAccess } from "@/lib/app-access";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
+import { OpsSubnav } from "@/components/ops";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   CalendarDays,
   ClipboardList,
   Clock3,
+  Fingerprint,
   ShieldAlert,
   ShieldUser,
   UserRoundCheck,
@@ -77,6 +79,14 @@ export default async function OpsDashboardPage() {
       color: "text-rose-400 bg-rose-400/10",
     },
     {
+      href: "/ops/marcaciones",
+      title: "Marcaciones",
+      description: "Registro de marcaciones de asistencia digital (Res. Exenta N°38).",
+      icon: Fingerprint,
+      count: null,
+      color: "text-cyan-400 bg-cyan-400/10",
+    },
+    {
       href: "/ops/ppc",
       title: "Puestos por cubrir (PPC)",
       description: "Brechas de cobertura: sin guardia o con vacaciones/licencia.",
@@ -100,6 +110,7 @@ export default async function OpsDashboardPage() {
         title="Ops"
         description="Operación diaria: estructura, pauta, cobertura y guardias."
       />
+      <OpsSubnav />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {modules.map((item) => (

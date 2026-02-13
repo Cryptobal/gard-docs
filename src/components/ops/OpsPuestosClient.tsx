@@ -371,7 +371,10 @@ export function OpsPuestosClient({
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {puesto.cargo?.name ?? "—"} / {puesto.rol?.name ?? "—"} · {puesto.shiftStart} - {puesto.shiftEnd} · {puesto.requiredGuards} slot(s)
+                          {(puesto.cargo?.name || puesto.rol?.name) ? (
+                            <>{puesto.cargo?.name ?? "—"} / {puesto.rol?.name ?? "—"} · </>
+                          ) : null}
+                          {puesto.shiftStart} - {puesto.shiftEnd} · {puesto.requiredGuards} slot(s)
                         </p>
                       </div>
                     </div>

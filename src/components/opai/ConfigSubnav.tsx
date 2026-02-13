@@ -11,6 +11,7 @@ import {
   DollarSign,
   Calculator,
   Bell,
+  ClipboardList,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -25,6 +26,7 @@ const CONFIG_ICONS: Record<ConfigSubmoduleKey, LucideIcon> = {
   cpq: DollarSign,
   payroll: Calculator,
   notifications: Bell,
+  ops: ClipboardList,
 };
 
 export function ConfigSubnav({ role }: { role: string }) {

@@ -75,7 +75,14 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: guardia });
+    // Sanitizar: no enviar el hash del PIN, solo indicar si existe
+    const { marcacionPin, ...guardiaRest } = guardia;
+    const sanitized = {
+      ...guardiaRest,
+      marcacionPin: marcacionPin ? "[configurado]" : null,
+    };
+
+    return NextResponse.json({ success: true, data: sanitized });
   } catch (error) {
     console.error("[PERSONAS] Error fetching guardia:", error);
     return NextResponse.json(

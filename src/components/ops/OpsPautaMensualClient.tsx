@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,14 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { CalendarDays, ChevronDown, ChevronUp, FileDown, Loader2, Trash2 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { CalendarDays, ChevronDown, ChevronUp, FileDown, Loader2, Trash2, ExternalLink } from "lucide-react";
 
 /* ── constants ─────────────────────────────────── */
 
@@ -205,9 +212,22 @@ export function OpsPautaMensualClient({
   const [slotAsignaciones, setSlotAsignaciones] = useState<SlotAsignacion[]>([]);
   const [executionByCell, setExecutionByCell] = useState<Record<string, ExecutionCell>>({});
 
-  // Mobile: view mode (week vs full month) + collapsible filters
-  const [viewMode, setViewMode] = useState<"week" | "month">("week");
+  // View mode: month on desktop (>=768px), week on mobile; sync on resize
+  const [viewMode, setViewMode] = useState<"week" | "month">(() => {
+    if (typeof window === "undefined") return "week";
+    return window.matchMedia("(min-width: 768px)").matches ? "month" : "week";
+  });
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Mobile: sheet para ver nombre completo del puesto y enlace a Puestos
+  const [puestoSheet, setPuestoSheet] = useState<{ puestoId: string; puestoName: string } | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const update = () => setViewMode(media.matches ? "month" : "week");
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   // Serie painting modal
   const [serieModalOpen, setSerieModalOpen] = useState(false);
@@ -240,6 +260,10 @@ export function OpsPautaMensualClient({
     guardiaId?: string;
   } | null>(null);
   const [pintarSoloDiaSaving, setPintarSoloDiaSaving] = useState(false);
+
+  // Long-press en móvil: emular clic derecho → eliminar (evitar que el tap abra pintar)
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTargetRef = useRef<{ puestoId: string; slotNumber: number; dateKey: string } | null>(null);
 
   // Client → installations
   const currentClient = useMemo(
@@ -694,11 +718,17 @@ export function OpsPautaMensualClient({
               compact
             />
           ) : (
-            <div className="overflow-x-auto -mx-4 px-4 sm:-mx-6 sm:px-6">
-              <table className="w-full text-xs border-collapse">
+            <div className="overflow-hidden sm:overflow-x-auto -mx-4 px-4 sm:-mx-6 sm:px-6">
+              <table className="w-full text-xs border-collapse table-fixed sm:table-auto">
+                <colgroup>
+                  <col style={{ width: "22%" }} />
+                  {visibleDays.map((d, i) => (
+                    <col key={`${d.getUTCDate()}-${i}`} />
+                  ))}
+                </colgroup>
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="sticky left-0 z-10 bg-card text-left px-1.5 py-2 min-w-[100px] sm:min-w-[200px]">
+                    <th className="sticky left-0 z-10 bg-card text-left pl-1 pr-2 py-2 w-[22%] sm:min-w-[200px] sm:w-auto shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)]">
                       <span className="hidden sm:inline">Puesto / Guardia</span>
                       <span className="sm:hidden text-xs">Puesto</span>
                     </th>
@@ -710,7 +740,7 @@ export function OpsPautaMensualClient({
                       return (
                         <th
                           key={dayNum}
-                          className={`text-center px-0.5 py-1 min-w-[36px] sm:min-w-[32px] ${
+                          className={`text-center px-0.5 py-1 ${
                             isToday ? "text-primary" : isWeekend ? "text-amber-400" : "text-muted-foreground"
                           }`}
                         >
@@ -731,11 +761,20 @@ export function OpsPautaMensualClient({
                         key={`${row.puestoId}-${row.slotNumber}`}
                         className={`${isFirstSlot ? "border-t border-border" : ""} hover:bg-muted/10`}
                       >
-                        {/* Row header */}
-                        <td className="sticky left-0 z-10 bg-card px-1.5 py-1 sm:py-1.5 align-top">
+                        {/* Row header: alineado a la izquierda, sombra para no ver días detrás; en móvil nombre clicable → Sheet */}
+                        <td className="sticky left-0 z-10 bg-card pl-1 pr-2 py-1 sm:py-1.5 align-top w-[22%] sm:w-auto shadow-[4px_0_6px_-2px_rgba(0,0,0,0.15)]">
                           {isFirstSlot && (
-                            <div className="font-medium text-foreground leading-tight flex items-center gap-1 text-xs sm:text-sm">
-                              <span className="truncate max-w-[80px] sm:max-w-none">{row.puestoName}</span>
+                            <div className="font-medium text-foreground leading-tight flex items-center gap-1 text-xs sm:text-sm min-w-0">
+                              <span className="truncate min-w-0 flex-1 sm:flex-none sm:truncate sm:max-w-[calc(100%-2rem)]">
+                                <button
+                                  type="button"
+                                  onClick={() => setPuestoSheet({ puestoId: row.puestoId, puestoName: row.puestoName })}
+                                  className="sm:hidden text-left w-full truncate block hover:text-primary hover:underline underline-offset-2 transition-colors"
+                                >
+                                  {row.puestoName}
+                                </button>
+                                <span className="hidden sm:inline truncate">{row.puestoName}</span>
+                              </span>
                               {(() => {
                                 const h = parseInt(row.shiftStart.split(":")[0], 10);
                                 const night = h >= 18 || h < 6;
@@ -814,7 +853,7 @@ export function OpsPautaMensualClient({
                             >
                               {cell ? (
                                 <div
-                                  className={`relative inline-flex items-center justify-center w-9 h-8 sm:w-7 sm:h-6 rounded text-xs sm:text-[10px] font-medium border cursor-pointer transition-colors active:scale-95 ${
+                                  className={`relative inline-flex items-center justify-center w-7 h-7 min-w-7 sm:w-7 sm:h-6 rounded text-[10px] sm:text-[10px] font-medium border cursor-pointer transition-colors active:scale-95 ${
                                     isEmpty
                                       ? "border-dashed border-border/40 text-muted-foreground/30 hover:border-primary/50 hover:text-primary/50"
                                       : colorClass
@@ -824,7 +863,46 @@ export function OpsPautaMensualClient({
                                       ? `${cell.plannedGuardia.persona.firstName} ${cell.plannedGuardia.persona.lastName}`
                                       : "Sin asignar"
                                   }
+                                  onPointerDown={() => {
+                                    longPressTargetRef.current = {
+                                      puestoId: row.puestoId,
+                                      slotNumber: row.slotNumber,
+                                      dateKey,
+                                    };
+                                    longPressTimerRef.current = setTimeout(() => {
+                                      longPressTimerRef.current = null;
+                                      openEliminarSerieModal({
+                                        puestoId: row.puestoId,
+                                        slotNumber: row.slotNumber,
+                                        dateKey,
+                                        puestoName: row.puestoName,
+                                      });
+                                    }, 450);
+                                  }}
+                                  onPointerUp={() => {
+                                    if (longPressTimerRef.current) {
+                                      clearTimeout(longPressTimerRef.current);
+                                      longPressTimerRef.current = null;
+                                      longPressTargetRef.current = null;
+                                    }
+                                  }}
+                                  onPointerLeave={() => {
+                                    if (longPressTimerRef.current) {
+                                      clearTimeout(longPressTimerRef.current);
+                                      longPressTimerRef.current = null;
+                                      longPressTargetRef.current = null;
+                                    }
+                                  }}
                                   onClick={() => {
+                                    const wasLongPress =
+                                      longPressTargetRef.current &&
+                                      longPressTargetRef.current.puestoId === row.puestoId &&
+                                      longPressTargetRef.current.slotNumber === row.slotNumber &&
+                                      longPressTargetRef.current.dateKey === dateKey;
+                                    if (wasLongPress) {
+                                      longPressTargetRef.current = null;
+                                      return;
+                                    }
                                     openPintarOpcionesModal({
                                       puestoId: row.puestoId,
                                       slotNumber: row.slotNumber,
@@ -878,7 +956,7 @@ export function OpsPautaMensualClient({
                 </tbody>
               </table>
 
-              {/* Legend — compact on mobile */}
+              {/* Legend — serie (T, -, V, L, P) + segunda capa (asistencia: ✓, TE, ✗) */}
               <div className="mt-3 flex flex-wrap gap-2 sm:gap-3 text-[11px] sm:text-[10px] text-muted-foreground border-t border-border pt-3">
                 {[
                   { code: "T", label: "Trabaja", cls: "bg-emerald-600/20 border-emerald-600/30" },
@@ -893,6 +971,12 @@ export function OpsPautaMensualClient({
                     <span className="sm:hidden">{l.code}</span>
                   </span>
                 ))}
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] sm:text-[10px] text-muted-foreground">
+                <span>Segunda capa (asistencia):</span>
+                <span className="flex items-center gap-1"><span className="rounded px-0.5 py-px bg-emerald-600 text-emerald-50 text-[9px] font-semibold">✓</span> Asistió</span>
+                <span className="flex items-center gap-1"><span className="rounded px-0.5 py-px bg-rose-600 text-rose-50 text-[9px] font-semibold">TE</span> Turno extra</span>
+                <span className="flex items-center gap-1"><span className="rounded px-0.5 py-px bg-amber-500 text-amber-950 text-[9px] font-semibold">✗</span> Sin cobertura</span>
               </div>
               <div className="mt-1.5 text-[11px] sm:text-[10px] text-muted-foreground/50">
                 <span className="hidden sm:inline">Click izquierdo = pintar · Click derecho / mantener presionado = eliminar</span>
@@ -1109,6 +1193,26 @@ export function OpsPautaMensualClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile: sheet al tocar nombre del puesto — nombre completo y enlace a Puestos */}
+      <Sheet open={!!puestoSheet} onOpenChange={(open) => !open && setPuestoSheet(null)}>
+        <SheetContent side="bottom" className="sm:max-w-sm">
+          <SheetHeader>
+            <SheetTitle>Puesto</SheetTitle>
+            <SheetDescription className="text-base text-foreground font-medium break-words">
+              {puestoSheet?.puestoName}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="pt-4">
+            <Button variant="outline" className="w-full justify-center gap-2" asChild>
+              <Link href="/ops/puestos">
+                <ExternalLink className="h-4 w-4" />
+                Ver en Puestos
+              </Link>
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

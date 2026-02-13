@@ -1,0 +1,576 @@
+"use client";
+
+import { Fragment, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  LogIn,
+  LogOut,
+  MapPin,
+  AlertTriangle,
+  CheckCircle2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Hash,
+  Smartphone,
+  Filter,
+  Copy,
+  Link2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+// ─── Tipos ───
+
+interface MarcacionItem {
+  id: string;
+  tipo: "entrada" | "salida";
+  timestamp: string;
+  guardia: {
+    id: string;
+    code: string | null;
+    nombre: string;
+    rut: string | null;
+    email: string | null;
+  };
+  installation: {
+    id: string;
+    nombre: string;
+    geoRadiusM: number;
+  };
+  puesto: { id: string; nombre: string; horario: string } | null;
+  slotNumber: number | null;
+  geo: {
+    lat: number | null;
+    lng: number | null;
+    validada: boolean;
+    distanciaM: number | null;
+  };
+  metodoId: string;
+  fotoEvidencia: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  hashIntegridad: string;
+  createdAt: string;
+}
+
+interface Stats {
+  totalHoy: number;
+  entradasHoy: number;
+  salidasHoy: number;
+  fueraRadioHoy: number;
+}
+
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface ClientData {
+  id: string;
+  name: string;
+  installations: { id: string; name: string; marcacionCode?: string | null }[];
+}
+
+// ─── Props ───
+
+interface OpsMarcacionesClientProps {
+  initialClients: ClientData[];
+}
+
+// ─── Componente ───
+
+export function OpsMarcacionesClient({ initialClients }: OpsMarcacionesClientProps) {
+  const [marcaciones, setMarcaciones] = useState<MarcacionItem[]>([]);
+  const [stats, setStats] = useState<Stats>({ totalHoy: 0, entradasHoy: 0, salidasHoy: 0, fueraRadioHoy: 0 });
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 50, total: 0, totalPages: 0 });
+  const [loading, setLoading] = useState(true);
+
+  // Filtros
+  const [installationId, setInstallationId] = useState("");
+  const [desde, setDesde] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
+  const [searchText, setSearchText] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Todas las instalaciones (flatten)
+  const allInstallations = initialClients.flatMap((c) =>
+    c.installations.map((i) => ({ ...i, clientName: c.name }))
+  );
+
+  const fetchMarcaciones = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (installationId) params.set("installationId", installationId);
+        if (desde) params.set("desde", desde);
+        if (hasta) params.set("hasta", hasta);
+        params.set("page", page.toString());
+        params.set("limit", "50");
+
+        const res = await fetch(`/api/ops/marcacion/reporte?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setMarcaciones(data.data.marcaciones);
+          setStats(data.data.stats);
+          setPagination(data.data.pagination);
+        }
+      } catch {
+        console.error("Error fetching marcaciones");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [installationId, desde, hasta]
+  );
+
+  useEffect(() => {
+    fetchMarcaciones(1);
+  }, [fetchMarcaciones]);
+
+  // Filtrar por texto (nombre, rut) del lado del cliente
+  const filtered = searchText
+    ? marcaciones.filter(
+        (m) =>
+          m.guardia.nombre.toLowerCase().includes(searchText.toLowerCase()) ||
+          m.guardia.rut?.includes(searchText) ||
+          m.installation.nombre.toLowerCase().includes(searchText.toLowerCase())
+      )
+    : marcaciones;
+
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+
+  const formatDateTime = (iso: string) => `${formatDate(iso)} ${formatTime(iso)}`;
+
+  const [clients, setClients] = useState(initialClients);
+  const [generatingCodeId, setGeneratingCodeId] = useState<string | null>(null);
+
+  // Re-flatten when clients change (after generating code)
+  const allInstallationsLive = clients.flatMap((c) =>
+    c.installations.map((i) => ({ ...i, clientName: c.name }))
+  );
+
+  const installationsWithCode = allInstallationsLive.filter(
+    (i) => i.marcacionCode != null && i.marcacionCode.trim() !== ""
+  );
+  const installationsWithoutCode = allInstallationsLive.filter(
+    (i) => !i.marcacionCode || i.marcacionCode.trim() === ""
+  );
+
+  const generateCode = async (instId: string) => {
+    setGeneratingCodeId(instId);
+    try {
+      const res = await fetch("/api/ops/marcacion/generar-codigo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ installationId: instId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Error generando código");
+      // Update local state
+      setClients((prev) =>
+        prev.map((c) => ({
+          ...c,
+          installations: c.installations.map((i) =>
+            i.id === instId ? { ...i, marcacionCode: data.data.marcacionCode } : i
+          ),
+        }))
+      );
+      toast.success(`Código generado: ${data.data.marcacionCode}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error generando código");
+    } finally {
+      setGeneratingCodeId(null);
+    }
+  };
+  const getMarcacionUrl = (code: string) => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/marcar/${code}`;
+    }
+    return `/marcar/${code}`;
+  };
+  const copyMarcacionUrl = (code: string) => {
+    const url = getMarcacionUrl(code);
+    navigator.clipboard.writeText(url).then(
+      () => toast.success("URL copiada al portapapeles"),
+      () => toast.error("No se pudo copiar")
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* ── Links de marcación por instalación ── */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-muted-foreground" />
+          URLs de marcación
+        </h3>
+        {installationsWithCode.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-muted-foreground border-b border-border">
+                  <th className="text-left py-2 font-medium">Instalación</th>
+                  <th className="text-left py-2 font-medium">Código</th>
+                  <th className="text-left py-2 font-medium">URL</th>
+                  <th className="text-right py-2 font-medium">Copiar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {installationsWithCode.map((i) => {
+                  const url = getMarcacionUrl(i.marcacionCode!);
+                  return (
+                    <tr key={i.id} className="border-b border-border/60 last:border-0">
+                      <td className="py-2.5 font-medium">{i.name}</td>
+                      <td className="py-2.5 font-mono text-muted-foreground">{i.marcacionCode}</td>
+                      <td className="py-2.5 text-primary truncate max-w-[200px]">
+                        <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2"
+                          onClick={() => {
+                            copyMarcacionUrl(i.marcacionCode!);
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {installationsWithoutCode.length > 0 && (
+          <div className={installationsWithCode.length > 0 ? "mt-3 pt-3 border-t border-border/60" : ""}>
+            <p className="text-xs text-muted-foreground mb-2">
+              Instalaciones sin código de marcación:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {installationsWithoutCode.map((i) => (
+                <Button
+                  key={i.id}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  disabled={generatingCodeId === i.id}
+                  onClick={() => void generateCode(i.id)}
+                >
+                  {generatingCodeId === i.id ? "Generando…" : `Generar código — ${i.name}`}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+        {installationsWithCode.length === 0 && installationsWithoutCode.length === 0 && (
+          <p className="text-xs text-muted-foreground">No hay instalaciones activas.</p>
+        )}
+      </div>
+
+      {/* ── Dashboard resumen ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Marcaciones hoy" value={stats.totalHoy} color="text-blue-400" />
+        <StatCard label="Entradas hoy" value={stats.entradasHoy} color="text-emerald-400" />
+        <StatCard label="Salidas hoy" value={stats.salidasHoy} color="text-orange-400" />
+        <StatCard
+          label="Fuera de radio"
+          value={stats.fueraRadioHoy}
+          color={stats.fueraRadioHoy > 0 ? "text-red-400" : "text-slate-400"}
+        />
+      </div>
+
+      {/* ── Filtros ── */}
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Filter className="h-3.5 w-3.5" />
+          Filtros
+        </div>
+
+        <div className="flex-1 min-w-[140px]">
+          <label className="text-[10px] text-muted-foreground block mb-0.5">Instalación</label>
+          <select
+            value={installationId}
+            onChange={(e) => setInstallationId(e.target.value)}
+            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs"
+          >
+            <option value="">Todas</option>
+            {allInstallationsLive.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name} ({i.clientName})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[10px] text-muted-foreground block mb-0.5">Desde</label>
+          <Input
+            type="date"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+            className="h-8 text-xs w-[130px]"
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] text-muted-foreground block mb-0.5">Hasta</label>
+          <Input
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+            className="h-8 text-xs w-[130px]"
+          />
+        </div>
+
+        <div className="flex-1 min-w-[140px]">
+          <label className="text-[10px] text-muted-foreground block mb-0.5">Buscar</label>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Nombre, RUT..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="h-8 text-xs pl-7"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabla ── */}
+      <div className="rounded-lg border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-muted/50 text-muted-foreground">
+                <th className="px-3 py-2.5 text-left font-medium">Tipo</th>
+                <th className="px-3 py-2.5 text-left font-medium">Guardia</th>
+                <th className="px-3 py-2.5 text-left font-medium">Instalación</th>
+                <th className="px-3 py-2.5 text-left font-medium">Fecha / Hora</th>
+                <th className="px-3 py-2.5 text-center font-medium">Geo</th>
+                <th className="px-3 py-2.5 text-right font-medium">Distancia</th>
+                <th className="px-3 py-2.5 text-left font-medium">Hash</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                    <Clock className="h-5 w-5 mx-auto mb-2 animate-spin" />
+                    Cargando marcaciones...
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">
+                    Sin marcaciones en el período seleccionado
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((m) => (
+                  <Fragment key={m.id}>
+                    <tr
+                      className="hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                    >
+                      {/* Tipo */}
+                      <td className="px-3 py-2.5">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                            m.tipo === "entrada"
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-orange-500/15 text-orange-400"
+                          }`}
+                        >
+                          {m.tipo === "entrada" ? <LogIn className="h-3 w-3" /> : <LogOut className="h-3 w-3" />}
+                          {m.tipo === "entrada" ? "Entrada" : "Salida"}
+                        </span>
+                      </td>
+
+                      {/* Guardia */}
+                      <td className="px-3 py-2.5">
+                        <Link
+                          href={`/personas/guardias/${m.guardia.id}`}
+                          className="text-primary hover:underline font-medium"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {m.guardia.nombre}
+                        </Link>
+                        <p className="text-[10px] text-muted-foreground">{m.guardia.rut}</p>
+                      </td>
+
+                      {/* Instalación */}
+                      <td className="px-3 py-2.5">
+                        <span className="font-medium">{m.installation.nombre}</span>
+                        {m.puesto && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {m.puesto.nombre} · {m.puesto.horario}
+                          </p>
+                        )}
+                      </td>
+
+                      {/* Fecha/Hora */}
+                      <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">
+                        {formatDateTime(m.timestamp)}
+                      </td>
+
+                      {/* Geo */}
+                      <td className="px-3 py-2.5 text-center">
+                        {m.geo.validada ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400 mx-auto" />
+                        ) : m.geo.distanciaM != null ? (
+                          <AlertTriangle className="h-4 w-4 text-red-400 mx-auto" />
+                        ) : (
+                          <MapPin className="h-4 w-4 text-muted-foreground mx-auto" />
+                        )}
+                      </td>
+
+                      {/* Distancia */}
+                      <td className="px-3 py-2.5 text-right tabular-nums">
+                        {m.geo.distanciaM != null ? `${m.geo.distanciaM}m` : "—"}
+                      </td>
+
+                      {/* Hash */}
+                      <td className="px-3 py-2.5 font-mono text-[10px] text-muted-foreground">
+                        {m.hashIntegridad.slice(0, 12)}...
+                      </td>
+                    </tr>
+
+                    {/* Fila expandida con detalle completo */}
+                    {expandedId === m.id && (
+                      <tr className="bg-muted/20">
+                        <td colSpan={7} className="px-4 py-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                            <DetailItem icon={Hash} label="Hash de integridad" value={m.hashIntegridad} mono />
+                            <DetailItem
+                              icon={MapPin}
+                              label="Coordenadas"
+                              value={m.geo.lat && m.geo.lng ? `${m.geo.lat}, ${m.geo.lng}` : "Sin GPS"}
+                            />
+                            <DetailItem
+                              icon={MapPin}
+                              label="Validación geo"
+                              value={
+                                m.geo.validada
+                                  ? `Dentro del radio (${m.geo.distanciaM}m / ${m.installation.geoRadiusM}m)`
+                                  : m.geo.distanciaM != null
+                                  ? `FUERA del radio (${m.geo.distanciaM}m / ${m.installation.geoRadiusM}m)`
+                                  : "Sin validación"
+                              }
+                            />
+                            <DetailItem icon={Smartphone} label="IP" value={m.ipAddress || "—"} />
+                            <DetailItem icon={Smartphone} label="Dispositivo" value={truncateUA(m.userAgent)} />
+                            <DetailItem icon={Clock} label="Método" value={m.metodoId === "rut_pin" ? "RUT + PIN" : m.metodoId} />
+                            <DetailItem
+                              icon={Clock}
+                              label="Sello de tiempo (servidor)"
+                              value={new Date(m.timestamp).toISOString()}
+                              mono
+                            />
+                            {m.guardia.email && (
+                              <DetailItem icon={Clock} label="Email guardia" value={m.guardia.email} />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Paginación ── */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {pagination.total} marcaciones · Página {pagination.page} de {pagination.totalPages}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pagination.page <= 1}
+              onClick={() => fetchMarcaciones(pagination.page - 1)}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => fetchMarcaciones(pagination.page + 1)}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Nota legal ── */}
+      <p className="text-[10px] text-muted-foreground/60 border-t border-border pt-3">
+        Registro conforme a Resolución Exenta N°38, Dirección del Trabajo, Chile (09/05/2024).
+        Cada marcación incluye hash SHA-256 de integridad, sello de tiempo del servidor, y geolocalización validada.
+      </p>
+    </div>
+  );
+}
+
+// ─── Sub-componentes ───
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-bold tabular-nums ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+function DetailItem({
+  icon: Icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: typeof Hash;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-0.5">
+        <Icon className="h-3 w-3" />
+        {label}
+      </div>
+      <p className={`text-xs ${mono ? "font-mono break-all" : ""}`}>{value}</p>
+    </div>
+  );
+}
+
+function truncateUA(ua: string | null): string {
+  if (!ua) return "—";
+  // Extraer info útil del user agent
+  const match = ua.match(/(iPhone|Android|Chrome|Safari|Firefox|Edge)[/ ]?(\d+)?/i);
+  return match ? match[0] : ua.slice(0, 40) + "...";
+}

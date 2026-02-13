@@ -174,7 +174,8 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          if (body.bankCode && body.accountType && body.accountNumber && body.holderName) {
+          const holderName = body.holderName?.trim() || normalizedRut;
+          if (body.bankCode && body.accountType && body.accountNumber && holderName) {
             await tx.opsCuentaBancaria.create({
               data: {
                 tenantId: ctx.tenantId,
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
                 bankName: body.bankName || body.bankCode,
                 accountType: body.accountType,
                 accountNumber: body.accountNumber,
-                holderName: body.holderName,
+                holderName,
                 holderRut: normalizedRut,
                 isDefault: true,
               },

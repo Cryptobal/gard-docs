@@ -253,29 +253,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check if slot has a painted series (required for assignment)
-    const activeSerie = await prisma.opsSerieAsignacion.findFirst({
-      where: {
-        tenantId: ctx.tenantId,
-        puestoId: body.puestoId,
-        slotNumber: body.slotNumber,
-        isActive: true,
-      },
-      select: { id: true },
-    });
-
-    if (!activeSerie) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Este slot no tiene una serie de turno pintada. Primero ve a Pauta mensual y pinta la serie para este puesto/slot.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // 4. Create new assignment
+    // 3. Create new assignment (no se exige serie pintada; se puede asignar y pintar después)
     const asignacion = await prisma.opsAsignacionGuardia.create({
       data: {
         tenantId: ctx.tenantId,
@@ -300,7 +278,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 5. Write plannedGuardiaId on all "T" days from startDate forward
+    // 4. Write plannedGuardiaId on all "T" days from startDate forward (si ya hay serie pintada)
     const pautaUpdated = await prisma.opsPautaMensual.updateMany({
       where: {
         tenantId: ctx.tenantId,

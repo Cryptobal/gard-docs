@@ -18,6 +18,7 @@ import {
   Clock3,
   Info,
   Shield,
+  QrCode,
   type LucideIcon,
 } from "lucide-react";
 
@@ -44,6 +45,7 @@ export type CrmSectionKey =
   | "notes"
   | "staffing"
   | "dotacion"
+  | "marcacion"
   | "files";
 
 export interface ModuleConfig {
@@ -190,6 +192,11 @@ export const CRM_SECTIONS: Record<CrmSectionKey, SectionConfig> = {
     key: "dotacion",
     icon: Users,
     label: "Dotación activa",
+  },
+  marcacion: {
+    key: "marcacion",
+    icon: QrCode,
+    label: "Marcación digital",
   },
   files: {
     key: "files",

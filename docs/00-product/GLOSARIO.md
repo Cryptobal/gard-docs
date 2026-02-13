@@ -106,4 +106,47 @@ Cliente (CrmAccount)
 
 ---
 
+## Términos de Marcación Digital
+
+### Marcación
+Registro digital de entrada o salida de un guardia en una instalación. Se compone de: identificación del guardia (RUT+PIN), tipo (entrada/salida), timestamp del servidor, coordenadas GPS, y hash de integridad SHA-256. Se almacena en la tabla `OpsMarcacion`.
+
+### PIN de Marcación
+Clave numérica de 4-6 dígitos asignada a cada guardia para identificarse al marcar asistencia. Se almacena hasheado (bcrypt) en `OpsGuardia.marcacionPin`. Solo se muestra al momento de generarlo. Se puede resetear desde el panel admin.
+
+### Código de Marcación
+Código alfanumérico único de 8 caracteres asignado a cada instalación (ej: `ABC12XYZ`). Se usa en la URL de marcación (`/marcar/ABC12XYZ`) y en el QR impreso en la garita. Se almacena en `CrmInstallation.marcacionCode`.
+
+### Geofence / Radio de Geolocalización
+Radio en metros (default: 100m) alrededor de las coordenadas de una instalación dentro del cual se considera válida la ubicación del guardia al marcar. Se configura en `CrmInstallation.geoRadiusM`.
+
+### Hash de Integridad
+Valor SHA-256 calculado sobre los datos de cada marcación (guardiaId, installationId, tipo, timestamp, coordenadas, método, tenantId). Garantiza que el registro no ha sido alterado después de su creación. Requisito de la Resolución Exenta N°38.
+
+### Resolución Exenta N°38
+Normativa de la Dirección del Trabajo de Chile (publicada 09/05/2024) que establece requisitos obligatorios para sistemas electrónicos de registro y control de asistencia. Exige al menos 2 métodos de identificación, hash de integridad, sello de tiempo, portal de fiscalización, y protección de datos.
+
+---
+
+## Relaciones Clave (actualizado con Marcación)
+
+```
+Cliente (CrmAccount)
+  └── Instalación (CrmInstallation)
+       ├── marcacionCode → QR / URL pública
+       ├── geoRadiusM → Radio de validación GPS
+       └── Puesto Operativo (OpsPuestoOperativo)
+            └── Slot 1 → Asignación → Guardia A (marcacionPin)
+            └── Slot 2 → Asignación → Guardia B (marcacionPin)
+                              ↓
+                         Pauta Mensual (serie pintada)
+                              ↓
+                         Asistencia Diaria
+                           ↑         ↓
+                    OpsMarcacion   Turno Extra / PPC
+                    (entrada/salida con geo+hash)
+```
+
+---
+
 *Este glosario se actualiza conforme evoluciona el sistema.*

@@ -225,11 +225,71 @@ export async function GET(request: NextRequest) {
       ],
     });
 
+    const instIds = [...new Set(asistencia.map((a) => a.installationId))];
+    const guardiaIds = [
+      ...new Set(
+        asistencia.flatMap((a) =>
+          [a.actualGuardiaId, a.replacementGuardiaId, a.plannedGuardiaId].filter(
+            (id): id is string => id != null
+          )
+        )
+      ),
+    ];
+
+    const marcaciones =
+      guardiaIds.length > 0 && instIds.length > 0
+        ? await prisma.opsMarcacion.findMany({
+            where: {
+              tenantId: ctx.tenantId,
+              guardiaId: { in: guardiaIds },
+              installationId: { in: instIds },
+              timestamp: {
+                gte: new Date(date.getTime()),
+                lt: new Date(date.getTime() + 24 * 60 * 60 * 1000),
+              },
+            },
+            select: {
+              id: true,
+              guardiaId: true,
+              installationId: true,
+              tipo: true,
+              timestamp: true,
+              hashIntegridad: true,
+              geoValidada: true,
+              geoDistanciaM: true,
+              lat: true,
+              lng: true,
+              ipAddress: true,
+              userAgent: true,
+            },
+            orderBy: { timestamp: "asc" },
+          })
+        : [];
+
+    const marcacionesByKey = new Map<string, typeof marcaciones>();
+    for (const m of marcaciones) {
+      const key = `${m.guardiaId}|${m.installationId}`;
+      const list = marcacionesByKey.get(key) ?? [];
+      list.push(m);
+      marcacionesByKey.set(key, list);
+    }
+
+    const itemsWithMarcaciones = asistencia.map((row) => {
+      const guardiaId =
+        row.actualGuardiaId ?? row.replacementGuardiaId ?? row.plannedGuardiaId;
+      const key = guardiaId ? `${guardiaId}|${row.installationId}` : null;
+      const marcacionesRow = key ? marcacionesByKey.get(key) ?? [] : [];
+      return {
+        ...row,
+        marcaciones: marcacionesRow,
+      };
+    });
+
     return NextResponse.json({
       success: true,
       data: {
         date: dateRaw,
-        items: asistencia,
+        items: itemsWithMarcaciones,
       },
     });
   } catch (error) {

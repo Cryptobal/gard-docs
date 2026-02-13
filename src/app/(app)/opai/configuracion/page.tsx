@@ -13,6 +13,7 @@ import {
   DollarSign,
   ChevronRight,
   Bell,
+  ClipboardList,
 } from "lucide-react";
 
 type ConfigItem = {
@@ -97,6 +98,13 @@ const CONFIG_SECTIONS: ConfigSection[] = [
         title: "Payroll",
         description: "Parámetros legales y versiones",
         icon: Calculator,
+      },
+      {
+        key: "ops",
+        href: "/opai/configuracion/ops",
+        title: "Operaciones",
+        description: "Marcaciones, emails automáticos y parámetros",
+        icon: ClipboardList,
       },
     ],
   },

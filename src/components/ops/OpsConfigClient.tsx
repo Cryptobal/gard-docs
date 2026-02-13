@@ -1,0 +1,448 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Mail,
+  Clock,
+  Shield,
+  QrCode,
+  Save,
+  CheckCircle2,
+  AlertTriangle,
+  Fingerprint,
+  ArrowRight,
+  Send,
+  Timer,
+  Loader2,
+} from "lucide-react";
+
+interface MarcacionConfig {
+  toleranciaAtrasoMinutos: number;
+  rotacionCodigoHoras: number;
+  plazoOposicionHoras: number;
+  emailComprobanteDigitalEnabled: boolean;
+  emailAvisoMarcaManualEnabled: boolean;
+  emailDelayManualMinutos: number;
+  clausulaLegal: string;
+}
+
+/* ── Catálogo de emails del módulo Operaciones ── */
+
+const EMAIL_CATALOG = [
+  {
+    id: "comprobante_marcacion_digital",
+    nombre: "Comprobante de Marcación Digital",
+    descripcion:
+      "Se envía al guardia inmediatamente después de marcar entrada o salida vía QR/PIN en el celular.",
+    trigger: "Al registrar marcación digital (POST /api/public/marcacion/registrar)",
+    destinatario: "Guardia (email personal)",
+    configKey: "emailComprobanteDigitalEnabled" as const,
+    contenido: [
+      "Nombre y RUT del guardia",
+      "Instalación y tipo de marca (Entrada / Salida)",
+      "Hora y fecha del servidor (sello de tiempo)",
+      "Estado de geolocalización (validada / fuera de rango)",
+      "Hash SHA-256 de integridad",
+    ],
+    template: "Inline HTML (src/lib/marcacion-email.ts → sendMarcacionComprobante)",
+  },
+  {
+    id: "aviso_marca_manual",
+    nombre: "Aviso de Marca Manual",
+    descripcion:
+      'Se envía al guardia cuando un supervisor marca "Asistió" o asigna reemplazo en la Asistencia Diaria y el guardia no tiene marcación digital previa.',
+    trigger:
+      'Al actualizar asistencia a "asistió" o "reemplazo" sin marcación digital (PATCH /api/ops/asistencia/[id])',
+    destinatario: "Guardia afectado (email personal)",
+    configKey: "emailAvisoMarcaManualEnabled" as const,
+    contenido: [
+      "Nombre, RUT del colaborador",
+      "Tipo de marca (Entrada / Salida Laboral)",
+      "Fecha y hora registrada",
+      "Tipo de ajuste (Omitido)",
+      "Nombre del supervisor que registró",
+      "Empresa y RUT",
+      "Hash SHA-256 de integridad",
+      "Cláusula legal de 48 horas",
+    ],
+    template: "Inline HTML (src/lib/marcacion-email.ts → sendAvisoMarcaManual)",
+  },
+];
+
+export function OpsConfigClient() {
+  const [config, setConfig] = useState<MarcacionConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState<string | null>(null);
+  const [testEmailResults, setTestEmailResults] = useState<
+    { type: string; status: string; error?: string }[] | null
+  >(null);
+
+  const fetchConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/marcacion/config");
+      const data = await res.json();
+      if (data.success) setConfig(data.data);
+    } catch {
+      toast.error("No se pudo cargar la configuración");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchConfig();
+  }, [fetchConfig]);
+
+  const saveConfig = async () => {
+    if (!config) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/ops/marcacion/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConfig(data.data);
+        toast.success("Configuración guardada");
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sendTestEmail = async (type: "digital" | "manual" | "both") => {
+    setSendingTestEmail(type);
+    setTestEmailResults(null);
+    try {
+      const res = await fetch("/api/ops/marcacion/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Error enviando email de prueba");
+      }
+      setTestEmailResults(data.data.results);
+      const allSent = data.data.allSent;
+      if (allSent) {
+        toast.success(`Email(s) de prueba enviado(s) a ${data.data.targetEmail}`);
+      } else {
+        toast.error("Algunos emails fallaron. Revisa los detalles.");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error enviando email de prueba");
+    } finally {
+      setSendingTestEmail(null);
+    }
+  };
+
+  if (loading || !config) {
+    return (
+      <Card>
+        <CardContent className="pt-5 text-center text-muted-foreground text-sm py-12">
+          Cargando configuración...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── Sección 1: Parámetros de marcación ── */}
+      <Card>
+        <CardContent className="pt-5 space-y-5">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Fingerprint className="h-4 w-4 text-primary" />
+            Parámetros de marcación
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                Tolerancia de atraso (min)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={120}
+                value={config.toleranciaAtrasoMinutos}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, toleranciaAtrasoMinutos: Number(e.target.value) || 0 })
+                }
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Entradas dentro de este rango no se consideran atraso
+              </p>
+            </div>
+
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <QrCode className="h-3.5 w-3.5 text-muted-foreground" />
+                Rotación código QR (horas)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={720}
+                value={config.rotacionCodigoHoras}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, rotacionCodigoHoras: Number(e.target.value) || 0 })
+                }
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                0 = no rotar automáticamente. Ej: 168 = cada semana
+              </p>
+            </div>
+
+            <div>
+              <Label className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                Plazo oposición (horas)
+              </Label>
+              <Input
+                type="number"
+                min={12}
+                max={168}
+                value={config.plazoOposicionHoras}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, plazoOposicionHoras: Number(e.target.value) || 48 })
+                }
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Horas para que el trabajador se oponga a un ajuste manual
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-1">
+            <div className="sm:max-w-xs">
+              <Label className="flex items-center gap-1.5">
+                <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                Delay email marca manual (min)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={1440}
+                value={config.emailDelayManualMinutos ?? 0}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, emailDelayManualMinutos: Number(e.target.value) || 0 })
+                }
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Minutos de espera antes de enviar el email de marca manual.
+                0 = inmediato. Si se resetea la asistencia antes de este plazo, el email no se envía.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <Label>Cláusula legal (incluida en aviso de marca manual)</Label>
+            <textarea
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px] resize-y"
+              value={config.clausulaLegal}
+              onChange={(e) =>
+                setConfig((c) => c && { ...c, clausulaLegal: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => void saveConfig()} disabled={saving} size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "Guardando..." : "Guardar parámetros"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Sección 2: Catálogo de emails automáticos ── */}
+      <Card>
+        <CardContent className="pt-5 space-y-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Mail className="h-4 w-4 text-primary" />
+            Emails automáticos del módulo Operaciones
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Lista completa de correos que el sistema envía automáticamente.
+            Puedes habilitar o deshabilitar cada uno.
+          </p>
+
+          <div className="space-y-3">
+            {EMAIL_CATALOG.map((email) => {
+              const enabled = config[email.configKey];
+              return (
+                <div
+                  key={email.id}
+                  className="rounded-lg border border-border p-4 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm font-semibold">{email.nombre}</h4>
+                        {enabled ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500 font-medium">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 font-medium">
+                            <AlertTriangle className="h-3 w-3" />
+                            Inactivo
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {email.descripcion}
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        onChange={(e) =>
+                          setConfig((c) => c && { ...c, [email.configKey]: e.target.checked })
+                        }
+                        className="rounded border-border"
+                      />
+                      <span className="text-xs">Habilitado</span>
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                    <div>
+                      <p className="text-muted-foreground font-medium mb-1 flex items-center gap-1">
+                        <ArrowRight className="h-3 w-3" />
+                        Cuándo se envía
+                      </p>
+                      <p className="text-foreground">{email.trigger}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground font-medium mb-1">Destinatario</p>
+                      <p className="text-foreground">{email.destinatario}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium mb-1">
+                      Contenido del email
+                    </p>
+                    <ul className="text-xs text-foreground space-y-0.5 list-disc list-inside">
+                      {email.contenido.map((c, i) => (
+                        <li key={i}>{c}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="text-[10px] text-muted-foreground bg-muted/50 rounded px-2 py-1.5">
+                    <span className="font-medium">Plantilla:</span> {email.template}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => void saveConfig()} disabled={saving} size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "Guardando..." : "Guardar configuración"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Sección 3: Enviar emails de prueba ── */}
+      <Card>
+        <CardContent className="pt-5 space-y-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Send className="h-4 w-4 text-primary" />
+            Enviar emails de prueba
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Envía emails de prueba a tu dirección de usuario para verificar que
+            el servicio de correo funciona correctamente.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={sendingTestEmail !== null}
+              onClick={() => void sendTestEmail("digital")}
+            >
+              {sendingTestEmail === "digital" ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Fingerprint className="h-4 w-4 mr-1" />
+              )}
+              Prueba: Comprobante digital
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={sendingTestEmail !== null}
+              onClick={() => void sendTestEmail("manual")}
+            >
+              {sendingTestEmail === "manual" ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4 mr-1" />
+              )}
+              Prueba: Aviso marca manual
+            </Button>
+            <Button
+              size="sm"
+              disabled={sendingTestEmail !== null}
+              onClick={() => void sendTestEmail("both")}
+            >
+              {sendingTestEmail === "both" ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-1" />
+              )}
+              Enviar ambos
+            </Button>
+          </div>
+
+          {testEmailResults && (
+            <div className="space-y-1.5">
+              {testEmailResults.map((r) => (
+                <div
+                  key={r.type}
+                  className={`text-xs rounded px-3 py-2 ${
+                    r.status === "sent"
+                      ? "bg-emerald-500/10 text-emerald-400"
+                      : "bg-red-500/10 text-red-400"
+                  }`}
+                >
+                  <span className="font-medium">
+                    {r.type === "digital" ? "Comprobante digital" : "Aviso marca manual"}:
+                  </span>{" "}
+                  {r.status === "sent" ? "Enviado correctamente" : `Error: ${r.error}`}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

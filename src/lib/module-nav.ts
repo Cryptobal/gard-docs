@@ -28,6 +28,7 @@ import {
   CalendarDays,
   UserRoundCheck,
   ShieldAlert,
+  Fingerprint,
   // TE
   CheckCircle2,
   Layers,
@@ -93,6 +94,7 @@ const OPS_ITEMS: BottomNavItem[] = [
   { key: "ops-puestos", href: "/ops/puestos", label: "Puestos", icon: ClipboardList },
   { key: "ops-pauta-mensual", href: "/ops/pauta-mensual", label: "Mensual", icon: CalendarDays },
   { key: "ops-pauta-diaria", href: "/ops/pauta-diaria", label: "Diaria", icon: UserRoundCheck },
+  { key: "ops-marcaciones", href: "/ops/marcaciones", label: "Marcaciones", icon: Fingerprint },
   { key: "ops-ppc", href: "/ops/ppc", label: "PPC", icon: ShieldAlert },
 ];
 
@@ -134,6 +136,7 @@ const CONFIG_ITEMS: (BottomNavItem & { subKey: ConfigSubmoduleKey })[] = [
   { key: "config-notifications", href: "/opai/configuracion/notificaciones", label: "Alertas", icon: Bell, subKey: "notifications" },
   { key: "config-crm", href: "/opai/configuracion/crm", label: "CRM", icon: TrendingUp, subKey: "crm" },
   { key: "config-cpq", href: "/opai/configuracion/cpq", label: "CPQ", icon: DollarSign, subKey: "cpq" },
+  { key: "config-ops", href: "/opai/configuracion/ops", label: "Ops", icon: ClipboardList, subKey: "ops" },
 ];
 
 /* ── Module detection ── */

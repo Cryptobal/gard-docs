@@ -42,6 +42,7 @@ export const CONFIG_SUBMODULE_NAV_ITEMS: SubmoduleNavItem<ConfigSubmoduleKey>[] 
   { key: "cpq", href: "/opai/configuracion/cpq", label: "Configuración CPQ" },
   { key: "payroll", href: "/opai/configuracion/payroll", label: "Payroll" },
   { key: "notifications", href: "/opai/configuracion/notificaciones", label: "Notificaciones" },
+  { key: "ops", href: "/opai/configuracion/ops", label: "Operaciones" },
 ];
 
 const ROLE_CRM_SUBMODULE_ACCESS: Record<Role, CrmSubmoduleKey[]> = {

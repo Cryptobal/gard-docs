@@ -793,6 +793,7 @@ model CrmInstallation {
   lng       Float?
   isActive  Boolean  @default(false) @map("is_active")
   geoRadiusM Int     @default(100) @map("geo_radius_m")
+  marcacionCode String? @unique @map("marcacion_code") // código único 8 chars para URL/QR
   teMontoClp Decimal @default(0) @map("te_monto_clp") @db.Decimal(12, 2)
   notes     String?
   metadata  Json?    @db.JsonB // dotacion sugerida, datos extra
@@ -807,6 +808,7 @@ model CrmInstallation {
   opsAsistencias OpsAsistenciaDiaria[]
   opsTurnosExtra       OpsTurnoExtra[]
   opsAsignacionGuardias OpsAsignacionGuardia[] @relation("ops_asignacion_installation")
+  opsMarcaciones       OpsMarcacion[]
 
   @@index([tenantId], map: "idx_crm_installations_tenant")
   @@index([accountId], map: "idx_crm_installations_account")
@@ -1346,6 +1348,7 @@ model OpsGuardia {
   blacklistReason String?   @map("blacklist_reason")
   blacklistedAt   DateTime? @map("blacklisted_at") @db.Timestamptz(6)
   availableExtraShifts Boolean @default(false) @map("available_extra_shifts")
+  marcacionPin    String?   @map("marcacion_pin") // bcrypt hash del PIN de 4-6 dígitos
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -1364,6 +1367,7 @@ model OpsGuardia {
   seriesAsignadas       OpsSerieAsignacion[]   @relation("ops_serie_guardia")
   eventosRrhh           OpsEventoRrhh[]
   pagoItems             OpsPagoTeItem[]        @relation("ops_pago_item_guardia")
+  marcaciones           OpsMarcacion[]
 
   @@unique([tenantId, code], map: "uq_ops_guardias_tenant_code")
   @@index([tenantId], map: "idx_ops_guardias_tenant")
@@ -1507,6 +1511,7 @@ model OpsPuestoOperativo {
   asistencias        OpsAsistenciaDiaria[]
   turnosExtra        OpsTurnoExtra[]
   series             OpsSerieAsignacion[]
+  marcaciones        OpsMarcacion[]
 
   @@index([tenantId], map: "idx_ops_puestos_tenant")
   @@index([installationId], map: "idx_ops_puestos_installation")
@@ -1663,6 +1668,9 @@ model OpsTurnoExtra {
   guardiaId      String    @map("guardia_id") @db.Uuid
   date           DateTime  @db.Date
   status         String    @default("pending")
+  tipo           String    @default("turno_extra") @map("tipo") // "turno_extra" | "hora_extra"
+  isManual       Boolean   @default(false) @map("is_manual")
+  horasExtra     Decimal?  @map("horas_extra") @db.Decimal(4, 1)
   amountClp      Decimal   @default(0) @map("amount_clp") @db.Decimal(12, 2)
   approvedBy     String?   @map("approved_by")
   approvedAt     DateTime? @map("approved_at") @db.Timestamptz(6)
@@ -1731,6 +1739,43 @@ model OpsPagoTeItem {
   @@index([guardiaId], map: "idx_ops_pago_te_items_guardia")
   @@index([status], map: "idx_ops_pago_te_items_status")
   @@map("pago_te_items")
+  @@schema("ops")
+}
+
+// ============================================
+// OPS — MARCACIÓN DIGITAL (Asistencia)
+// ============================================
+
+model OpsMarcacion {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId        String   @map("tenant_id")
+  guardiaId       String   @map("guardia_id") @db.Uuid
+  installationId  String   @map("installation_id") @db.Uuid
+  puestoId        String?  @map("puesto_id") @db.Uuid
+  slotNumber      Int?     @map("slot_number")
+  tipo            String   // "entrada" | "salida"
+  timestamp       DateTime @default(now()) @db.Timestamptz(6)
+  lat             Float?
+  lng             Float?
+  geoValidada     Boolean  @default(false) @map("geo_validada")
+  geoDistanciaM   Float?   @map("geo_distancia_m") // distancia al centro de la instalación en metros
+  metodoId        String   @default("rut_pin") @map("metodo_id") // método de identificación
+  fotoEvidenciaUrl String? @map("foto_evidencia_url") // URL de la foto capturada al marcar (evidencia, no biométrica)
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  hashIntegridad  String   @map("hash_integridad") // SHA-256 del registro completo
+  atrasoMinutos   Int?     @map("atraso_minutos") // minutos de atraso cuando tipo=entrada
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  guardia      OpsGuardia          @relation(fields: [guardiaId], references: [id])
+  installation CrmInstallation     @relation(fields: [installationId], references: [id])
+  puesto       OpsPuestoOperativo? @relation(fields: [puestoId], references: [id])
+
+  @@index([tenantId], map: "idx_ops_marcaciones_tenant")
+  @@index([guardiaId], map: "idx_ops_marcaciones_guardia")
+  @@index([installationId, timestamp], map: "idx_ops_marcaciones_inst_ts")
+  @@index([timestamp], map: "idx_ops_marcaciones_timestamp")
+  @@map("marcaciones")
   @@schema("ops")
 }
 

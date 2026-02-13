@@ -24,7 +24,7 @@ Construir la plataforma OPI para Gard con enfoque mobile-first y separación de 
 11. **Tickets** — Seguimiento transversal con SLA y categorías
 12. **Portal guardias** — Comunicados, solicitudes RRHH, tickets (sin pauta)
 13. **Inventario** — Stock, kits de uniforme, asignación por guardia/instalación
-14. **Asistencia externa** — Integración API/FaceID con auto-corrección
+14. **Marcación digital** — Asistencia por RUT+PIN+geolocalización, cumplimiento Res. Exenta N°38 DT
 
 ---
 
@@ -49,10 +49,10 @@ Construir la plataforma OPI para Gard con enfoque mobile-first y separación de 
  --- FASES FUTURAS (OPI) ---
 
 Fase 1: Ops + TE + Personas           ████████░░ 80% (MVP v1 implementado)
- Fase 2: Postventa + Tickets           ░░░░░░░░░░ 0%  ← Plan listo (docs/06-etapa-2/)
- Fase 3: Portal guardias + Comunicados ░░░░░░░░░░ 0%
- Fase 4: Inventario                    ░░░░░░░░░░ 0%
- Fase 5: Asistencia externa            ░░░░░░░░░░ 0%
+ Fase 2: Marcación digital (Asistencia) ██░░░░░░░░ 10% ← En implementación (docs/07-etapa-3/)
+ Fase 3: Postventa + Tickets           ░░░░░░░░░░ 0%  ← Plan listo (docs/06-etapa-2/)
+ Fase 4: Portal guardias + Comunicados ░░░░░░░░░░ 0%
+ Fase 5: Inventario                    ░░░░░░░░░░ 0%
 ```
 
 ### Lo que YA existe en producción/repositorio
@@ -78,13 +78,13 @@ Fase 1: Ops + TE + Personas           ████████░░ 80% (MVP v1
 | 1 | Ops (puestos, pauta, asistencia) | ✅ MVP | Ninguna |
 | 1 | TE y Pagos | ✅ MVP | Ops |
 | 1 | Personas (guardias, docs, flags) | ✅ MVP | Ninguna |
-| 2 | Postventa (check-in, bitácora) | ❌ | CrmInstallation (existe) |
-| 2 | Tickets (bandeja, SLA) | ❌ | Ninguna |
-| 3 | Portal guardias | ❌ | Personas |
-| 3 | Comunicados | ❌ | Personas |
-| 3 | Solicitudes RRHH | ❌ | Personas |
-| 4 | Inventario | ❌ | Ninguna |
-| 5 | Asistencia externa (FaceID/API) | ❌ | Ops + Personas |
+| 2 | Marcación digital (asistencia) | 🔨 En progreso | Ops + Personas |
+| 3 | Postventa (check-in, bitácora) | ❌ | CrmInstallation (existe) |
+| 3 | Tickets (bandeja, SLA) | ❌ | Ninguna |
+| 4 | Portal guardias | ❌ | Personas |
+| 4 | Comunicados | ❌ | Personas |
+| 4 | Solicitudes RRHH | ❌ | Personas |
+| 5 | Inventario | ❌ | Ninguna |
 
 ---
 
@@ -166,20 +166,21 @@ Bloquea contratación, TE y portal. Sin apelación. Solo Admin/SuperAdmin revier
 | `/te/aprobaciones` | Aprobación RRHH de TE | ✅ Fase 1 (MVP) |
 | `/te/lotes` | Lotes de pago semanales | ✅ Fase 1 (MVP) |
 | `/te/pagos` | Pagos y exportación Santander | ✅ Fase 1 (MVP) |
-| `/postventa/checkin` | Check-in/out georreferenciado | ❌ Fase 2 |
-| `/postventa/instalaciones/[id]/bitacora` | Bitácora de instalación | ❌ Fase 2 |
-| `/postventa/incidentes` | Incidentes con severidad | ❌ Fase 2 |
-| `/postventa/kpis` | KPIs de postventa | ❌ Fase 2 |
-| `/tickets` | Bandeja de tickets | ❌ Fase 2 |
-| `/tickets/[id]` | Detalle de ticket | ❌ Fase 2 |
-| `/portal/login` | Login portal guardias (OTP) | ❌ Fase 3 |
-| `/portal/comunicados` | Comunicados | ❌ Fase 3 |
-| `/portal/solicitudes` | Solicitudes RRHH | ❌ Fase 3 |
-| `/portal/tickets` | Tickets desde portal | ❌ Fase 3 |
-| `/inventario/catalogo` | Catálogo de items | ❌ Fase 4 |
-| `/inventario/stock` | Stock y warehouse | ❌ Fase 4 |
-| `/inventario/kits` | Kits de uniforme | ❌ Fase 4 |
-| `/inventario/asignaciones` | Asignaciones a guardias | ❌ Fase 4 |
+| `/marcar/[code]` | Marcación pública de asistencia (RUT+PIN+geo) | 🔨 Fase 2 |
+| `/postventa/checkin` | Check-in/out georreferenciado | ❌ Fase 3 |
+| `/postventa/instalaciones/[id]/bitacora` | Bitácora de instalación | ❌ Fase 3 |
+| `/postventa/incidentes` | Incidentes con severidad | ❌ Fase 3 |
+| `/postventa/kpis` | KPIs de postventa | ❌ Fase 3 |
+| `/tickets` | Bandeja de tickets | ❌ Fase 3 |
+| `/tickets/[id]` | Detalle de ticket | ❌ Fase 3 |
+| `/portal/login` | Login portal guardias (OTP) | ❌ Fase 4 |
+| `/portal/comunicados` | Comunicados | ❌ Fase 4 |
+| `/portal/solicitudes` | Solicitudes RRHH | ❌ Fase 4 |
+| `/portal/tickets` | Tickets desde portal | ❌ Fase 4 |
+| `/inventario/catalogo` | Catálogo de items | ❌ Fase 5 |
+| `/inventario/stock` | Stock y warehouse | ❌ Fase 5 |
+| `/inventario/kits` | Kits de uniforme | ❌ Fase 5 |
+| `/inventario/asignaciones` | Asignaciones a guardias | ❌ Fase 5 |
 
 ---
 
@@ -202,10 +203,10 @@ Bloquea contratación, TE y portal. Sin apelación. Solo Admin/SuperAdmin revier
 |--------|---------|:----:|
 | ✅ Implementado (MVP) | puesto_operativo, pauta_mensual, asistencia_diaria, evento_rrhh, turno_extra, pago_te_lote, pago_te_item | 1 |
 | ✅ Implementado (MVP) | persona, guardia, guardia_flag, documento_persona, cuenta_bancaria, comentario_guardia, guardia_history | 1 |
-| ❌ Pendiente | visit_checkin, site_log_entry, ticket, ticket_comment, ticket_attachment, ticket_category | 2 |
-| ❌ Pendiente | announcement, announcement_delivery | 3 |
-| ❌ Pendiente | inventory_item, inventory_variant, warehouse, purchase, stock_ledger, kit_template, assignment | 4 |
-| ❌ Pendiente | attendance_event | 5 |
+| 🔨 En progreso | marcacion (marcaciones, pin en guardia, código en instalación) | 2 |
+| ❌ Pendiente | visit_checkin, site_log_entry, ticket, ticket_comment, ticket_attachment, ticket_category | 3 |
+| ❌ Pendiente | announcement, announcement_delivery | 4 |
+| ❌ Pendiente | inventory_item, inventory_variant, warehouse, purchase, stock_ledger, kit_template, assignment | 5 |
 
 ---
 
@@ -217,8 +218,8 @@ Un guardia no puede estar asignado a 2 PO en la misma fecha. Validación al guar
 ### 6.2 Derivación asistencia diaria
 - Base: pauta mensual
 - Overrides: eventos RRHH
-- Señales externas: attendance_event (FaceID/API)
-- Manual Ops (cuando no existe señal externa confiable)
+- Señales: OpsMarcacion (RUT+PIN+geo) — fuente digital de entrada/salida
+- Manual Ops (cuando no existe señal digital confiable)
 
 ### 6.3 Generación TE
 Se crea/actualiza TE cuando asistencia_diaria.guardia_reemplazo_id está definido, o estado refleja PPC y se asigna una cobertura. TE guarda monto_snapshot desde instalación.
@@ -289,7 +290,22 @@ Lo que ya existe y funciona en producción:
 
 **Estado:** ✅ MVP implementado (v1) — en hardening operativo
 
-### Fase 2 — Postventa + Tickets core
+### Fase 2 — Marcación digital (Asistencia)
+
+**Entregables:**
+- Marcación de entrada/salida vía web (RUT + PIN + geolocalización)
+- Modelo `OpsMarcacion` con hash de integridad SHA-256
+- Página pública `/marcar/[code]` mobile-first (sin app nativa)
+- QR por instalación con geofence
+- Gestión de PIN por guardia
+- Integración automática con `OpsAsistenciaDiaria`
+- Cumplimiento Resolución Exenta N°38 DT Chile
+
+**Plan detallado:** `docs/07-etapa-3/ETAPA_3_MARCACION.md`
+
+**Estado:** 🔨 En implementación
+
+### Fase 3 — Postventa + Tickets core
 
 **Entregables:**
 - Check-in/out geofence + override
@@ -301,7 +317,7 @@ Lo que ya existe y funciona en producción:
 
 **Estado:** ❌ No iniciado (plan de implementación completo)
 
-### Fase 3 — Portal guardias + comunicados + solicitudes
+### Fase 4 — Portal guardias + comunicados + solicitudes
 
 **Entregables:**
 - OTP/Magic link para guardias
@@ -311,7 +327,7 @@ Lo que ya existe y funciona en producción:
 
 **Estado:** ❌ No iniciado
 
-### Fase 4 — Inventario
+### Fase 5 — Inventario
 
 **Entregables:**
 - Catálogo + variantes + compras + stock_ledger
@@ -320,14 +336,15 @@ Lo que ya existe y funciona en producción:
 
 **Estado:** ❌ No iniciado
 
-### Fase 5 — Asistencia externa
+### Fase 6 — Portal de fiscalización DT (post-certificación)
 
 **Entregables:**
-- attendance_event
-- Reconciler auto-corrección
-- Auditoría completa
+- Portal web para fiscalizador DT con credenciales especiales
+- Consulta de marcaciones por RUT/período
+- Reportes de jornada, horas extras, descansos
+- Auditoría completa de registros
 
-**Estado:** ❌ No iniciado
+**Estado:** ❌ No iniciado (se implementará como parte del proceso de certificación)
 
 ---
 
@@ -351,10 +368,19 @@ Lo que ya existe y funciona en producción:
 - `GET /api/te/lotes/:id/export-santander`
 - `PATCH /api/te/lotes/:id/marcar-pagado`
 
-### Fase 2: Postventa + Tickets
+### Fase 2: Marcación digital
+- `POST /api/public/marcacion/validar`
+- `POST /api/public/marcacion/registrar`
+- `GET /api/public/marcacion/estado`
+- `GET /api/public/marcacion/mis-marcaciones`
+- `POST /api/ops/marcacion/pin`
+- `GET /api/ops/marcacion/reporte`
+- `POST /api/ops/installations/:id/generar-codigo`
+
+### Fase 3: Postventa + Tickets
 - Ver `docs/06-etapa-2/ETAPA_2_IMPLEMENTACION.md` sección D.3
 
-### Fase 3: Portal guardias
+### Fase 4: Portal guardias
 - `POST /api/portal/auth/request-otp`
 - `POST /api/portal/auth/verify-otp`
 - `GET /api/portal/me`
@@ -362,8 +388,10 @@ Lo que ya existe y funciona en producción:
 - `GET/POST /api/portal/solicitudes`
 - `GET/POST /api/portal/tickets`
 
-### Fase 5: Asistencia externa
-- `POST /api/attendance-events` (API key)
+### Fase 6: Portal de fiscalización DT
+- `GET /api/fiscalizacion/marcaciones` (acceso con credenciales DT)
+- `GET /api/fiscalizacion/jornadas` (reportes de jornada)
+- `GET /api/fiscalizacion/exportar` (exportación de datos)
 
 ---
 
@@ -372,7 +400,7 @@ Lo que ya existe y funciona en producción:
 | Job | Fase | Frecuencia | Propósito |
 |-----|:----:|-----------|-----------|
 | `ops_daily_materializer` | 1 | Diario | Upsert asistencia_diaria desde pauta |
-| `attendance_reconciler` | 5 | Event-driven | Auto-corrección desde FaceID/API |
+| `marcacion_sync` | 2 | Event-driven | Sync marcación → asistencia_diaria |
 | `sla_monitor` | 2 | Cada 15 min | Marcar tickets con SLA vencido |
 | `followup_emails` | ✅ Existe | Diario | Follow-up emails CRM |
 | `document_alerts` | ✅ Existe | Diario | Alertas de vencimiento de documentos |

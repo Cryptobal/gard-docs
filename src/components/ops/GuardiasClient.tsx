@@ -111,7 +111,6 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
     bankCode: "",
     accountType: "",
     accountNumber: "",
-    holderName: "",
   });
   const [rutError, setRutError] = useState<string | null>(null);
 
@@ -223,7 +222,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
           bankName: selectedBank?.name ?? null,
           accountType: form.accountType || null,
           accountNumber: form.accountNumber || null,
-          holderName: form.holderName || null,
+          holderName: normalizeRut(completedRut),
         }),
       });
       const payload = await response.json();
@@ -258,7 +257,6 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
         bankCode: "",
         accountType: "",
         accountNumber: "",
-        holderName: "",
       });
       setRutError(null);
       toast.success("Guardia creado");
@@ -590,7 +588,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                   onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
                 />
               </div>
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-3">
                 <select
                   className="h-10 rounded-md border border-border bg-background px-3 text-sm"
                   value={form.bankCode}
@@ -620,15 +618,6 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                   value={form.accountNumber}
                   onChange={(e) => setForm((prev) => ({ ...prev, accountNumber: e.target.value }))}
                 />
-                <Input
-                  placeholder="Titular cuenta"
-                  value={form.holderName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, holderName: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <Input placeholder="Latitud" value={form.lat} readOnly />
-                <Input placeholder="Longitud" value={form.lng} readOnly />
               </div>
               <div className="flex justify-end">
                 <Button onClick={handleCreate} disabled={saving}>

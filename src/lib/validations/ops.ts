@@ -165,7 +165,7 @@ export const createGuardiaSchema = z.object({
   accountNumber: z.string().trim().max(100).optional().nullable(),
   holderName: z.string().trim().max(150).optional().nullable(),
 }).superRefine((val, ctx) => {
-  const hasBankData = Boolean(val.bankCode || val.accountType || val.accountNumber || val.holderName);
+  const hasBankData = Boolean(val.bankCode || val.accountType || val.accountNumber);
   if (hasBankData) {
     if (!val.bankCode || !CHILE_BANK_CODES.includes(val.bankCode)) {
       ctx.addIssue({
@@ -188,13 +188,7 @@ export const createGuardiaSchema = z.object({
         message: "Número de cuenta es requerido",
       });
     }
-    if (!val.holderName?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["holderName"],
-        message: "Titular de cuenta es requerido",
-      });
-    }
+    // holderName se infiere del RUT si no se envía
   }
   if (val.healthSystem === "isapre" && !val.isapreName) {
     ctx.addIssue({
@@ -308,8 +302,26 @@ export const rejectTeSchema = z.object({
   reason: z.string().trim().max(500).optional().nullable(),
 });
 
+export const aprobarTeSchema = z.object({
+  amountClp: z.number().min(0).optional(),
+});
+
 export const createLoteTeSchema = z.object({
   weekStart: z.string().regex(dateRegex, "weekStart debe tener formato YYYY-MM-DD").optional(),
   weekEnd: z.string().regex(dateRegex, "weekEnd debe tener formato YYYY-MM-DD").optional(),
   turnoExtraIds: z.array(z.string().uuid()).min(1, "Selecciona al menos un turno extra").optional(),
+});
+
+const dateRegexYmd = /^\d{4}-\d{2}-\d{2}$/;
+
+export const createTeManualSchema = z.object({
+  installationId: z.string().uuid("installationId inválido"),
+  puestoId: z.string().uuid("puestoId inválido").optional().nullable(),
+  slotNumber: z.number().int().min(1).max(20).optional(),
+  guardiaId: z.string().uuid("guardiaId inválido"),
+  date: z.string().regex(dateRegexYmd, "date debe tener formato YYYY-MM-DD"),
+  tipo: z.enum(["turno_extra", "hora_extra"], "tipo debe ser turno_extra o hora_extra"),
+  amountClp: z.number().min(0).optional(),
+  horasExtra: z.number().min(0).max(24).optional().nullable(),
+  notes: z.string().trim().max(2000).optional().nullable(),
 });

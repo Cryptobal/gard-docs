@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/opai";
-import { CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, RotateCcw } from "lucide-react";
+import { CalendarCheck2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, RotateCcw, MapPin, Clock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { hasOpsCapability } from "@/lib/ops-rbac";
@@ -22,6 +29,19 @@ type GuardiaOption = {
   id: string;
   code?: string | null;
   persona: { firstName: string; lastName: string; rut?: string | null };
+};
+
+type MarcacionItem = {
+  id: string;
+  tipo: string;
+  timestamp: string;
+  hashIntegridad: string;
+  geoValidada: boolean;
+  geoDistanciaM: number | null;
+  lat: number | null;
+  lng: number | null;
+  ipAddress: string | null;
+  userAgent: string | null;
 };
 
 type AsistenciaItem = {
@@ -64,6 +84,7 @@ type AsistenciaItem = {
     status: string;
     amountClp: string | number;
   }>;
+  marcaciones?: MarcacionItem[];
 };
 
 interface OpsPautaDiariaClientProps {
@@ -73,7 +94,10 @@ interface OpsPautaDiariaClientProps {
 }
 
 function toDateInput(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function isDayShift(shiftStart: string): boolean {
@@ -108,6 +132,18 @@ export function OpsPautaDiariaClient({
   const [replacementOpenId, setReplacementOpenId] = useState<string | null>(null);
   const [replacementSearch, setReplacementSearch] = useState("");
   const replacementPopoverRef = useRef<HTMLDivElement>(null);
+  const replacementDropdownRef = useRef<HTMLDivElement>(null);
+  const replacementTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [replacementAnchor, setReplacementAnchor] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [marcacionDetalleOpen, setMarcacionDetalleOpen] = useState<MarcacionItem[] | null>(null);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 768px)");
+    setIsDesktop(m.matches);
+    const on = () => setIsDesktop(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
   const canManagePaidTeReset = userRole === "owner" || userRole === "admin";
   const canExecuteOps = hasOpsCapability(userRole, "ops_execution");
 
@@ -146,12 +182,31 @@ export function OpsPautaDiariaClient({
   useEffect(() => {
     if (!replacementOpenId) return;
     const close = (e: MouseEvent) => {
-      const el = replacementPopoverRef.current;
-      if (el && !el.contains(e.target as Node)) setReplacementOpenId(null);
+      const target = e.target as Node;
+      const inTrigger = replacementPopoverRef.current?.contains(target);
+      const inDropdown = replacementDropdownRef.current?.contains(target);
+      if (!inTrigger && !inDropdown) setReplacementOpenId(null);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [replacementOpenId]);
+
+  // Medir botón para posicionar dropdown en portal (solo desktop)
+  useEffect(() => {
+    if (!replacementOpenId || !isDesktop) {
+      setReplacementAnchor(null);
+      return;
+    }
+    const measure = () => {
+      const el = replacementTriggerRef.current;
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setReplacementAnchor({ top: rect.bottom, left: rect.left, width: rect.width });
+      }
+    };
+    const id = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(id);
+  }, [replacementOpenId, isDesktop]);
 
   // Filtered guardias for replacement search (when popover is open)
   const replacementGuardiasFiltered = useMemo(() => {
@@ -177,6 +232,8 @@ export function OpsPautaDiariaClient({
     }
     return Array.from(map.entries()).sort(([, a], [, b]) => a.name.localeCompare(b.name));
   }, [items]);
+
+  const openReplacementItem = replacementOpenId ? items.find((i) => i.id === replacementOpenId) ?? null : null;
 
   // Summary
   const summary = useMemo(() => {
@@ -360,7 +417,16 @@ export function OpsPautaDiariaClient({
                 {group.name}
               </h3>
 
-              {/* Card-based layout: each item is a vertical card */}
+              {/* Desktop: encabezados de columna para filas angostas */}
+              <div className="hidden md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,100px)_auto] md:gap-x-4 md:pb-1 md:border-b md:border-border/60">
+                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Puesto</span>
+                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Planificado</span>
+                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Reemplazo</span>
+                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Marcación</span>
+                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Acciones</span>
+              </div>
+
+              {/* Card-based layout: cada item es una fila (desktop) o tarjeta vertical (móvil) */}
               <div className="space-y-2">
                 {group.items.map((item) => {
                   const te = item.turnosExtra?.[0];
@@ -377,7 +443,7 @@ export function OpsPautaDiariaClient({
                   const isReplacementOpen = replacementOpenId === item.id;
                   const showAsistenciaPreviaWarning =
                     item.actualGuardiaId != null &&
-                    (item.attendanceStatus === "asistio" || item.attendanceStatus === "reemplazo") &&
+                    item.attendanceStatus === "asistio" &&
                     (item.plannedGuardiaId !== item.actualGuardiaId || item.plannedGuardiaId == null);
                   const asistenciaPreviaGuardiaName =
                     item.actualGuardia
@@ -387,11 +453,11 @@ export function OpsPautaDiariaClient({
                   return (
                     <div
                       key={item.id}
-                      className={`rounded-lg border border-border/60 p-3 space-y-2.5 ${isLocked ? "opacity-60" : ""}`}
+                      className={`rounded-lg border border-border/60 p-3 ${isLocked ? "opacity-60" : ""} grid grid-cols-1 md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,100px)_auto] md:gap-x-4 md:gap-y-0 gap-y-2.5 md:items-center`}
                     >
-                      {/* Row 1: Puesto + Estado */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
+                      {/* Col 1: Puesto + Slot (en desktop va a la izquierda) */}
+                      <div className="flex items-start md:items-center justify-between gap-2 min-w-0">
+                        <div className="min-w-0">
                           <div className="font-medium text-sm">{item.puesto.name}</div>
                           <div className="text-xs text-muted-foreground">
                             S{item.slotNumber} · {item.puesto.shiftStart}-{item.puesto.shiftEnd}
@@ -401,16 +467,16 @@ export function OpsPautaDiariaClient({
                             </span>
                           </div>
                         </div>
-                        <span title={item.attendanceStatus} className="text-lg shrink-0">
+                        <span title={item.attendanceStatus} className="text-lg shrink-0 md:order-first md:mr-2">
                           {STATUS_ICONS[item.attendanceStatus] ?? "—"}
                         </span>
                       </div>
 
-                      {/* Row 2: Planificado */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-xs text-muted-foreground w-20 shrink-0">Planificado</span>
+                      {/* Col 2: Planificado */}
+                      <div className="flex items-center gap-2 text-sm min-w-0">
+                        <span className="text-xs text-muted-foreground shrink-0 md:hidden">Planificado</span>
                         {item.plannedGuardia ? (
-                          <span>
+                          <span className="truncate">
                             {item.plannedGuardia.persona.firstName} {item.plannedGuardia.persona.lastName}
                             {item.plannedGuardia.code && (
                               <span className="text-xs text-muted-foreground ml-1">({item.plannedGuardia.code})</span>
@@ -421,10 +487,10 @@ export function OpsPautaDiariaClient({
                         )}
                       </div>
 
-                      {/* Row 3: Reemplazo / buscar guardia */}
-                      <div className="text-sm">
-                        <span className="text-xs text-muted-foreground">Reemplazo</span>
-                        <div className="mt-1">
+                      {/* Col 3: Reemplazo / buscar guardia — en desktop el popover se renderiza en portal para no quedar dentro del contenedor */}
+                      <div className="text-sm min-w-0 md:flex md:items-center">
+                        <span className="text-xs text-muted-foreground md:hidden">Reemplazo</span>
+                        <div className="mt-1 md:mt-0 md:min-w-0 md:w-full">
                           {item.attendanceStatus === "reemplazo" && item.replacementGuardia ? (
                             <div>
                               <span className="text-rose-300">
@@ -439,6 +505,7 @@ export function OpsPautaDiariaClient({
                           ) : showReplacementSearch && (isPPC || item.attendanceStatus === "no_asistio") ? (
                             <div className="relative" ref={isReplacementOpen ? replacementPopoverRef : undefined}>
                               <Button
+                                ref={isReplacementOpen ? replacementTriggerRef : undefined}
                                 type="button"
                                 variant="outline"
                                 size="sm"
@@ -455,7 +522,7 @@ export function OpsPautaDiariaClient({
                                     : "Guardia seleccionado"
                                   : "Buscar guardia…"}
                               </Button>
-                              {isReplacementOpen && (
+                              {isReplacementOpen && (!isDesktop || !replacementAnchor) && (
                                 <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-border bg-popover shadow-lg">
                                   <Input
                                     placeholder="Nombre, código, RUT…"
@@ -465,31 +532,42 @@ export function OpsPautaDiariaClient({
                                     autoFocus
                                   />
                                   <ul className="max-h-60 overflow-auto py-1">
-                                    {replacementGuardiasFiltered.map((g) => (
-                                      <li key={g.id}>
-                                        <button
-                                          type="button"
-                                          className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted active:bg-muted/80"
-                                          onClick={() => {
-                                            void patchAsistencia(
-                                              item.id,
-                                              {
-                                                replacementGuardiaId: g.id,
-                                                attendanceStatus: "reemplazo",
-                                              },
-                                              "Reemplazo asignado"
-                                            );
-                                            setReplacementOpenId(null);
-                                            setReplacementSearch("");
-                                          }}
-                                        >
-                                          {g.persona.firstName} {g.persona.lastName}
-                                          {g.code ? ` (${g.code})` : ""}
-                                        </button>
-                                      </li>
-                                    ))}
-                                    {replacementGuardiasFiltered.length === 0 && (
+                                    {replacementGuardiasFiltered
+                                      .filter((g) => g.id !== item.plannedGuardiaId)
+                                      .map((g) => (
+                                        <li key={g.id}>
+                                          <button
+                                            type="button"
+                                            className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted active:bg-muted/80"
+                                            onClick={() => {
+                                              if (g.id === item.plannedGuardiaId) {
+                                                toast.error("No puede asignar al guardia planificado como reemplazo.");
+                                                return;
+                                              }
+                                              void patchAsistencia(
+                                                item.id,
+                                                {
+                                                  replacementGuardiaId: g.id,
+                                                  attendanceStatus: "reemplazo",
+                                                },
+                                                "Reemplazo asignado"
+                                              );
+                                              setReplacementOpenId(null);
+                                              setReplacementSearch("");
+                                            }}
+                                          >
+                                            {g.persona.firstName} {g.persona.lastName}
+                                            {g.code ? ` (${g.code})` : ""}
+                                          </button>
+                                        </li>
+                                      ))}
+                                    {replacementGuardiasFiltered.filter((g) => g.id !== item.plannedGuardiaId).length === 0 && (
                                       <li className="px-3 py-2.5 text-sm text-muted-foreground">Sin resultados</li>
+                                    )}
+                                    {item.plannedGuardiaId && (
+                                      <li className="px-3 py-2 pt-1.5 text-xs text-muted-foreground border-t border-border/60">
+                                        El guardia planificado no puede ser reemplazo.
+                                      </li>
                                     )}
                                   </ul>
                                 </div>
@@ -501,6 +579,69 @@ export function OpsPautaDiariaClient({
                         </div>
                       </div>
 
+                      {/* Col: Marcación digital */}
+                      <div className="text-sm min-w-0 md:flex md:items-center">
+                        <span className="text-xs text-muted-foreground md:hidden">Marcación</span>
+                        <div className="mt-1 md:mt-0">
+                          {(item.marcaciones && item.marcaciones.length > 0) ? (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {item.marcaciones.some((m) => m.tipo === "entrada") && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-emerald-500 text-xs"
+                                  title={(() => {
+                                    const e = item.marcaciones!.find((m) => m.tipo === "entrada");
+                                    return e
+                                      ? `Entrada ${e.timestamp} · Hash: ${e.hashIntegridad.slice(0, 16)}… · Geo: ${e.geoValidada ? `✓ ${e.geoDistanciaM}m` : "sin validar"}`
+                                      : "";
+                                  })()}
+                                >
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {item.checkInAt
+                                    ? new Date(item.checkInAt).toLocaleTimeString("es-CL", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "E"}
+                                </span>
+                              )}
+                              {item.marcaciones.some((m) => m.tipo === "salida") && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-amber-500 text-xs"
+                                  title={(() => {
+                                    const s = item.marcaciones!.find((m) => m.tipo === "salida");
+                                    return s
+                                      ? `Salida ${s.timestamp} · Hash: ${s.hashIntegridad.slice(0, 16)}… · Geo: ${s.geoValidada ? `✓ ${s.geoDistanciaM}m` : "sin validar"}`
+                                      : "";
+                                  })()}
+                                >
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  {item.checkOutAt
+                                    ? new Date(item.checkOutAt).toLocaleTimeString("es-CL", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "S"}
+                                </span>
+                              )}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-medium">
+                                Marcación digital
+                              </span>
+                              <button
+                                type="button"
+                                className="text-xs text-primary hover:underline"
+                                onClick={() => setMarcacionDetalleOpen(item.marcaciones ?? [])}
+                              >
+                                Ver detalle
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Col 4: Aviso asistencia previa + Acciones (en desktop una sola columna) */}
+                      <div className="md:flex md:flex-col md:items-end md:justify-center md:gap-2 space-y-2.5 md:space-y-0">
                       {/* Asistencia previa warning */}
                       {showAsistenciaPreviaWarning && (
                         <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-200">
@@ -557,7 +698,11 @@ export function OpsPautaDiariaClient({
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 text-xs px-3"
+                              className={`h-8 text-xs px-3 ${
+                                item.attendanceStatus === "asistio"
+                                  ? "border-emerald-500 bg-emerald-500/25 text-emerald-300"
+                                  : "border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300"
+                              }`}
                               disabled={savingId === item.id || isLocked || item.attendanceStatus === "no_asistio"}
                               onClick={() =>
                                 void patchAsistencia(
@@ -579,7 +724,11 @@ export function OpsPautaDiariaClient({
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-8 text-xs px-3"
+                              className={`h-8 text-xs px-3 ${
+                                item.attendanceStatus === "no_asistio"
+                                  ? "border-rose-500 bg-rose-500/25 text-rose-300"
+                                  : "border-rose-500/50 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
+                              }`}
                               disabled={savingId === item.id || isLocked}
                               onClick={() =>
                                 void patchAsistencia(
@@ -639,6 +788,7 @@ export function OpsPautaDiariaClient({
                           </Button>
                         )}
                       </div>
+                      </div>
                     </div>
                   );
                 })}
@@ -647,6 +797,118 @@ export function OpsPautaDiariaClient({
           </Card>
         ))
       )}
+
+      {/* Modal detalle marcación */}
+      <Dialog open={!!marcacionDetalleOpen} onOpenChange={(open) => !open && setMarcacionDetalleOpen(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalle de marcación digital</DialogTitle>
+          </DialogHeader>
+          {marcacionDetalleOpen && marcacionDetalleOpen.length > 0 && (
+            <div className="space-y-4">
+              {marcacionDetalleOpen.map((m) => (
+                <div key={m.id} className="rounded border border-border/60 p-3 text-sm space-y-2">
+                  <div className="font-medium">
+                    {m.tipo === "entrada" ? "Entrada" : "Salida"}:{" "}
+                    {new Date(m.timestamp).toLocaleString("es-CL")}
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>
+                      <span className="font-medium">Hash:</span> <code className="text-[10px] break-all">{m.hashIntegridad}</code>
+                    </p>
+                    <p>
+                      <span className="font-medium">Geo:</span>{" "}
+                      {m.geoValidada ? `Válida (${m.geoDistanciaM}m)` : "Sin validar"}
+                    </p>
+                    {m.lat != null && m.lng != null && (
+                      <p>
+                        <span className="font-medium">Coordenadas:</span> {m.lat}, {m.lng}
+                      </p>
+                    )}
+                    {m.ipAddress && (
+                      <p>
+                        <span className="font-medium">IP:</span> {m.ipAddress}
+                      </p>
+                    )}
+                    {m.userAgent && (
+                      <p>
+                        <span className="font-medium">Dispositivo:</span>{" "}
+                        <span className="break-all">{m.userAgent.slice(0, 80)}…</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Portal: dropdown "Buscar guardia" en desktop para que no quede dentro del contenedor del puesto */}
+      {typeof document !== "undefined" &&
+        isDesktop &&
+        replacementAnchor &&
+        openReplacementItem &&
+        createPortal(
+          <div
+            ref={replacementDropdownRef}
+            className="fixed z-[100] rounded-md border border-border bg-popover shadow-lg"
+            style={{
+              top: replacementAnchor.top + 4,
+              left: replacementAnchor.left,
+              minWidth: replacementAnchor.width,
+              maxWidth: Math.max(replacementAnchor.width, 320),
+            }}
+          >
+            <Input
+              placeholder="Nombre, código, RUT…"
+              value={replacementSearch}
+              onChange={(e) => setReplacementSearch(e.target.value)}
+              className="m-2 h-10 text-sm"
+              autoFocus
+            />
+            <ul className="max-h-60 overflow-auto py-1">
+              {replacementGuardiasFiltered
+                .filter((g) => g.id !== openReplacementItem.plannedGuardiaId)
+                .map((g) => (
+                  <li key={g.id}>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted active:bg-muted/80"
+                      onClick={() => {
+                        if (g.id === openReplacementItem.plannedGuardiaId) {
+                          toast.error("No puede asignar al guardia planificado como reemplazo.");
+                          return;
+                        }
+                        void patchAsistencia(
+                          openReplacementItem.id,
+                          {
+                            replacementGuardiaId: g.id,
+                            attendanceStatus: "reemplazo",
+                          },
+                          "Reemplazo asignado"
+                        );
+                        setReplacementOpenId(null);
+                        setReplacementSearch("");
+                      }}
+                    >
+                      {g.persona.firstName} {g.persona.lastName}
+                      {g.code ? ` (${g.code})` : ""}
+                    </button>
+                  </li>
+                ))}
+              {replacementGuardiasFiltered.filter((g) => g.id !== openReplacementItem.plannedGuardiaId).length === 0 && (
+                <li className="px-3 py-2.5 text-sm text-muted-foreground">Sin resultados</li>
+              )}
+              {openReplacementItem.plannedGuardiaId && (
+                <li className="px-3 py-2 pt-1.5 text-xs text-muted-foreground border-t border-border/60">
+                  El guardia planificado no puede ser reemplazo.
+                </li>
+              )}
+            </ul>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -395,22 +395,48 @@ Se implementó el sistema de asignación de guardias a puestos operativos:
 
 Con la asignación de guardias implementada, el siguiente bloque recomendado es:
 
-1. **Desvinculación automática**  
+1. **Marcación digital de asistencia** ← 🔨 **EN IMPLEMENTACIÓN**  
+   Sistema propio de marcación por RUT+PIN+geolocalización. Página pública `/marcar/[code]` para que guardias marquen entrada/salida desde celular. QR por instalación. Cumplimiento Resolución Exenta N°38 DT Chile. Ver `docs/07-etapa-3/ETAPA_3_MARCACION.md`.
+2. **Desvinculación automática**  
    Cuando un guardia se desvincula (lifecycle → desvinculado), cerrar su asignación automáticamente y generar PPC.
-2. **Pauta mensual: lectura de asignaciones**  
+3. **Pauta mensual: lectura de asignaciones**  
    Al generar pauta, pre-llenar guardias desde `OpsAsignacionGuardia` (no manual).
-3. **Cruce con eventos RRHH**  
+4. **Cruce con eventos RRHH**  
    Vacaciones/licencia/permiso → marcar en pauta y generar PPC automático.
-4. **Bloqueo automático de días**  
+5. **Bloqueo automático de días**  
    Cuando asistencia se confirma, bloquear en pauta mensual.
-5. **API FaceID / Marcación**  
-   Check-in/check-out automático vía API.
 6. **Hardening + QA**  
    Tests e2e para asignación, pauta, asistencia, series, TE.
 
-Plan de Fase 1 actualizado: `docs/05-etapa-1/ETAPA_1_IMPLEMENTACION.md`  
+Plan de Marcación digital: `docs/07-etapa-3/ETAPA_3_MARCACION.md`  
+Plan de Fase 1: `docs/05-etapa-1/ETAPA_1_IMPLEMENTACION.md`  
 Roadmap completo: `docs/00-product/MASTER_SPEC_OPI.md`
 
 ---
 
-*Este documento refleja el estado real del repositorio al 2026-02-12. Última actualización: Asignación de guardias a puestos.*
+### Marcación digital (Fase 2 — En implementación)
+
+| Aspecto | Detalle |
+|---------|---------|
+| **Estado** | 🔨 En implementación |
+| **Ruta pública** | `/marcar/[code]` |
+| **Normativa** | Resolución Exenta N°38 DT Chile (09/05/2024) |
+| **Métodos** | RUT+PIN (conocimiento) + Geolocalización (ubicación) |
+| **Modelo nuevo** | `OpsMarcacion` (schema `ops`) |
+| **Campos nuevos** | `marcacionPin` en OpsGuardia, `marcacionCode` en CrmInstallation |
+
+**Funcionalidades:**
+- Marcación de entrada/salida desde link web (sin app nativa)
+- Validación RUT + PIN (4-6 dígitos, hasheado con bcrypt)
+- Captura de geolocalización GPS con validación de radio (`geoRadiusM`)
+- Hash SHA-256 de integridad por cada marcación (inmutable)
+- Sello de tiempo del servidor
+- Integración automática con `OpsAsistenciaDiaria` (checkInAt/checkOutAt)
+- QR por instalación para escaneo rápido
+- Gestión de PIN desde panel admin
+
+**Plan detallado:** `docs/07-etapa-3/ETAPA_3_MARCACION.md`
+
+---
+
+*Este documento refleja el estado real del repositorio al 2026-02-12. Última actualización: Inicio implementación módulo de marcación digital.*

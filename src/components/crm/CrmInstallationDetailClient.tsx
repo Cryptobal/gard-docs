@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, ExternalLink, Trash2, Pencil, Loader2, LayoutGrid, Plus } from "lucide-react";
+import { MapPin, ExternalLink, Trash2, Pencil, Loader2, LayoutGrid, Plus, QrCode, Copy, RefreshCw } from "lucide-react";
 import { PuestoFormModal, type PuestoFormData } from "@/components/shared/PuestoFormModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ export type InstallationDetail = {
   isActive?: boolean;
   teMontoClp?: number | string | null;
   notes?: string | null;
+  marcacionCode?: string | null;
+  geoRadiusM?: number;
   metadata?: Record<string, unknown> | null;
   puestosActivos?: Array<{
     id: string;
@@ -110,6 +112,113 @@ const LIFECYCLE_LABELS: Record<string, string> = {
   inactivo: "Inactivo",
   desvinculado: "Desvinculado",
 };
+
+/* ── Marcación digital Section ── */
+
+function MarcacionSection({ installation }: { installation: InstallationDetail }) {
+  const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState(installation.marcacionCode || "");
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://opai.gard.cl";
+  const marcacionUrl = code ? `${baseUrl}/marcar/${code}` : "";
+
+  const handleGenerar = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/ops/marcacion/generar-codigo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ installationId: installation.id }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Error al generar código");
+        return;
+      }
+      setCode(data.data.marcacionCode);
+      toast.success(data.data.message);
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado al portapapeles");
+  };
+
+  if (!code) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Genera un código de marcación para que los guardias puedan registrar su asistencia desde esta instalación.
+        </p>
+        <Button onClick={handleGenerar} disabled={loading} size="sm">
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+          Generar código de marcación
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Código */}
+      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+        <div>
+          <p className="text-xs text-muted-foreground">Código de marcación</p>
+          <p className="text-lg font-mono font-bold tracking-widest">{code}</p>
+        </div>
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" onClick={() => handleCopy(code)} title="Copiar código">
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={handleGenerar} disabled={loading} title="Regenerar código">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* URL */}
+      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-muted-foreground">URL de marcación</p>
+          <p className="text-sm font-mono truncate">{marcacionUrl}</p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => handleCopy(marcacionUrl)} title="Copiar URL">
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* QR — generado como SVG inline con una API */}
+      <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-white">
+        <p className="text-xs text-muted-foreground">Escanear con celular</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(marcacionUrl)}`}
+          alt={`QR ${code}`}
+          width={200}
+          height={200}
+          className="rounded"
+        />
+        <p className="text-[10px] text-muted-foreground">
+          Imprima este QR y péguelo en la garita o recepción.
+        </p>
+      </div>
+
+      {/* Info de geofence */}
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+        <MapPin className="h-4 w-4 text-blue-400 shrink-0" />
+        <p className="text-xs text-blue-300">
+          Radio de validación GPS: <strong>{installation.geoRadiusM ?? 100}m</strong>.
+          Las marcaciones fuera de este radio se registran con advertencia.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /* ── Dotación Section (guardias asignados, read-only from OPS) ── */
 
@@ -838,6 +947,13 @@ export function CrmInstallationDetailClient({
       ),
     },
     {
+      key: "marcacion",
+      label: "Marcación digital",
+      children: (
+        <MarcacionSection installation={installation} />
+      ),
+    },
+    {
       key: "files",
       children: <FileAttachments entityType="installation" entityId={installation.id} title="Archivos" />,
     },
@@ -919,12 +1035,14 @@ export function CrmInstallationDetailClient({
             <div className="space-y-2">
               <Label>Valor turno extra (CLP)</Label>
               <Input
-                type="number"
-                min={0}
-                step={1000}
-                value={editForm.teMontoClp}
-                onChange={(e) => setEditForm((p) => ({ ...p, teMontoClp: Number(e.target.value) || 0 }))}
-                placeholder="Ej: 25000"
+                type="text"
+                inputMode="numeric"
+                value={editForm.teMontoClp ? editForm.teMontoClp.toLocaleString("es-CL") : ""}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, "");
+                  setEditForm((p) => ({ ...p, teMontoClp: raw ? parseInt(raw, 10) : 0 }));
+                }}
+                placeholder="Ej: 25.000"
                 className="bg-background text-foreground border-input"
                 disabled={saving}
               />

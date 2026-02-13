@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddressAutocomplete, type AddressResult } from "@/components/ui/AddressAutocomplete";
-import { Plus, Pencil, MapPin, Loader2, Trash2 } from "lucide-react";
+import { Plus, MapPin, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -65,7 +66,6 @@ export function CrmInstallationsClient({
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [statusUpdatingIds, setStatusUpdatingIds] = useState<Set<string>>(new Set());
   const [accountActiveState, setAccountActiveState] = useState(accountIsActive);
   const [statusConfirm, setStatusConfirm] = useState<{ open: boolean; id: string; next: boolean; activateAccount: boolean }>({
@@ -90,22 +90,7 @@ export function CrmInstallationsClient({
   };
 
   const openCreate = () => {
-    setEditingId(null);
     setForm(DEFAULT_FORM);
-    setOpen(true);
-  };
-
-  const openEdit = (inst: InstallationRow) => {
-    setEditingId(inst.id);
-    setForm({
-      name: inst.name,
-      address: inst.address || "",
-      city: inst.city || "",
-      commune: inst.commune || "",
-      lat: inst.lat ?? null,
-      lng: inst.lng ?? null,
-      notes: inst.notes || "",
-    });
     setOpen(true);
   };
 
@@ -116,53 +101,22 @@ export function CrmInstallationsClient({
     }
     setLoading(true);
     try {
-      if (editingId) {
-        const response = await fetch(`/api/crm/installations/${editingId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload?.error);
-        setInstallations((prev) =>
-          prev.map((i) => (i.id === editingId ? payload.data : i))
-        );
-        toast.success("Instalación actualizada");
-      } else {
-        const response = await fetch("/api/crm/installations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...form, accountId }),
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload?.error);
-        setInstallations((prev) => [payload.data, ...prev]);
-        toast.success("Instalación creada");
-      }
+      const response = await fetch("/api/crm/installations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, accountId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error);
+      setInstallations((prev) => [payload.data, ...prev]);
       setOpen(false);
       setForm(DEFAULT_FORM);
-      setEditingId(null);
+      toast.success("Instalación creada");
     } catch (error) {
       console.error(error);
       toast.error("No se pudo guardar la instalación.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string }>({ open: false, id: "" });
-
-  const deleteInstallation = async (id: string) => {
-    try {
-      const response = await fetch(`/api/crm/installations/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) throw new Error();
-      setInstallations((prev) => prev.filter((i) => i.id !== id));
-      setDeleteConfirm({ open: false, id: "" });
-      toast.success("Instalación eliminada");
-    } catch {
-      toast.error("No se pudo eliminar.");
     }
   };
 
@@ -229,18 +183,19 @@ export function CrmInstallationsClient({
 
       <div className="space-y-3">
         {installations.map((inst) => (
-          <div
-            key={inst.id}
-            className="rounded-lg border p-3 cursor-pointer hover:bg-accent/30 transition-colors"
-            onClick={() => openEdit(inst)}
-          >
+          <div key={inst.id} className="rounded-lg border p-3 hover:bg-accent/30 transition-colors">
             <div className="flex items-start gap-3">
-              {/* Datos de la instalación (izquierda) */}
-              <div className="flex-1 min-w-0">
+              {/* Datos de la instalación (clickeable → ficha) */}
+              <Link
+                href={`/crm/installations/${inst.id}`}
+                className="flex-1 min-w-0 group"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm truncate">{inst.name}</p>
+                      <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                        {inst.name}
+                      </p>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           inst.isActive
@@ -264,16 +219,13 @@ export function CrmInstallationsClient({
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
 
-              {/* Mapa (derecha, tamaño acotado) */}
+              {/* Mapa (derecha) */}
               {inst.lat != null && inst.lng != null && MAPS_KEY && (
-                <a
-                  href={`https://www.google.com/maps/@${inst.lat},${inst.lng},17z`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href={`/crm/installations/${inst.id}`}
                   className="shrink-0 block rounded overflow-hidden border border-border hover:opacity-90 transition-opacity w-[140px] h-[90px]"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -282,10 +234,10 @@ export function CrmInstallationsClient({
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
-                </a>
+                </Link>
               )}
             </div>
-            <div className="mt-3 flex items-center justify-end gap-2 border-t pt-2" onClick={(e) => e.stopPropagation()}>
+            <div className="mt-3 flex items-center justify-end gap-2 border-t pt-2">
               <Button
                 size="sm"
                 variant={inst.isActive ? "outline" : "secondary"}
@@ -299,12 +251,6 @@ export function CrmInstallationsClient({
                   ? "Desactivar"
                   : "Activar"}
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(inst)}>
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm({ open: true, id: inst.id })}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
             </div>
           </div>
         ))}
@@ -313,7 +259,7 @@ export function CrmInstallationsClient({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Editar" : "Nueva"} instalación</DialogTitle>
+            <DialogTitle>Nueva instalación</DialogTitle>
             <DialogDescription>
               Agrega nombre y dirección de la instalación.
             </DialogDescription>
@@ -371,20 +317,12 @@ export function CrmInstallationsClient({
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={save} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingId ? "Guardar" : "Crear"}
+              Crear
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog
-        open={deleteConfirm.open}
-        onOpenChange={(v) => setDeleteConfirm({ ...deleteConfirm, open: v })}
-        title="Eliminar instalación"
-        description="La instalación será eliminada permanentemente. Esta acción no se puede deshacer."
-        confirmLabel="Eliminar"
-        onConfirm={() => deleteInstallation(deleteConfirm.id)}
-      />
       <ConfirmDialog
         open={statusConfirm.open}
         onOpenChange={(open) => setStatusConfirm((prev) => ({ ...prev, open }))}
