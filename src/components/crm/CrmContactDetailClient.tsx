@@ -451,7 +451,6 @@ export function CrmContactDetailClient({
     {
       key: "deals",
       count: contactDeals.length,
-      defaultCollapsed: contactDeals.length === 0,
       children: contactDeals.length === 0 ? (
         <EmptyState icon={<DealsIcon className="h-8 w-8" />} title="Sin negocios" description="No hay negocios vinculados a la cuenta de este contacto." compact />
       ) : (
@@ -507,7 +506,6 @@ export function CrmContactDetailClient({
     {
       key: "communication",
       count: emailCount,
-      defaultCollapsed: true,
       action: (
         <div className="flex items-center gap-2">
           {whatsappUrl && (
@@ -554,6 +552,7 @@ export function CrmContactDetailClient({
   return (
     <>
       <CrmDetailLayout
+        pageType="contact"
         module="contacts"
         title={fullName}
         subtitle={subtitle}

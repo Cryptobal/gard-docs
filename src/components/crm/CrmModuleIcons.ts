@@ -14,6 +14,11 @@ import {
   DollarSign,
   FileText,
   Mail,
+  Landmark,
+  CalendarDays,
+  CalendarPlus,
+  History,
+  Link2,
   MessageSquareText,
   Clock3,
   Info,
@@ -31,6 +36,7 @@ export type CrmModuleKey =
   | "contacts"
   | "deals"
   | "quotes"
+  | "guardias"
   | "reports";
 
 export type CrmSectionKey =
@@ -46,6 +52,18 @@ export type CrmSectionKey =
   | "staffing"
   | "dotacion"
   | "marcacion"
+  | "marcacion_asistencia"
+  | "marcacion_rondas"
+  | "asignacion"
+  | "rondas"
+  | "datos"
+  | "documentos"
+  | "docs-vinculados"
+  | "cuentas"
+  | "comentarios"
+  | "dias-trabajados"
+  | "turnos-extra"
+  | "historial"
   | "files";
 
 export interface ModuleConfig {
@@ -124,6 +142,15 @@ export const CRM_MODULES: Record<CrmModuleKey, ModuleConfig> = {
     textColor: "text-amber-500",
     bgColor: "bg-amber-500/10",
   },
+  guardias: {
+    key: "guardias",
+    icon: Shield,
+    label: "Guardia",
+    labelPlural: "Guardias",
+    color: "text-indigo-500 bg-indigo-500/10",
+    textColor: "text-indigo-500",
+    bgColor: "bg-indigo-500/10",
+  },
   reports: {
     key: "reports",
     icon: FileText,
@@ -196,7 +223,67 @@ export const CRM_SECTIONS: Record<CrmSectionKey, SectionConfig> = {
   marcacion: {
     key: "marcacion",
     icon: QrCode,
-    label: "Marcación digital",
+    label: "Marcación asistencia",
+  },
+  marcacion_asistencia: {
+    key: "marcacion_asistencia",
+    icon: QrCode,
+    label: "Marcación asistencia",
+  },
+  marcacion_rondas: {
+    key: "marcacion_rondas",
+    icon: QrCode,
+    label: "Marcación rondas",
+  },
+  asignacion: {
+    key: "asignacion",
+    icon: MapPin,
+    label: "Asignación",
+  },
+  rondas: {
+    key: "rondas",
+    icon: QrCode,
+    label: "Rondas",
+  },
+  datos: {
+    key: "datos",
+    icon: Info,
+    label: "Datos",
+  },
+  documentos: {
+    key: "documentos",
+    icon: FileText,
+    label: "Documentos",
+  },
+  "docs-vinculados": {
+    key: "docs-vinculados",
+    icon: Link2,
+    label: "Docs vinculados",
+  },
+  cuentas: {
+    key: "cuentas",
+    icon: Landmark,
+    label: "Cuenta bancaria",
+  },
+  comentarios: {
+    key: "comentarios",
+    icon: MessageSquareText,
+    label: "Comentarios",
+  },
+  "dias-trabajados": {
+    key: "dias-trabajados",
+    icon: CalendarDays,
+    label: "Días trabajados",
+  },
+  "turnos-extra": {
+    key: "turnos-extra",
+    icon: CalendarPlus,
+    label: "Turnos extra",
+  },
+  historial: {
+    key: "historial",
+    icon: History,
+    label: "Historial",
   },
   files: {
     key: "files",
@@ -256,5 +343,6 @@ export const MODULE_DETAIL_SECTIONS: Record<string, CrmSectionKey[]> = {
   accounts: ["general", "contacts", "installations", "deals", "quotes", "communication", "notes"],
   contacts: ["general", "account", "deals", "communication", "notes"],
   deals: ["general", "account", "contacts", "installations", "quotes", "followup", "communication", "notes"],
-  installations: ["general", "account", "staffing", "dotacion", "quotes", "communication", "notes"],
+  installations: ["general", "account", "staffing", "dotacion", "marcacion_asistencia", "marcacion_rondas", "quotes", "communication", "notes"],
+  guardias: ["datos", "asignacion", "marcacion", "rondas", "documentos", "docs-vinculados", "cuentas", "communication", "comentarios", "dias-trabajados", "turnos-extra", "historial"],
 };

@@ -121,14 +121,107 @@ const LIFECYCLE_LABELS: Record<string, string> = {
   desvinculado: "Desvinculado",
 };
 
-/* ── Marcación digital Section ── */
+/* ── Marcación asistencia Section ── */
 
-function MarcacionSection({ installation }: { installation: InstallationDetail }) {
+function MarcacionAsistenciaSection({ installation }: { installation: InstallationDetail }) {
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState(installation.marcacionCode || "");
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://opai.gard.cl";
   const marcacionUrl = code ? `${baseUrl}/marcar/${code}` : "";
+  const handleGenerar = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/ops/marcacion/generar-codigo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ installationId: installation.id }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Error al generar código");
+        return;
+      }
+      setCode(data.data.marcacionCode);
+      toast.success(data.data.message);
+    } catch {
+      toast.error("Error de conexión");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado al portapapeles");
+  };
+
+  if (!code) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Genera un código para habilitar marcación de asistencia en esta instalación.
+        </p>
+        <Button onClick={handleGenerar} disabled={loading} size="sm">
+          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+          Generar código de asistencia
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+        <div>
+          <p className="text-xs text-muted-foreground">Código de asistencia</p>
+          <p className="text-lg font-mono font-bold tracking-widest">{code}</p>
+        </div>
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" onClick={() => handleCopy(code)} title="Copiar código">
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={handleGenerar} disabled={loading} title="Regenerar código">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-muted-foreground">URL de asistencia móvil</p>
+          <p className="text-sm font-mono truncate">{marcacionUrl}</p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => handleCopy(marcacionUrl)} title="Copiar URL asistencia">
+          <Copy className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-white">
+        <p className="text-xs text-muted-foreground">QR asistencia</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(marcacionUrl)}`}
+          alt={`QR asistencia ${code}`}
+          width={200}
+          height={200}
+          className="rounded"
+        />
+        <p className="text-[10px] text-muted-foreground">
+          Link: /marcar/{code}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Marcación rondas Section ── */
+
+function MarcacionRondasSection({ installation }: { installation: InstallationDetail }) {
+  const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState(installation.marcacionCode || "");
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://opai.gard.cl";
+  const rondaUrl = code ? `${baseUrl}/ronda/${code}` : "";
 
   const handleGenerar = async () => {
     setLoading(true);
@@ -161,11 +254,11 @@ function MarcacionSection({ installation }: { installation: InstallationDetail }
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Genera un código de marcación para que los guardias puedan registrar su asistencia desde esta instalación.
+          Genera un código para habilitar marcación de rondas en esta instalación.
         </p>
         <Button onClick={handleGenerar} disabled={loading} size="sm">
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
-          Generar código de marcación
+          Generar código de rondas
         </Button>
       </div>
     );
@@ -173,10 +266,9 @@ function MarcacionSection({ installation }: { installation: InstallationDetail }
 
   return (
     <div className="space-y-4">
-      {/* Código */}
       <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
         <div>
-          <p className="text-xs text-muted-foreground">Código de marcación</p>
+          <p className="text-xs text-muted-foreground">Código de rondas</p>
           <p className="text-lg font-mono font-bold tracking-widest">{code}</p>
         </div>
         <div className="flex gap-1">
@@ -189,34 +281,36 @@ function MarcacionSection({ installation }: { installation: InstallationDetail }
         </div>
       </div>
 
-      {/* URL */}
-      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+      <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5">
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">URL de marcación</p>
-          <p className="text-sm font-mono truncate">{marcacionUrl}</p>
+          <p className="text-xs text-emerald-300">URL de rondas móvil</p>
+          <p className="text-sm font-mono truncate">{rondaUrl}</p>
         </div>
-        <Button size="icon" variant="ghost" onClick={() => handleCopy(marcacionUrl)} title="Copiar URL">
-          <Copy className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button size="icon" variant="ghost" onClick={() => handleCopy(rondaUrl)} title="Copiar URL de rondas">
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={() => window.open(rondaUrl, "_blank", "noopener,noreferrer")} title="Abrir ronda móvil">
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* QR — generado como SVG inline con una API */}
       <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-white">
-        <p className="text-xs text-muted-foreground">Escanear con celular</p>
+        <p className="text-xs text-muted-foreground">QR rondas</p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(marcacionUrl)}`}
-          alt={`QR ${code}`}
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(rondaUrl)}`}
+          alt={`QR ronda ${code}`}
           width={200}
           height={200}
           className="rounded"
         />
         <p className="text-[10px] text-muted-foreground">
-          Imprima este QR y péguelo en la garita o recepción.
+          Link: /ronda/{code}
         </p>
       </div>
 
-      {/* Info de geofence */}
       <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
         <MapPin className="h-4 w-4 text-blue-400 shrink-0" />
         <p className="text-xs text-blue-300">
@@ -1025,10 +1119,17 @@ export function CrmInstallationDetailClient({
       ),
     },
     {
-      key: "marcacion",
-      label: "Marcación digital",
+      key: "marcacion_asistencia",
+      label: "Marcación asistencia",
       children: (
-        <MarcacionSection installation={installation} />
+        <MarcacionAsistenciaSection installation={installation} />
+      ),
+    },
+    {
+      key: "marcacion_rondas",
+      label: "Marcación rondas",
+      children: (
+        <MarcacionRondasSection installation={installation} />
       ),
     },
     {
@@ -1040,6 +1141,7 @@ export function CrmInstallationDetailClient({
   return (
     <>
       <CrmDetailLayout
+        pageType="installation"
         module="installations"
         title={installation.name}
         subtitle={subtitle}

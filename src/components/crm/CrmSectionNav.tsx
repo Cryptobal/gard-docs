@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CRM_SECTIONS, type CrmSectionKey } from "./CrmModuleIcons";
 
@@ -19,6 +19,10 @@ interface CrmSectionNavProps {
   sections: SectionNavItem[];
   /** Clases CSS adicionales */
   className?: string;
+  /** Callback opcional al hacer click en sección */
+  onSectionClick?: (key: CrmSectionKey) => void;
+  /** Acción opcional al lado derecho */
+  extraAction?: ReactNode;
 }
 
 /**
@@ -30,7 +34,12 @@ interface CrmSectionNavProps {
  *
  * Cada sección en la página debe tener un id="section-{key}" para que las anclas funcionen.
  */
-export function CrmSectionNav({ sections, className }: CrmSectionNavProps) {
+export function CrmSectionNav({
+  sections,
+  className,
+  onSectionClick,
+  extraAction,
+}: CrmSectionNavProps) {
   const [activeSection, setActiveSection] = useState<string>(
     sections[0]?.key || ""
   );
@@ -90,6 +99,7 @@ export function CrmSectionNav({ sections, className }: CrmSectionNavProps) {
     (key: string) => {
       const el = document.getElementById(`section-${key}`);
       if (!el) return;
+      onSectionClick?.(key as CrmSectionKey);
 
       // Marcar como scroll por clic para evitar flicker del observer
       isClickScrolling.current = true;
@@ -103,7 +113,7 @@ export function CrmSectionNav({ sections, className }: CrmSectionNavProps) {
         isClickScrolling.current = false;
       }, 800);
     },
-    []
+    [onSectionClick]
   );
 
   // Scroll horizontal del tab activo al centro del nav (sin afectar scroll vertical de la página)
@@ -137,13 +147,14 @@ export function CrmSectionNav({ sections, className }: CrmSectionNavProps) {
         className
       )}
     >
-      <div
-        ref={navRef}
-        className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12"
-        role="tablist"
-        aria-label="Secciones del registro"
-      >
-        {sections.map((section) => {
+      <div className="flex items-center justify-between gap-2 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <div
+          ref={navRef}
+          className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto scrollbar-hide"
+          role="tablist"
+          aria-label="Secciones del registro"
+        >
+          {sections.map((section) => {
           const config = CRM_SECTIONS[section.key];
           const Icon = config.icon;
           const label = section.label || config.label;
@@ -184,7 +195,9 @@ export function CrmSectionNav({ sections, className }: CrmSectionNavProps) {
               )}
             </button>
           );
-        })}
+          })}
+        </div>
+        {extraAction && <div className="shrink-0">{extraAction}</div>}
       </div>
     </div>
   );

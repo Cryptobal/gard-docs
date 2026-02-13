@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   CalendarDays,
   CalendarPlus,
   Copy,
@@ -19,15 +18,13 @@ import {
   Link2,
   MapPin,
   Pencil,
+  Route,
   Save,
   Send,
-  Shield,
   Trash2,
   Upload,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AddressAutocomplete, type AddressResult } from "@/components/ui/AddressAutocomplete";
@@ -38,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StatusBadge } from "@/components/opai";
+import { CrmDetailLayout } from "@/components/crm/CrmDetailLayout";
 import {
   AFP_CHILE,
   BANK_ACCOUNT_TYPES,
@@ -59,20 +56,6 @@ function formatDateUTC(value: string | Date): string {
   const year = d.getUTCFullYear();
   return `${day}-${month}-${year}`;
 }
-
-const SECTIONS = [
-  { id: "asignacion", label: "Asignación", icon: MapPin },
-  { id: "marcacion", label: "Marcación", icon: Shield },
-  { id: "datos", label: "Datos personales", icon: User },
-  { id: "documentos", label: "Ficha de documentos", icon: FilePlus2 },
-  { id: "docs-vinculados", label: "Docs vinculados", icon: Link2 },
-  { id: "cuentas", label: "Cuentas bancarias", icon: Landmark },
-  { id: "comunicaciones", label: "Comunicaciones", icon: Mail },
-  { id: "comentarios", label: "Comentarios", icon: MessageSquare },
-  { id: "dias-trabajados", label: "Días trabajados", icon: CalendarDays },
-  { id: "turnos-extra", label: "Turnos extra", icon: CalendarPlus },
-  { id: "historial", label: "Historial", icon: History },
-] as const;
 
 type GuardiaDetail = {
   id: string;
@@ -104,7 +87,8 @@ type GuardiaDetail = {
   };
   hiredAt?: string | null;
   availableExtraShifts?: boolean;
-  marcacionPin?: string | null; // indica si tiene PIN configurado (no el valor)
+  marcacionPin?: string | null; // hash/indicador de PIN configurado
+  marcacionPinVisible?: string | null; // PIN visible para operación en ficha
   montoAnticipo?: number;
   recibeAnticipo?: boolean;
   currentInstallation?: {
@@ -343,6 +327,9 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
 
   const canManageGuardias = hasOpsCapability(userRole, "guardias_manage");
   const canManageDocs = hasOpsCapability(userRole, "guardias_documents");
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const rondaCode = guardia.currentInstallation?.marcacionCode ?? "";
+  const rondaUrl = rondaCode ? `${baseUrl}/ronda/${rondaCode}` : "";
 
   function toDateInput(val: string | Date | undefined | null): string {
     if (!val) return "";
@@ -827,10 +814,6 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
     }
   };
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const availableTemplates = useMemo(
     () => GUARDIA_COMM_TEMPLATES.filter((tpl) => tpl.channel === commForm.channel),
     [commForm.channel]
@@ -930,161 +913,22 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
       ? `https://maps.googleapis.com/maps/api/staticmap?center=${guardia.persona.lat},${guardia.persona.lng}&zoom=15&size=160x120&scale=2&markers=color:red%7C${guardia.persona.lat},${guardia.persona.lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
       : null;
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button asChild variant="outline" size="sm">
-          <Link href="/personas/guardias">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver a guardias
-          </Link>
+  const guardiaTitle = `${guardia.persona.firstName} ${guardia.persona.lastName}`.trim() || "Guardia";
+  const guardiaSubtitle = guardia.persona.rut ? `RUT ${guardia.persona.rut}` : undefined;
+
+  const sections = [
+    /* datos — fixed, first, always open */
+    {
+      key: "datos" as const,
+      label: "Datos personales",
+      action: canManageGuardias ? (
+        <Button size="sm" variant="outline" onClick={openEditPersonal}>
+          <Pencil className="mr-1.5 h-3.5 w-3.5" />
+          Editar
         </Button>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={guardia.lifecycleStatus} />
-          {guardia.isBlacklisted ? (
-            <span className="text-[11px] rounded-full bg-red-500/15 px-2 py-1 text-red-400">
-              Lista negra
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Navegación rápida: donde está la ficha de documentos */}
-      <nav className="flex flex-wrap gap-2 rounded-lg border border-border bg-muted/30 p-3">
-        {SECTIONS.map(({ id, label, icon: Icon }) => (
-          <Button
-            key={id}
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => scrollTo(id)}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Button>
-        ))}
-      </nav>
-
-      {/* ── Asignación actual + historial ── */}
-      <Card id="asignacion">
-        <CardHeader>
-          <CardTitle>Asignación actual</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(() => {
-            const current = asignaciones.find((a) => a.isActive);
-            const history = asignaciones.filter((a) => !a.isActive);
-            return (
-              <>
-                {current ? (
-                  <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-emerald-300">
-                          {current.puesto.name}
-                          <span className="ml-2 text-xs text-emerald-300/60">Slot {current.slotNumber}</span>
-                        </p>
-                        <p className="text-xs text-emerald-200/80 mt-1">
-                          {current.installation.name}
-                          {current.installation.account && ` · ${current.installation.account.name}`}
-                        </p>
-                        <p className="text-xs text-emerald-200/60 mt-0.5">
-                          {current.puesto.shiftStart} - {current.puesto.shiftEnd} · Desde {formatDateUTC(current.startDate)}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-300 border border-emerald-500/30">
-                        Activo
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-4 text-center">
-                    <p className="text-sm text-amber-400">Sin asignación activa</p>
-                    <p className="text-xs text-muted-foreground mt-1">Este guardia no está asignado a ningún puesto.</p>
-                  </div>
-                )}
-
-                {history.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Historial de asignaciones</p>
-                    <div className="space-y-1.5">
-                      {history.map((h) => (
-                        <div key={h.id} className="rounded-md border border-border/60 px-3 py-2 text-xs">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="font-medium">{h.puesto.name}</span>
-                              <span className="text-muted-foreground"> · {h.installation.name}</span>
-                              {h.installation.account && (
-                                <span className="text-muted-foreground"> · {h.installation.account.name}</span>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-muted-foreground mt-0.5">
-                            {formatDateUTC(h.startDate)}
-                            {h.endDate && ` → ${formatDateUTC(h.endDate)}`}
-                            {h.reason && ` · ${h.reason}`}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </CardContent>
-      </Card>
-
-      {/* ── Marcación de asistencia (PIN) ── */}
-      <Card id="marcacion">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5" />
-            Marcación de asistencia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-            <div>
-              <p className="text-sm font-medium">PIN de marcación</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {guardia.marcacionPin
-                  ? "PIN configurado — el guardia puede marcar asistencia"
-                  : "Sin PIN — el guardia no puede marcar asistencia"}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {guardia.marcacionPin && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                  Activo
-                </span>
-              )}
-              {!guardia.marcacionPin && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                  Sin PIN
-                </span>
-              )}
-            </div>
-          </div>
-
-          {canManageGuardias && (
-            <MarcacionPinSection guardiaId={guardia.id} hasPin={!!guardia.marcacionPin} />
-          )}
-        </CardContent>
-      </Card>
-
-      <Card id="datos">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Datos personales</CardTitle>
-          {canManageGuardias && (
-            <Button size="sm" variant="outline" onClick={openEditPersonal}>
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              Editar
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
+      ) : undefined,
+      children: (
+        <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Nombre completo</Label>
@@ -1210,20 +1054,217 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      ),
+    },
+    /* asignacion */
+    {
+      key: "asignacion" as const,
+      children: (
+        <div className="space-y-4">
+          {(() => {
+            const current = asignaciones.find((a) => a.isActive);
+            const history = asignaciones.filter((a) => !a.isActive);
+            return (
+              <>
+                {current ? (
+                  <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-300">
+                          {current.puesto.name}
+                          <span className="ml-2 text-xs text-emerald-300/60">Slot {current.slotNumber}</span>
+                        </p>
+                        <p className="text-xs text-emerald-200/80 mt-1">
+                          {current.installation.name}
+                          {current.installation.account && ` · ${current.installation.account.name}`}
+                        </p>
+                        <p className="text-xs text-emerald-200/60 mt-0.5">
+                          {current.puesto.shiftStart} - {current.puesto.shiftEnd} · Desde {formatDateUTC(current.startDate)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-300 border border-emerald-500/30">
+                        Activo
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-4 text-center">
+                    <p className="text-sm text-amber-400">Sin asignación activa</p>
+                    <p className="text-xs text-muted-foreground mt-1">Este guardia no está asignado a ningún puesto.</p>
+                  </div>
+                )}
 
-      <Card id="documentos">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FilePlus2 className="h-4 w-4" />
-            Ficha de documentos
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+                {history.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Historial de asignaciones</p>
+                    <div className="space-y-1.5">
+                      {history.map((h) => (
+                        <div key={h.id} className="rounded-md border border-border/60 px-3 py-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium">{h.puesto.name}</span>
+                              <span className="text-muted-foreground"> · {h.installation.name}</span>
+                              {h.installation.account && (
+                                <span className="text-muted-foreground"> · {h.installation.account.name}</span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-muted-foreground mt-0.5">
+                            {formatDateUTC(h.startDate)}
+                            {h.endDate && ` → ${formatDateUTC(h.endDate)}`}
+                            {h.reason && ` · ${h.reason}`}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      ),
+    },
+    /* marcacion */
+    {
+      key: "marcacion" as const,
+      label: "Marcación de asistencia",
+      children: (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <p className="text-sm font-medium">PIN de marcación</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {guardia.marcacionPin
+                  ? "PIN configurado — el guardia puede marcar asistencia"
+                  : "Sin PIN — el guardia no puede marcar asistencia"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {guardia.marcacionPin && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                  Activo
+                </span>
+              )}
+              {!guardia.marcacionPin && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                  Sin PIN
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
+            <p className="text-xs text-muted-foreground">PIN activo</p>
+            {guardia.marcacionPinVisible ? (
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-2xl font-mono font-semibold tracking-[0.2em]">{guardia.marcacionPinVisible}</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[11px]"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(guardia.marcacionPinVisible || "");
+                    toast.success("PIN copiado");
+                  }}
+                >
+                  <Copy className="mr-1 h-3 w-3" />
+                  Copiar PIN
+                </Button>
+              </div>
+            ) : guardia.marcacionPin ? (
+              <p className="mt-2 text-xs text-amber-600">
+                Este guardia tiene PIN activo, pero no está visible en ficha. Usa "Resetear PIN" para dejarlo visible.
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Aún no tiene PIN activo.
+              </p>
+            )}
+          </div>
+
+          {canManageGuardias && (
+            <MarcacionPinSection
+              guardiaId={guardia.id}
+              hasPin={!!guardia.marcacionPin}
+              onPinUpdated={(pin) => {
+                setGuardia((prev) => ({
+                  ...prev,
+                  marcacionPin: "[configurado]",
+                  marcacionPinVisible: pin,
+                }));
+              }}
+            />
+          )}
+        </div>
+      ),
+    },
+    /* rondas */
+    {
+      key: "rondas" as const,
+      label: "Marcación de rondas",
+      children: (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+            <p className="text-sm font-medium">Acceso móvil de rondas</p>
+            {!guardia.currentInstallation ? (
+              <p className="text-xs text-muted-foreground">
+                El guardia no tiene instalación actual asignada.
+              </p>
+            ) : !rondaCode ? (
+              <p className="text-xs text-muted-foreground">
+                La instalación {guardia.currentInstallation.name} no tiene código generado. Actívalo en{" "}
+                <Link href={`/crm/installations/${guardia.currentInstallation.id}`} className="text-primary underline">
+                  Instalación &gt; Marcación de rondas
+                </Link>
+                .
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Instalación: <span className="font-medium text-foreground">{guardia.currentInstallation.name}</span>
+                </p>
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2">
+                  <p className="text-xs font-mono truncate">{rondaUrl}</p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px]"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(rondaUrl);
+                        toast.success("Link de ronda copiado");
+                      }}
+                    >
+                      <Copy className="mr-1 h-3 w-3" />
+                      Copiar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px]"
+                      onClick={() => window.open(rondaUrl, "_blank", "noopener,noreferrer")}
+                    >
+                      Abrir
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    /* documentos */
+    {
+      key: "documentos" as const,
+      label: "Ficha de documentos",
+      children: (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground -mt-1">
             Sube certificado de antecedentes, OS-10, cédula de identidad, currículum, contratos y anexos.
           </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
           {expiringDocs.length > 0 ? (
             <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
               Hay {expiringDocs.length} documento(s) vencido(s) o por vencer en los próximos 30 días.
@@ -1436,20 +1477,18 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
           <p className="text-xs text-muted-foreground">
             {guardia.documents.length} documento(s) · tipos: antecedentes, OS-10, cédula, currículum, contrato, anexo.
           </p>
-        </CardContent>
-      </Card>
-
-      <Card id="docs-vinculados">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-4 w-4" />
-            Documentos vinculados (Docs)
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+        </div>
+      ),
+    },
+    /* docs-vinculados */
+    {
+      key: "docs-vinculados" as const,
+      label: "Documentos vinculados (Docs)",
+      children: (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground -mt-1">
             Vincula contratos/anexos del módulo Docs a esta ficha de guardia para mantener trazabilidad.
           </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
             <select
               className="h-10 rounded-md border border-border bg-background px-3 text-sm"
@@ -1515,20 +1554,18 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card id="cuentas">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Landmark className="h-4 w-4" />
-            Cuenta bancaria
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+        </div>
+      ),
+    },
+    /* cuentas */
+    {
+      key: "cuentas" as const,
+      label: "Cuenta bancaria",
+      children: (
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">
             Un solo banco por trabajador. {existingAccount ? "Edite los datos y guarde los cambios." : "Complete para registrar la cuenta."}
           </p>
-        </CardHeader>
-        <CardContent>
           <div className="grid gap-3 md:grid-cols-4">
             <select
               className="h-10 rounded-md border border-border bg-background px-3 text-sm"
@@ -1569,17 +1606,15 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               {creatingAccount ? "..." : existingAccount ? "Guardar" : "Agregar"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card id="comunicaciones">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Comunicación con guardia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+      ),
+    },
+    /* communication (comunicaciones) */
+    {
+      key: "communication" as const,
+      label: "Comunicación con guardia",
+      children: (
+        <div className="space-y-4">
           <div className="rounded-lg border border-border p-4 space-y-3">
             <p className="text-sm text-muted-foreground">
               Envío con plantillas predefinidas por canal. Los envíos quedan registrados en la ficha.
@@ -1659,17 +1694,15 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               })
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card id="comentarios">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Comentarios internos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        </div>
+      ),
+    },
+    /* comentarios */
+    {
+      key: "comentarios" as const,
+      label: "Comentarios internos",
+      children: (
+        <div className="space-y-3">
           <div className="flex gap-2">
             <Input
               placeholder="Escribe una nota o comentario sobre este guardia"
@@ -1699,20 +1732,17 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
           ) : (
             <p className="text-sm text-muted-foreground">Sin comentarios.</p>
           )}
-        </CardContent>
-      </Card>
-
-      <Card id="dias-trabajados">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            Días trabajados
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+        </div>
+      ),
+    },
+    /* dias-trabajados */
+    {
+      key: "dias-trabajados" as const,
+      children: (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground -mt-1">
             Días en que este guardia asistió o cubrió como reemplazo (últimos 12 meses). Base para liquidación y portal del guardia.
           </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
           {diasTrabajadosLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1777,20 +1807,17 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               )}
             </>
           )}
-        </CardContent>
-      </Card>
-
-      <Card id="turnos-extra">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarPlus className="h-4 w-4" />
-            Turnos extra
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+        </div>
+      ),
+    },
+    /* turnos-extra */
+    {
+      key: "turnos-extra" as const,
+      children: (
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">
             Historial de turnos extra (reemplazos y cubrimientos) de este guardia.
           </p>
-        </CardHeader>
-        <CardContent>
           {turnosExtraLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1836,14 +1863,15 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card id="historial">
-        <CardHeader>
-          <CardTitle>Historial del guardia</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+        </div>
+      ),
+    },
+    /* historial */
+    {
+      key: "historial" as const,
+      label: "Historial del guardia",
+      children: (
+        <div className="space-y-2">
           {guardia.historyEvents.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sin eventos registrados.</p>
           ) : (
@@ -1858,8 +1886,31 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <CrmDetailLayout
+        module="guardias"
+        pageType="guardia"
+        fixedSectionKey="datos"
+        title={guardiaTitle}
+        subtitle={guardiaSubtitle}
+        badge={{ label: guardia.lifecycleStatus, variant: "secondary" }}
+        backHref="/personas/guardias"
+        backLabel="Guardias"
+        extra={
+          guardia.isBlacklisted ? (
+            <span className="text-[11px] rounded-full bg-red-500/15 px-2 py-1 text-red-400">
+              Lista negra
+            </span>
+          ) : null
+        }
+        sections={sections}
+      />
 
       {/* ── Edit Personal Data Modal ── */}
       <Dialog open={editPersonalOpen} onOpenChange={setEditPersonalOpen}>
@@ -2038,7 +2089,7 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 
@@ -2049,12 +2100,15 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
 function MarcacionPinSection({
   guardiaId,
   hasPin,
+  onPinUpdated,
 }: {
   guardiaId: string;
   hasPin: boolean;
+  onPinUpdated: (pin: string) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [generatedPin, setGeneratedPin] = useState<string | null>(null);
+  const [pinConfigured, setPinConfigured] = useState(hasPin);
 
   const handleGeneratePin = async () => {
     setLoading(true);
@@ -2071,7 +2125,9 @@ function MarcacionPinSection({
         return;
       }
       setGeneratedPin(data.data.pin);
-      toast.success(hasPin ? "PIN reseteado exitosamente" : "PIN generado exitosamente");
+      setPinConfigured(true);
+      onPinUpdated(data.data.pin);
+      toast.success(pinConfigured ? "PIN reseteado exitosamente" : "PIN generado exitosamente");
     } catch {
       toast.error("Error de conexión");
     } finally {
@@ -2108,20 +2164,20 @@ function MarcacionPinSection({
             </Button>
           </div>
           <p className="text-xs text-emerald-300/90 mt-2">
-            Copia y entrega este PIN al guardia. Por seguridad no se puede consultar de nuevo.
+            PIN actualizado. También queda visible en la ficha para consulta operativa.
           </p>
         </div>
       )}
 
       <Button
         size="sm"
-        variant={hasPin ? "outline" : "default"}
+        variant={pinConfigured ? "outline" : "default"}
         onClick={handleGeneratePin}
         disabled={loading}
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         <KeyRound className="mr-1.5 h-4 w-4" />
-        {hasPin ? "Resetear PIN" : "Generar PIN"}
+        {pinConfigured ? "Resetear PIN" : "Generar PIN"}
       </Button>
     </div>
   );

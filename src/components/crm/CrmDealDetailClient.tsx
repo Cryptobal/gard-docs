@@ -498,7 +498,6 @@ export function CrmDealDetailClient({
   const followUpSection: DetailSection = {
     key: "followup",
     count: followUpLogs.length,
-    defaultCollapsed: !deal.proposalSentAt && followUpLogs.length === 0,
     action: (
       <div className="flex items-center gap-1">
         {canConfigureCrm && (
@@ -675,7 +674,6 @@ export function CrmDealDetailClient({
   const quotesSection: DetailSection = {
     key: "quotes",
     count: linkedQuotes.length,
-    defaultCollapsed: linkedQuotes.length === 0,
     action: (
       <Dialog open={quoteDialogOpen} onOpenChange={setQuoteDialogOpen}>
         <DialogTrigger asChild>
@@ -723,7 +721,6 @@ export function CrmDealDetailClient({
     key: "installations",
     label: "Instalaciones de la cuenta",
     count: accountInstallations.length,
-    defaultCollapsed: accountInstallations.length === 0,
     children: accountInstallations.length === 0 ? (
       <EmptyState
         icon={<MapPin className="h-8 w-8" />}
@@ -757,7 +754,6 @@ export function CrmDealDetailClient({
     key: "contacts",
     label: "Contactos del negocio",
     count: dealContacts.length,
-    defaultCollapsed: dealContacts.length === 0,
     action: availableContacts.length > 0 ? (
       <Dialog open={addContactOpen} onOpenChange={setAddContactOpen}>
         <DialogTrigger asChild>
@@ -819,7 +815,6 @@ export function CrmDealDetailClient({
 
   const communicationSection: DetailSection = {
     key: "communication",
-    defaultCollapsed: true,
     action: (
       <div className="flex items-center gap-1">
         {whatsappPhone && (
@@ -880,6 +875,7 @@ export function CrmDealDetailClient({
   return (
     <>
       <CrmDetailLayout
+        pageType="deal"
         module="deals"
         title={deal.title}
         subtitle={subtitle}

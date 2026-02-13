@@ -1519,6 +1519,7 @@ export function CrmLeadDetailClient({ lead: initialLead }: { lead: CrmLead }) {
   return (
     <>
       <CrmDetailLayout
+        pageType="lead"
         module="leads"
         title={lead.companyName || fullName}
         subtitle={lead.companyName ? fullName : undefined}

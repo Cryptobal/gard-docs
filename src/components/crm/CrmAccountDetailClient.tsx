@@ -679,7 +679,6 @@ export function CrmAccountDetailClient({
           Agregar
         </Button>
       ),
-      defaultCollapsed: account.contacts.length === 0,
       children: account.contacts.length === 0 ? (
         <EmptyState icon={<ContactsIcon className="h-8 w-8" />} title="Sin contactos" description="Esta cuenta no tiene contactos registrados." compact />
       ) : (
@@ -701,7 +700,6 @@ export function CrmAccountDetailClient({
     {
       key: "installations",
       count: account.installations.length,
-      defaultCollapsed: account.installations.length === 0,
       children: (
         <CrmInstallationsClient
           accountId={account.id}
@@ -713,7 +711,6 @@ export function CrmAccountDetailClient({
     {
       key: "deals",
       count: account.deals.length,
-      defaultCollapsed: account.deals.length === 0,
       children: account.deals.length === 0 ? (
         <EmptyState icon={<DealsIcon className="h-8 w-8" />} title="Sin negocios" description="No hay negocios vinculados a esta cuenta." compact />
       ) : (
@@ -741,7 +738,6 @@ export function CrmAccountDetailClient({
     {
       key: "quotes",
       count: quotes.length,
-      defaultCollapsed: quotes.length === 0,
       children: quotes.length === 0 ? (
         <EmptyState icon={<QuotesIcon className="h-8 w-8" />} title="Sin cotizaciones" description="No hay cotizaciones vinculadas a esta cuenta." compact />
       ) : (
@@ -762,7 +758,6 @@ export function CrmAccountDetailClient({
     },
     {
       key: "communication",
-      defaultCollapsed: true,
       children: <EmailHistoryList accountId={account.id} compact />,
     },
     {
@@ -778,6 +773,7 @@ export function CrmAccountDetailClient({
   return (
     <>
       <CrmDetailLayout
+        pageType="account"
         module="accounts"
         title={account.name}
         subtitle={lifecycleSubtitle}

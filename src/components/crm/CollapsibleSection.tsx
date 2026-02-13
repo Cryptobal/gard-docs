@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
@@ -9,7 +10,11 @@ interface CollapsibleSectionProps {
   title: string;
   count?: number;
   defaultOpen?: boolean;
+  open?: boolean;
+  onToggle?: (nextOpen: boolean) => void;
   action?: React.ReactNode;
+  dragHandle?: React.ReactNode;
+  locked?: boolean;
   children: React.ReactNode;
   className?: string;
 }
@@ -19,11 +24,27 @@ export function CollapsibleSection({
   title,
   count,
   defaultOpen = true,
+  open,
+  onToggle,
   action,
+  dragHandle,
+  locked = false,
   children,
   className = "",
 }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isControlled = typeof open === "boolean";
+  const resolvedOpen = useMemo(() => {
+    const base = isControlled ? Boolean(open) : internalOpen;
+    return locked ? true : base;
+  }, [internalOpen, isControlled, locked, open]);
+
+  const handleToggle = () => {
+    if (locked) return;
+    const nextOpen = !resolvedOpen;
+    if (!isControlled) setInternalOpen(nextOpen);
+    onToggle?.(nextOpen);
+  };
 
   return (
     <Card className={className}>
@@ -31,14 +52,16 @@ export function CollapsibleSection({
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => setOpen((o) => !o)}
+            onClick={handleToggle}
             className="flex min-w-0 flex-1 items-center gap-2 text-left hover:text-primary transition-colors -ml-0.5 group"
+            disabled={locked}
           >
-            {open ? (
+            {resolvedOpen ? (
               <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary shrink-0" />
             ) : (
               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary shrink-0" />
             )}
+            {dragHandle}
             <CardTitle className="flex min-w-0 items-center gap-2 text-sm">
               {icon}
               {title}
@@ -52,7 +75,19 @@ export function CollapsibleSection({
           {action && <div className="shrink-0 flex items-center">{action}</div>}
         </div>
       </CardHeader>
-      {open && <CardContent className="pt-4">{children}</CardContent>}
+      <AnimatePresence initial={false}>
+        {resolvedOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <CardContent className="pt-4">{children}</CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   );
 }
