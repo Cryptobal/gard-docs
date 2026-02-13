@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ interface GuardiasClientProps {
 }
 
 export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProps) {
+  const router = useRouter();
   const [guardias, setGuardias] = useState<GuardiaItem[]>(initialGuardias);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
@@ -716,9 +718,17 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                 const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
                 return (
-                  <Link
+                  <div
                     key={item.id}
-                    href={`/personas/guardias/${item.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/personas/guardias/${item.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/personas/guardias/${item.id}`);
+                      }
+                    }}
                     className={
                       viewMode === "grid"
                         ? "rounded-lg border border-border p-3 flex gap-3 hover:border-primary/50 hover:bg-muted/30 transition-colors cursor-pointer"
@@ -803,7 +813,7 @@ export function GuardiasClient({ initialGuardias, userRole }: GuardiasClientProp
                         </div>
                       ) : null}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>

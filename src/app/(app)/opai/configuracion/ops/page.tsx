@@ -18,7 +18,7 @@ export default async function OpsConfigPage() {
     <div className="space-y-6">
       <PageHeader
         title="Operaciones"
-        description="Configuración de marcaciones, emails automáticos y parámetros operativos"
+        description="Configuración de marcaciones, rondas, emails automáticos y parámetros operativos"
       />
       <ConfigSubnav role={role} />
       <OpsConfigClient />

@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 interface Installation {
   id: string;
   name: string;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 interface Checkpoint {
@@ -30,6 +33,8 @@ export function RondasCheckpointsClient({
 }) {
   const [installationId, setInstallationId] = useState(installations[0]?.id ?? "");
   const [rows, setRows] = useState(initialCheckpoints);
+  const installationMap = useMemo(() => new Map(installations.map((i) => [i.id, i])), [installations]);
+  const selectedInstallation = installationMap.get(installationId);
 
   const filtered = useMemo(
     () => rows.filter((r) => !installationId || r.installationId === installationId),
@@ -53,6 +58,10 @@ export function RondasCheckpointsClient({
       {installationId && (
         <CheckpointForm
           installationId={installationId}
+          installationName={selectedInstallation?.name}
+          installationAddress={selectedInstallation?.address ?? undefined}
+          installationLat={selectedInstallation?.lat}
+          installationLng={selectedInstallation?.lng}
           onSubmit={async (payload) => {
             const res = await fetch("/api/ops/rondas/checkpoints", {
               method: "POST",
@@ -94,7 +103,11 @@ export function RondasCheckpointsClient({
                   <td className="px-3 py-2">{cp.isActive ? "Activo" : "Inactivo"}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1 justify-end">
-                      <CheckpointQrGenerator code={cp.qrCode} label={cp.name} />
+                      <CheckpointQrGenerator
+                        code={cp.qrCode}
+                        checkpointName={cp.name}
+                        installationName={installationMap.get(cp.installationId)?.name}
+                      />
                       <Button
                         size="sm"
                         variant="outline"

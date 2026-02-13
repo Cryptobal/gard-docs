@@ -61,10 +61,13 @@ export async function POST(req: NextRequest) {
     const plainPin = generatePin();
     const hashedPin = await bcrypt.hash(plainPin, 10);
 
-    // Actualizar el guardia con el PIN hasheado
+    // Actualizar el guardia con hash (validación) y PIN visible (operación)
     await prisma.opsGuardia.update({
       where: { id: guardiaId },
-      data: { marcacionPin: hashedPin },
+      data: {
+        marcacionPin: hashedPin,
+        marcacionPinVisible: plainPin,
+      },
     });
 
     // El PIN en texto plano solo se retorna UNA VEZ en esta respuesta

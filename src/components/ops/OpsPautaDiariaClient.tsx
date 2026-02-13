@@ -579,7 +579,7 @@ export function OpsPautaDiariaClient({
                         </div>
                       </div>
 
-                      {/* Col: Marcación digital */}
+                      {/* Col: Marcación asistencia */}
                       <div className="text-sm min-w-0 md:flex md:items-center">
                         <span className="text-xs text-muted-foreground md:hidden">Marcación</span>
                         <div className="mt-1 md:mt-0">
@@ -624,7 +624,7 @@ export function OpsPautaDiariaClient({
                                 </span>
                               )}
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-medium">
-                                Marcación digital
+                                Marcación asistencia
                               </span>
                               <button
                                 type="button"

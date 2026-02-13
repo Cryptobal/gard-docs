@@ -17,7 +17,7 @@ export default async function RondasCheckpointsPage() {
   const tenantId = session.user.tenantId ?? (await getDefaultTenantId());
   const installations = await prisma.crmInstallation.findMany({
     where: { tenantId, isActive: true },
-    select: { id: true, name: true },
+    select: { id: true, name: true, address: true, lat: true, lng: true },
     orderBy: { name: "asc" },
   });
   const checkpoints = await prisma.opsCheckpoint.findMany({

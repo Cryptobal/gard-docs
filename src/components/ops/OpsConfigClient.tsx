@@ -19,6 +19,9 @@ import {
   Send,
   Timer,
   Loader2,
+  Route,
+  Camera,
+  Users,
 } from "lucide-react";
 
 interface MarcacionConfig {
@@ -29,6 +32,11 @@ interface MarcacionConfig {
   emailAvisoMarcaManualEnabled: boolean;
   emailDelayManualMinutos: number;
   clausulaLegal: string;
+  rondasPollingSegundos: number;
+  rondasVentanaInicioAntesMin: number;
+  rondasVentanaInicioDespuesMin: number;
+  rondasRequiereFotoEvidencia: boolean;
+  rondasPermiteReemplazo: boolean;
 }
 
 /* ── Catálogo de emails del módulo Operaciones ── */
@@ -274,7 +282,109 @@ export function OpsConfigClient() {
         </CardContent>
       </Card>
 
-      {/* ── Sección 2: Catálogo de emails automáticos ── */}
+      {/* ── Sección 2: Parámetros de rondas ── */}
+      <Card>
+        <CardContent className="pt-5 space-y-5">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Route className="h-4 w-4 text-primary" />
+            Parámetros de rondas
+          </h3>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label>Polling monitoreo (seg)</Label>
+              <Input
+                type="number"
+                min={10}
+                max={120}
+                value={config.rondasPollingSegundos ?? 30}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, rondasPollingSegundos: Number(e.target.value) || 30 })
+                }
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Frecuencia de actualización recomendada para monitoreo.
+              </p>
+            </div>
+            <div>
+              <Label>Ventana inicio antes (min)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={360}
+                value={config.rondasVentanaInicioAntesMin ?? 60}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, rondasVentanaInicioAntesMin: Number(e.target.value) || 0 })
+                }
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Ventana inicio después (min)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={360}
+                value={config.rondasVentanaInicioDespuesMin ?? 120}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, rondasVentanaInicioDespuesMin: Number(e.target.value) || 0 })
+                }
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-center gap-3 rounded border border-border px-3 py-2">
+              <input
+                type="checkbox"
+                checked={Boolean(config.rondasRequiereFotoEvidencia)}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, rondasRequiereFotoEvidencia: e.target.checked })
+                }
+                className="rounded border-border"
+              />
+              <div className="text-xs">
+                <p className="font-medium flex items-center gap-1.5">
+                  <Camera className="h-3.5 w-3.5" />
+                  Requerir foto evidencia
+                </p>
+                <p className="text-muted-foreground">
+                  Exige evidencia visual al marcar checkpoint.
+                </p>
+              </div>
+            </label>
+            <label className="flex items-center gap-3 rounded border border-border px-3 py-2">
+              <input
+                type="checkbox"
+                checked={Boolean(config.rondasPermiteReemplazo)}
+                onChange={(e) =>
+                  setConfig((c) => c && { ...c, rondasPermiteReemplazo: e.target.checked })
+                }
+                className="rounded border-border"
+              />
+              <div className="text-xs">
+                <p className="font-medium flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  Permitir reemplazo de guardia
+                </p>
+                <p className="text-muted-foreground">
+                  Autoriza inicio de ronda por guardia distinto al asignado.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => void saveConfig()} disabled={saving} size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "Guardando..." : "Guardar parámetros de rondas"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Sección 3: Catálogo de emails automáticos ── */}
       <Card>
         <CardContent className="pt-5 space-y-4">
           <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -369,7 +479,7 @@ export function OpsConfigClient() {
         </CardContent>
       </Card>
 
-      {/* ── Sección 3: Enviar emails de prueba ── */}
+      {/* ── Sección 4: Enviar emails de prueba ── */}
       <Card>
         <CardContent className="pt-5 space-y-4">
           <h3 className="text-sm font-semibold flex items-center gap-2">

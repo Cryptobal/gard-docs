@@ -29,6 +29,12 @@ export interface MarcacionConfig {
   emailDelayManualMinutos: number;
   // Cláusula legal para email de marca manual
   clausulaLegal: string;
+  // ── Rondas: parámetros globales de operación ──
+  rondasPollingSegundos: number;
+  rondasVentanaInicioAntesMin: number;
+  rondasVentanaInicioDespuesMin: number;
+  rondasRequiereFotoEvidencia: boolean;
+  rondasPermiteReemplazo: boolean;
 }
 
 const DEFAULTS: MarcacionConfig = {
@@ -40,6 +46,11 @@ const DEFAULTS: MarcacionConfig = {
   emailDelayManualMinutos: 0, // 0 = inmediato
   clausulaLegal:
     'Si transcurridas las 48 horas de recibir esta notificación usted no se hubiera opuesto al nuevo ajuste, ésta será considerada válida para los efectos de cálculo de su jornada.',
+  rondasPollingSegundos: 30,
+  rondasVentanaInicioAntesMin: 60,
+  rondasVentanaInicioDespuesMin: 120,
+  rondasRequiereFotoEvidencia: false,
+  rondasPermiteReemplazo: true,
 };
 
 export async function GET() {

@@ -1382,6 +1382,7 @@ model OpsGuardia {
   blacklistedAt   DateTime? @map("blacklisted_at") @db.Timestamptz(6)
   availableExtraShifts Boolean @default(false) @map("available_extra_shifts")
   marcacionPin    String?   @map("marcacion_pin") // bcrypt hash del PIN de 4-6 dígitos
+  marcacionPinVisible String? @map("marcacion_pin_visible") // PIN activo visible en ficha para operación
   currentInstallationId String? @map("current_installation_id") @db.Uuid
   montoAnticipo   Int       @default(0) @map("monto_anticipo")
   recibeAnticipo  Boolean   @default(false) @map("recibe_anticipo")
