@@ -185,6 +185,23 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   unassigned: "Desasignado de puesto",
 };
 
+function formatLifecycleBadgeLabel(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function lifecycleBadgeVariant(
+  value: string
+): "default" | "secondary" | "success" | "warning" | "destructive" | "outline" {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("activo")) return "success";
+  if (normalized.includes("inactivo")) return "warning";
+  if (normalized.includes("desvinculado") || normalized.includes("blacklist")) return "destructive";
+  return "secondary";
+}
+
 export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRole }: GuardiaDetailClientProps) {
   const [guardia, setGuardia] = useState(initialGuardia);
   const [uploading, setUploading] = useState(false);
@@ -915,6 +932,8 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
 
   const guardiaTitle = `${guardia.persona.firstName} ${guardia.persona.lastName}`.trim() || "Guardia";
   const guardiaSubtitle = guardia.persona.rut ? `RUT ${guardia.persona.rut}` : undefined;
+  const guardiaBadgeLabel = formatLifecycleBadgeLabel(guardia.lifecycleStatus);
+  const guardiaBadgeVariant = lifecycleBadgeVariant(guardia.lifecycleStatus);
 
   const sections = [
     /* datos — fixed, first, always open */
@@ -1899,7 +1918,7 @@ export function GuardiaDetailClient({ initialGuardia, asignaciones = [], userRol
         fixedSectionKey="datos"
         title={guardiaTitle}
         subtitle={guardiaSubtitle}
-        badge={{ label: guardia.lifecycleStatus, variant: "secondary" }}
+        badge={{ label: guardiaBadgeLabel, variant: guardiaBadgeVariant }}
         backHref="/personas/guardias"
         backLabel="Guardias"
         extra={

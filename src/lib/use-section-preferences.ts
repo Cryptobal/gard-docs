@@ -15,6 +15,11 @@ type SectionPrefs = {
   collapsed: string[];
 };
 
+type PersistedSectionPrefs = {
+  order?: string[];
+  collapsed?: string[];
+};
+
 type UseSectionPreferencesParams = {
   pageType: SectionPageType;
   fixedSectionKey: string;
@@ -91,8 +96,16 @@ function readCache(
   try {
     const raw = window.localStorage.getItem(cacheKey(pageType));
     if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as SectionPrefs;
-    return sanitizePrefs(parsed, fixedSectionKey, sectionKeys);
+    const parsed = JSON.parse(raw) as PersistedSectionPrefs;
+    return sanitizePrefs(
+      {
+        order: Array.isArray(parsed.order) ? parsed.order : [],
+        // Siempre iniciar contraídas al entrar (excepto sección fija)
+        collapsed: getDefaultCollapsed(fixedSectionKey, sectionKeys),
+      },
+      fixedSectionKey,
+      sectionKeys
+    );
   } catch {
     return fallback;
   }
@@ -148,7 +161,11 @@ export function useSectionPreferences({
         if (cancelled) return;
 
         if (response.ok && payload.success && payload.data) {
-          safeSetPrefs(payload.data);
+          // Mantener solo orden persistente; colapso siempre inicia cerrado en cada entrada.
+          safeSetPrefs({
+            order: payload.data.order,
+            collapsed: getDefaultCollapsed(fixedSectionKey, stableKeys),
+          });
         } else {
           safeSetPrefs(defaultPrefs);
         }
@@ -170,7 +187,10 @@ export function useSectionPreferences({
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      window.localStorage.setItem(cacheKey(pageType), JSON.stringify(prefs));
+      const data: PersistedSectionPrefs = {
+        order: prefs.order,
+      };
+      window.localStorage.setItem(cacheKey(pageType), JSON.stringify(data));
     } catch {
       // no-op
     }
@@ -187,7 +207,8 @@ export function useSectionPreferences({
         body: JSON.stringify({
           pageType,
           order: prefs.order,
-          collapsed: prefs.collapsed,
+          // No persistimos estado de colapso para forzar inicio contraído en cada ingreso.
+          collapsed: [],
         }),
       }).catch(() => {
         // silent fail, the local cache still preserves UX
