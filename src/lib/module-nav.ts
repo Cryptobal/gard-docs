@@ -46,14 +46,12 @@ import {
   CRM_SECTIONS,
   MODULE_DETAIL_SECTIONS,
 } from "@/components/crm/CrmModuleIcons";
-import { hasAppAccess } from "./app-access";
 import {
-  hasCrmSubmoduleAccess,
-  hasConfigSubmoduleAccess,
-  hasAnyConfigSubmoduleAccess,
-  type CrmSubmoduleKey,
-  type ConfigSubmoduleKey,
-} from "./module-access";
+  type RolePermissions,
+  getDefaultPermissions,
+  hasModuleAccess,
+  canView,
+} from "./permissions";
 
 /* ── Types ── */
 
@@ -79,7 +77,7 @@ const MAIN_ITEMS: (BottomNavItem & { app: string })[] = [
 
 /* ── CRM sub-items ── */
 
-const CRM_ITEMS: (BottomNavItem & { subKey: CrmSubmoduleKey })[] = [
+const CRM_ITEMS: (BottomNavItem & { subKey: string })[] = [
   { key: "crm-leads", href: "/crm/leads", label: "Leads", icon: Users, subKey: "leads" },
   { key: "crm-accounts", href: "/crm/accounts", label: "Cuentas", icon: Building2, subKey: "accounts" },
   { key: "crm-installations", href: "/crm/installations", label: "Instalaciones", icon: MapPin, subKey: "installations" },
@@ -90,12 +88,12 @@ const CRM_ITEMS: (BottomNavItem & { subKey: CrmSubmoduleKey })[] = [
 
 /* ── Ops sub-items ── */
 
-const OPS_ITEMS: BottomNavItem[] = [
-  { key: "ops-puestos", href: "/ops/puestos", label: "Puestos", icon: ClipboardList },
-  { key: "ops-pauta-mensual", href: "/ops/pauta-mensual", label: "Mensual", icon: CalendarDays },
-  { key: "ops-pauta-diaria", href: "/ops/pauta-diaria", label: "Diaria", icon: UserRoundCheck },
-  { key: "ops-marcaciones", href: "/ops/marcaciones", label: "Marcaciones", icon: Fingerprint },
-  { key: "ops-ppc", href: "/ops/ppc", label: "PPC", icon: ShieldAlert },
+const OPS_ITEMS: (BottomNavItem & { subKey: string })[] = [
+  { key: "ops-puestos", href: "/ops/puestos", label: "Puestos", icon: ClipboardList, subKey: "puestos" },
+  { key: "ops-pauta-mensual", href: "/ops/pauta-mensual", label: "Mensual", icon: CalendarDays, subKey: "pauta_mensual" },
+  { key: "ops-pauta-diaria", href: "/ops/pauta-diaria", label: "Diaria", icon: UserRoundCheck, subKey: "pauta_diaria" },
+  { key: "ops-marcaciones", href: "/ops/marcaciones", label: "Marcaciones", icon: Fingerprint, subKey: "marcaciones" },
+  { key: "ops-ppc", href: "/ops/ppc", label: "PPC", icon: ShieldAlert, subKey: "ppc" },
 ];
 
 /* ── TE sub-items ── */
@@ -130,10 +128,10 @@ const DOCS_ITEMS: BottomNavItem[] = [
 
 /* ── Config sub-items (top 5 for bottom nav) ── */
 
-const CONFIG_ITEMS: (BottomNavItem & { subKey: ConfigSubmoduleKey })[] = [
-  { key: "config-users", href: "/opai/configuracion/usuarios", label: "Usuarios", icon: Users, subKey: "users" },
-  { key: "config-integrations", href: "/opai/configuracion/integraciones", label: "Integraciones", icon: Plug, subKey: "integrations" },
-  { key: "config-notifications", href: "/opai/configuracion/notificaciones", label: "Alertas", icon: Bell, subKey: "notifications" },
+const CONFIG_ITEMS: (BottomNavItem & { subKey: string })[] = [
+  { key: "config-users", href: "/opai/configuracion/usuarios", label: "Usuarios", icon: Users, subKey: "usuarios" },
+  { key: "config-integrations", href: "/opai/configuracion/integraciones", label: "Integraciones", icon: Plug, subKey: "integraciones" },
+  { key: "config-notifications", href: "/opai/configuracion/notificaciones", label: "Alertas", icon: Bell, subKey: "notificaciones" },
   { key: "config-crm", href: "/opai/configuracion/crm", label: "CRM", icon: TrendingUp, subKey: "crm" },
   { key: "config-cpq", href: "/opai/configuracion/cpq", label: "CPQ", icon: DollarSign, subKey: "cpq" },
   { key: "config-ops", href: "/opai/configuracion/ops", label: "Ops", icon: ClipboardList, subKey: "ops" },
@@ -143,18 +141,19 @@ const CONFIG_ITEMS: (BottomNavItem & { subKey: ConfigSubmoduleKey })[] = [
 
 interface ModuleDetection {
   test: (path: string) => boolean;
-  getItems: (role: string) => BottomNavItem[];
+  getItems: (perms: RolePermissions) => BottomNavItem[];
 }
 
 const MODULE_DETECTIONS: ModuleDetection[] = [
   {
     test: (p) => p === "/crm" || p.startsWith("/crm/"),
-    getItems: (role) =>
-      CRM_ITEMS.filter((item) => hasCrmSubmoduleAccess(role, item.subKey)),
+    getItems: (perms) =>
+      CRM_ITEMS.filter((item) => canView(perms, "crm", item.subKey)),
   },
   {
     test: (p) => p === "/ops" || p.startsWith("/ops/"),
-    getItems: () => OPS_ITEMS,
+    getItems: (perms) =>
+      OPS_ITEMS.filter((item) => canView(perms, "ops", item.subKey)),
   },
   {
     test: (p) => p === "/te" || p.startsWith("/te/"),
@@ -177,9 +176,9 @@ const MODULE_DETECTIONS: ModuleDetection[] = [
   },
   {
     test: (p) => p.startsWith("/opai/configuracion"),
-    getItems: (role) =>
+    getItems: (perms) =>
       CONFIG_ITEMS.filter((item) =>
-        hasConfigSubmoduleAccess(role, item.subKey)
+        canView(perms, "config", item.subKey)
       ),
   },
 ];
@@ -246,11 +245,18 @@ function getCrmDetailSectionItems(pathname: string): BottomNavItem[] | null {
  * - En detalle CRM: muestra secciones del registro (scroll a anclas)
  * - Dentro de un módulo: muestra subcategorías del módulo
  * - En ruta general: muestra navegación principal
+ *
+ * Acepta un role string (usa defaults) o un RolePermissions object.
  */
 export function getBottomNavItems(
   pathname: string,
-  role: string
+  roleOrPerms: string | RolePermissions,
 ): BottomNavItem[] {
+  const perms: RolePermissions =
+    typeof roleOrPerms === "string"
+      ? getDefaultPermissions(roleOrPerms)
+      : roleOrPerms;
+
   // Prioridad 1: páginas de detalle CRM → secciones del registro
   const sectionItems = getCrmDetailSectionItems(pathname);
   if (sectionItems) return sectionItems;
@@ -258,15 +264,25 @@ export function getBottomNavItems(
   // Prioridad 2: módulos → subcategorías
   for (const detection of MODULE_DETECTIONS) {
     if (detection.test(pathname)) {
-      const items = detection.getItems(role);
+      const items = detection.getItems(perms);
       if (items.length > 0) return items;
     }
   }
 
   // Default: main nav items
+  const moduleMapping: Record<string, "hub" | "docs" | "crm" | "payroll" | "ops" | "config"> = {
+    hub: "hub",
+    docs: "docs",
+    crm: "crm",
+    payroll: "payroll",
+    ops: "ops",
+    admin: "config",
+  };
+
   return MAIN_ITEMS.filter((item) => {
-    if (item.app === "admin") return hasAnyConfigSubmoduleAccess(role);
-    return hasAppAccess(role, item.app as Parameters<typeof hasAppAccess>[1]);
+    const moduleKey = moduleMapping[item.app];
+    if (!moduleKey) return false;
+    return hasModuleAccess(perms, moduleKey);
   });
 }
 

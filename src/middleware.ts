@@ -9,8 +9,16 @@
  */
 
 import { auth } from '@/lib/auth';
-import { hasAppAccess } from '@/lib/app-access';
-import type { AppKey } from '@/lib/app-keys';
+import {
+  getDefaultPermissions,
+  hasModuleAccess,
+  canView,
+  canEdit,
+  apiPathToModule,
+  apiPathToSubmodule,
+  type RolePermissions,
+  type ModuleKey,
+} from '@/lib/permissions';
 
 function isPublicPath(pathname: string): boolean {
   // Placeholders de módulos
@@ -54,21 +62,24 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-function requiredApiModule(pathname: string): AppKey | null {
-  if (pathname === '/api/presentations' || pathname === '/api/templates') {
-    return 'docs';
-  }
-  if (pathname.startsWith('/api/cpq/')) return 'cpq';
-  if (pathname.startsWith('/api/crm/')) return 'crm';
-  if (pathname.startsWith('/api/docs/')) return 'docs';
-  if (pathname.startsWith('/api/payroll/')) return 'payroll';
-  return null;
+function getAuthData(authData: unknown): { role: string; roleTemplateId?: string | null } {
+  if (!authData || typeof authData !== 'object') return { role: '' };
+  const authObj = authData as {
+    role?: string;
+    roleTemplateId?: string | null;
+    user?: { role?: string; roleTemplateId?: string | null };
+  };
+  return {
+    role: authObj.user?.role ?? authObj.role ?? '',
+    roleTemplateId: authObj.user?.roleTemplateId ?? authObj.roleTemplateId ?? null,
+  };
 }
 
-function getAuthRole(authData: unknown): string {
-  if (!authData || typeof authData !== 'object') return '';
-  const authObj = authData as { role?: string; user?: { role?: string } };
-  return authObj.user?.role ?? authObj.role ?? '';
+function resolvePermsFromAuth(authData: unknown): RolePermissions {
+  const { role } = getAuthData(authData);
+  // En middleware no podemos hacer async DB calls fácilmente,
+  // así que usamos defaults por role. Los templates custom se validan en API routes.
+  return getDefaultPermissions(role);
 }
 
 export default auth((req) => {
@@ -93,15 +104,36 @@ export default auth((req) => {
     return Response.redirect(loginUrl);
   }
 
-  // Endurecimiento de APIs por módulo para evitar bypass backend por URL directa
-  const requiredModule = requiredApiModule(pathname);
-  if (requiredModule) {
-    const role = getAuthRole(req.auth);
-    if (role && !hasAppAccess(role, requiredModule)) {
+  // Endurecimiento de APIs por módulo y submódulo con niveles de permiso
+  const apiModule = apiPathToModule(pathname);
+  if (apiModule) {
+    const perms = resolvePermsFromAuth(req.auth);
+    const method = req.method;
+    const isWrite = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+
+    // Verificar acceso al módulo
+    if (!hasModuleAccess(perms, apiModule)) {
       return Response.json(
-        { success: false, error: `Sin permisos para módulo ${requiredModule.toUpperCase()}` },
+        { success: false, error: `Sin permisos para módulo ${apiModule.toUpperCase()}` },
         { status: 403 }
       );
+    }
+
+    // Verificar acceso al submódulo (si se puede mapear)
+    const apiSub = apiPathToSubmodule(pathname);
+    if (apiSub) {
+      if (isWrite && !canEdit(perms, apiSub.module, apiSub.submodule)) {
+        return Response.json(
+          { success: false, error: `Sin permisos de escritura para ${apiSub.module}.${apiSub.submodule}` },
+          { status: 403 }
+        );
+      }
+      if (!isWrite && !canView(perms, apiSub.module, apiSub.submodule)) {
+        return Response.json(
+          { success: false, error: `Sin permisos de lectura para ${apiSub.module}.${apiSub.submodule}` },
+          { status: 403 }
+        );
+      }
     }
   }
 });

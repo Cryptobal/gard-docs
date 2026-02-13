@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CrmGlobalSearch } from "./CrmGlobalSearch";
-import { getVisibleCrmNavItems } from "@/lib/module-access";
+import { usePermissions } from "@/lib/permissions-context";
+import { getVisibleSubmodules } from "@/lib/permissions";
 import { SUBMODULE_TO_MODULE, CRM_MODULES } from "./CrmModuleIcons";
 
 /**
@@ -21,7 +22,13 @@ export function CrmSubnav({
   className?: string;
 }) {
   const pathname = usePathname();
-  const navItems = getVisibleCrmNavItems(role);
+  const permissions = usePermissions();
+  const visibleSubs = getVisibleSubmodules(permissions, "crm");
+  const navItems = visibleSubs.map((s) => ({
+    key: s.submodule,
+    href: s.href,
+    label: s.label,
+  }));
 
   if (navItems.length === 0) {
     return null;

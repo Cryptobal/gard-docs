@@ -1,7 +1,8 @@
 "use client";
 
 import { SubNav, type SubNavItem } from "@/components/opai/SubNav";
-import { getVisibleConfigNavItems, type ConfigSubmoduleKey } from "@/lib/module-access";
+import { usePermissions } from "@/lib/permissions-context";
+import { getVisibleSubmodules } from "@/lib/permissions";
 import {
   Users,
   Plug,
@@ -16,26 +17,26 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 /** Mapeo de config submodule key → icono */
-const CONFIG_ICONS: Record<ConfigSubmoduleKey, LucideIcon> = {
-  overview: Users,
-  users: Users,
-  integrations: Plug,
-  signatures: PenLine,
-  doc_categories: FolderTree,
+const CONFIG_ICONS: Record<string, LucideIcon> = {
+  usuarios: Users,
+  integraciones: Plug,
+  firmas: PenLine,
+  categorias: FolderTree,
   crm: TrendingUp,
   cpq: DollarSign,
   payroll: Calculator,
-  notifications: Bell,
+  notificaciones: Bell,
   ops: ClipboardList,
 };
 
 export function ConfigSubnav({ role }: { role: string }) {
-  const rawItems = getVisibleConfigNavItems(role);
+  const permissions = usePermissions();
+  const visibleSubs = getVisibleSubmodules(permissions, "config");
 
-  const items: SubNavItem[] = rawItems.map((item) => ({
-    href: item.href,
-    label: item.label,
-    icon: CONFIG_ICONS[item.key] ?? undefined,
+  const items: SubNavItem[] = visibleSubs.map((sub) => ({
+    href: sub.href,
+    label: sub.label,
+    icon: CONFIG_ICONS[sub.submodule] ?? undefined,
   }));
 
   return <SubNav items={items} />;

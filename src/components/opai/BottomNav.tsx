@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { getBottomNavItems } from '@/lib/module-nav';
+import { usePermissions } from '@/lib/permissions-context';
 
 interface BottomNavProps {
   userRole?: string;
@@ -19,13 +20,19 @@ interface BottomNavProps {
  * - En páginas de detalle CRM: muestra las secciones del registro (scroll a anclas)
  *
  * Se oculta en desktop (lg+) donde la sidebar maneja la navegación.
+ * Usa permisos del contexto para filtrar items (si disponible).
  */
 export function BottomNav({ userRole }: BottomNavProps) {
   const pathname = usePathname();
+  const permissions = usePermissions();
 
   if (!userRole || !pathname) return null;
 
-  const items = getBottomNavItems(pathname, userRole);
+  // Usar permisos resueltos si están disponibles, sino fallback a role string
+  const permsOrRole = permissions.modules && Object.keys(permissions.modules).length > 0
+    ? permissions
+    : userRole;
+  const items = getBottomNavItems(pathname, permsOrRole);
 
   if (items.length === 0) return null;
 

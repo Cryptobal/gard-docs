@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
-import { hasConfigSubmoduleAccess } from "@/lib/module-access";
+import { resolvePermissions } from "@/lib/permissions-server";
+import { canView, hasModuleAccess } from "@/lib/permissions";
 import Link from "next/link";
 import {
   Users,
@@ -14,14 +15,17 @@ import {
   ChevronRight,
   Bell,
   ClipboardList,
+  ShieldCheck,
 } from "lucide-react";
 
 type ConfigItem = {
-  key: Parameters<typeof hasConfigSubmoduleAccess>[1];
+  submodule: string;
   href: string;
   title: string;
   description: string;
   icon: typeof Users;
+  /** Si true, solo visible para owner/admin (ej: gestión de roles) */
+  adminOnly?: boolean;
 };
 
 type ConfigSection = {
@@ -34,21 +38,29 @@ const CONFIG_SECTIONS: ConfigSection[] = [
     title: "General",
     items: [
       {
-        key: "users",
+        submodule: "usuarios",
         href: "/opai/configuracion/usuarios",
         title: "Usuarios",
-        description: "Roles, accesos y seguridad",
+        description: "Gestión de usuarios y asignación de roles",
         icon: Users,
       },
       {
-        key: "integrations",
+        submodule: "usuarios",
+        href: "/opai/configuracion/roles",
+        title: "Roles y Permisos",
+        description: "Configurar permisos por módulo y submódulo",
+        icon: ShieldCheck,
+        adminOnly: true,
+      },
+      {
+        submodule: "integraciones",
         href: "/opai/configuracion/integraciones",
         title: "Integraciones",
         description: "Gmail y conectores externos",
         icon: Plug,
       },
       {
-        key: "notifications",
+        submodule: "notificaciones",
         href: "/opai/configuracion/notificaciones",
         title: "Notificaciones",
         description: "Alertas, emails y campana por módulo",
@@ -60,14 +72,14 @@ const CONFIG_SECTIONS: ConfigSection[] = [
     title: "Correos y Documentos",
     items: [
       {
-        key: "signatures",
+        submodule: "firmas",
         href: "/opai/configuracion/firmas",
         title: "Firmas",
         description: "Firmas para correos salientes",
         icon: PenLine,
       },
       {
-        key: "doc_categories",
+        submodule: "categorias",
         href: "/opai/configuracion/categorias-plantillas",
         title: "Categorías de plantillas",
         description: "Categorías por módulo para Gestión Documental",
@@ -79,28 +91,28 @@ const CONFIG_SECTIONS: ConfigSection[] = [
     title: "Módulos",
     items: [
       {
-        key: "crm",
+        submodule: "crm",
         href: "/opai/configuracion/crm",
         title: "CRM",
         description: "Pipeline y automatizaciones",
         icon: TrendingUp,
       },
       {
-        key: "cpq",
+        submodule: "cpq",
         href: "/opai/configuracion/cpq",
         title: "Cotizaciones (CPQ)",
         description: "Catálogo, parámetros y pricing",
         icon: DollarSign,
       },
       {
-        key: "payroll",
+        submodule: "payroll",
         href: "/opai/configuracion/payroll",
         title: "Payroll",
         description: "Parámetros legales y versiones",
         icon: Calculator,
       },
       {
-        key: "ops",
+        submodule: "ops",
         href: "/opai/configuracion/ops",
         title: "Operaciones",
         description: "Marcaciones, emails automáticos y parámetros",
@@ -117,15 +129,23 @@ export default async function ConfiguracionPage() {
   }
 
   const role = session.user.role;
-  if (!hasConfigSubmoduleAccess(role, "overview")) {
+  const perms = await resolvePermissions({
+    role,
+    roleTemplateId: session.user.roleTemplateId,
+  });
+
+  if (!hasModuleAccess(perms, "config")) {
     redirect("/hub");
   }
 
+  const isAdmin = role === "owner" || role === "admin";
+
   const visibleSections = CONFIG_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) =>
-      hasConfigSubmoduleAccess(role, item.key)
-    ),
+    items: section.items.filter((item) => {
+      if (item.adminOnly && !isAdmin) return false;
+      return canView(perms, "config", item.submodule);
+    }),
   })).filter((section) => section.items.length > 0);
 
   return (

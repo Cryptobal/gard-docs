@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { OpsGlobalSearch } from "./OpsGlobalSearch";
+import { usePermissions } from "@/lib/permissions-context";
+import { canView, type RolePermissions } from "@/lib/permissions";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -15,23 +17,34 @@ import {
   Fingerprint,
 } from "lucide-react";
 
+/** subKey: clave del submódulo en permissions (null = siempre visible si tiene acceso al módulo) */
 const OPS_ITEMS = [
-  { href: "/ops", label: "Inicio", icon: LayoutDashboard },
-  { href: "/ops/puestos", label: "Puestos", icon: ClipboardList },
-  { href: "/ops/pauta-mensual", label: "Pauta mensual", icon: CalendarDays },
-  { href: "/ops/pauta-diaria", label: "Asistencia diaria", icon: UserRoundCheck },
-  { href: "/ops/turnos-extra", label: "Turnos extra", icon: Clock3 },
-  { href: "/ops/marcaciones", label: "Marcaciones", icon: Fingerprint },
-  { href: "/ops/ppc", label: "PPC", icon: ShieldAlert },
-  { href: "/personas/guardias", label: "Guardias", icon: Shield },
+  { href: "/ops", label: "Inicio", icon: LayoutDashboard, subKey: null },
+  { href: "/ops/puestos", label: "Puestos", icon: ClipboardList, subKey: "puestos" as const },
+  { href: "/ops/pauta-mensual", label: "Pauta mensual", icon: CalendarDays, subKey: "pauta_mensual" as const },
+  { href: "/ops/pauta-diaria", label: "Asistencia diaria", icon: UserRoundCheck, subKey: "pauta_diaria" as const },
+  { href: "/ops/turnos-extra", label: "Turnos extra", icon: Clock3, subKey: "turnos_extra" as const },
+  { href: "/ops/marcaciones", label: "Marcaciones", icon: Fingerprint, subKey: "marcaciones" as const },
+  { href: "/ops/ppc", label: "PPC", icon: ShieldAlert, subKey: "ppc" as const },
+  { href: "/personas/guardias", label: "Guardias", icon: Shield, subKey: "guardias" as const },
 ];
+
+function filterByPermissions(perms: RolePermissions) {
+  return OPS_ITEMS.filter((item) => {
+    if (!item.subKey) return true; // "Inicio" siempre visible si tiene acceso al módulo
+    return canView(perms, "ops", item.subKey);
+  });
+}
 
 /**
  * OpsSubnav - Navegación del módulo Ops con buscador global.
  * Desktop: pills + buscador a la derecha. Móvil: solo buscador.
+ * Filtra items según permisos del usuario.
  */
 export function OpsSubnav({ className }: { className?: string } = {}) {
   const pathname = usePathname();
+  const permissions = usePermissions();
+  const visibleItems = filterByPermissions(permissions);
 
   return (
     <nav className={cn("mb-6 space-y-3", className)}>
@@ -40,7 +53,7 @@ export function OpsSubnav({ className }: { className?: string } = {}) {
       </div>
       <div className="hidden sm:flex sm:items-center sm:gap-3">
         <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
-          {OPS_ITEMS.map((item) => {
+          {visibleItems.map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(item.href + "/");
             const Icon = item.icon;
