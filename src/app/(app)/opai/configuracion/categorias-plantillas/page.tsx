@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
-import { ConfigBackLink } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { resolvePagePerms, canView } from "@/lib/permissions-server";
 import { DocCategoriesClient } from "@/components/docs/DocCategoriesClient";
 
@@ -16,14 +16,16 @@ export default async function CategoriasPlantillasPage() {
     redirect("/opai/configuracion");
   }
 
+  const role = session.user.role;
+
   return (
-    <>
-      <ConfigBackLink />
+    <div className="space-y-6">
       <PageHeader
         title="Categorías de plantillas"
         description="Gestiona las categorías por módulo para Gestión Documental (documentos y mails)"
       />
+      <ConfigSubnav role={role} />
       <DocCategoriesClient />
-    </>
+    </div>
   );
 }

@@ -104,6 +104,7 @@ const OPS_ITEMS: (BottomNavItem & { subKey: string })[] = [
   { key: "ops-ppc", href: "/ops/ppc", label: "PPC", icon: ShieldAlert, subKey: "ppc" },
   { key: "ops-rondas", href: "/ops/rondas", label: "Rondas", icon: Route, subKey: "rondas" },
   { key: "ops-control-nocturno", href: "/ops/control-nocturno", label: "Nocturno", icon: Moon, subKey: "control_nocturno" },
+  { key: "ops-guardias", href: "/personas/guardias", label: "Guardias", icon: Shield, subKey: "guardias" },
 ];
 
 const RONDAS_ITEMS: BottomNavItem[] = [
@@ -186,17 +187,13 @@ const MODULE_DETECTIONS: ModuleDetection[] = [
       CRM_ITEMS.filter((item) => canView(perms, "crm", item.subKey)),
   },
   {
-    test: (p) => p === "/ops" || p.startsWith("/ops/"),
+    test: (p) => p === "/ops" || p.startsWith("/ops/") || p === "/personas" || p.startsWith("/personas/"),
     getItems: (perms) =>
       OPS_ITEMS.filter((item) => canView(perms, "ops", item.subKey)),
   },
   {
     test: (p) => p === "/te" || p.startsWith("/te/"),
     getItems: () => TE_ITEMS,
-  },
-  {
-    test: (p) => p === "/personas" || p.startsWith("/personas/"),
-    getItems: () => PERSONAS_ITEMS,
   },
   {
     test: (p) => p === "/payroll" || p.startsWith("/payroll/"),

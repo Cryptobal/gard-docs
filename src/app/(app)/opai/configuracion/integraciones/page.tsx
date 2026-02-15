@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
-import { ConfigBackLink, IntegrationsGmailClient } from "@/components/opai";
+import { IntegrationsGmailClient } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { resolvePagePerms, canView } from "@/lib/permissions-server";
 
 export default async function IntegracionesPage() {
@@ -27,16 +28,16 @@ export default async function IntegracionesPage() {
     },
   });
 
+  const role = session.user.role;
+
   return (
-    <>
-      <ConfigBackLink />
+    <div className="space-y-6">
       <PageHeader
         title="Integraciones"
         description="Configura conexiones globales para el CRM"
       />
-      <div className="space-y-4">
-        <IntegrationsGmailClient connected={Boolean(gmailAccount)} />
-      </div>
-    </>
+      <ConfigSubnav role={role} />
+      <IntegrationsGmailClient connected={Boolean(gmailAccount)} />
+    </div>
   );
 }

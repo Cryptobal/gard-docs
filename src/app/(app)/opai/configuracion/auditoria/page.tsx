@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
-import { ConfigBackLink, PageHeader } from "@/components/opai";
+import { PageHeader } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 
 type AuditPageProps = {
   searchParams?: Promise<{
@@ -67,12 +68,12 @@ export default async function AuditoriaPage({ searchParams }: AuditPageProps) {
   });
 
   return (
-    <>
-      <ConfigBackLink />
+    <div className="space-y-6">
       <PageHeader
         title="Auditoría"
         description="Historial consolidado de acciones de usuarios en tu tenant"
       />
+      <ConfigSubnav role={role} />
 
       <div className="space-y-4">
         <form method="GET" className="rounded-xl border border-border bg-card p-4">
@@ -154,6 +155,6 @@ export default async function AuditoriaPage({ searchParams }: AuditPageProps) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

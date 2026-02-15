@@ -6,12 +6,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { listUsers, listPendingInvitations, listRoleTemplates } from "@/app/(app)/opai/actions/users";
 import { PageHeader } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import UsersTable from "@/components/usuarios/UsersTable";
 import InvitationsTable from "@/components/usuarios/InvitationsTable";
 import InviteUserButton from "@/components/usuarios/InviteUserButton";
 import RolesHelpCard from "@/components/usuarios/RolesHelpCard";
-import { ConfigBackLink } from "@/components/opai";
 import { resolvePagePerms, canView, hasCapability } from "@/lib/permissions-server";
 
 export default async function UsuariosConfigPage() {
@@ -40,9 +40,10 @@ export default async function UsuariosConfigPage() {
       : [];
   const roleTemplates = templatesResult.success && templatesResult.templates ? templatesResult.templates : [];
 
+  const role = session.user.role;
+
   return (
-    <>
-      <ConfigBackLink />
+    <div className="space-y-6">
       <PageHeader
         title="Gestión de Usuarios"
         description="Administra los usuarios y permisos de tu equipo"
@@ -53,6 +54,7 @@ export default async function UsuariosConfigPage() {
           </div>
         }
       />
+      <ConfigSubnav role={role} />
 
       <div className="space-y-8">
         <Card>
@@ -100,6 +102,6 @@ export default async function UsuariosConfigPage() {
           </Card>
         )}
       </div>
-    </>
+    </div>
   );
 }

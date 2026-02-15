@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { NotificationConfigClient } from "@/components/opai/NotificationConfigClient";
 import { hasPermission, PERMISSIONS, type Role } from "@/lib/rbac";
 
@@ -19,6 +20,7 @@ export default async function NotificacionesConfigPage() {
         title="Notificaciones"
         description="Configura qué notificaciones recibes por campana y por correo electrónico"
       />
+      <ConfigSubnav role={role} />
       <NotificationConfigClient />
     </div>
   );

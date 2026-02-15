@@ -8,6 +8,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { ConfigClient } from "@/components/finance/ConfigClient";
 
 export default async function FinanzasConfiguracionPage() {
@@ -93,6 +94,7 @@ export default async function FinanzasConfiguracionPage() {
         title="Configuración de Finanzas"
         description="Administra ítems de rendición, parámetros de kilometraje, aprobadores y reglas."
       />
+      <ConfigSubnav role={session.user.role} />
       <ConfigClient
         config={configData}
         items={itemsData}

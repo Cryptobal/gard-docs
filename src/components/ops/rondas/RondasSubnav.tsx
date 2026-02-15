@@ -19,7 +19,7 @@ export function RondasSubnav({ className }: { className?: string } = {}) {
   const pathname = usePathname();
 
   return (
-    <nav className={cn("mb-4 hidden sm:flex sm:items-center sm:gap-2", className)}>
+    <nav className={cn("mb-4 flex items-center gap-2", className)}>
       <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide flex-1 min-w-0">
         {RONDAS_TABS.map((tab) => {
           const isActive = pathname === tab.href || pathname?.startsWith(`${tab.href}/`);

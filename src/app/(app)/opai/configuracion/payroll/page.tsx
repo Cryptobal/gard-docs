@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
-import { ConfigBackLink } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolvePagePerms, canView } from "@/lib/permissions-server";
 
@@ -16,13 +16,15 @@ export default async function PayrollConfigPage() {
     redirect("/opai/configuracion");
   }
 
+  const role = session.user.role;
+
   return (
-    <>
-      <ConfigBackLink />
+    <div className="space-y-6">
       <PageHeader
         title="Configuración Payroll"
         description="Parámetros y supuestos"
       />
+      <ConfigSubnav role={role} />
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -43,6 +45,6 @@ export default async function PayrollConfigPage() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   );
 }

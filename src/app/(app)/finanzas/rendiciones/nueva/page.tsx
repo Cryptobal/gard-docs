@@ -8,6 +8,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
+import { FinanceSubnav } from "@/components/finance";
 import { RendicionForm } from "@/components/finance/RendicionForm";
 
 export default async function NuevaRendicionPage() {
@@ -81,6 +82,7 @@ export default async function NuevaRendicionPage() {
         title="Nueva rendición"
         description="Crea una nueva rendición de gastos o kilometraje."
       />
+      <FinanceSubnav />
       <RendicionForm
         items={items.map((i) => ({
           id: i.id,

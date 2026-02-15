@@ -21,14 +21,13 @@ interface SubNavProps {
  * SubNav - Navegación secundaria horizontal reutilizable.
  *
  * Pills scrollables horizontalmente con iconos opcionales.
- * Mobile: oculto (el BottomNav contextual maneja la navegación).
- * Desktop (sm+): visible como pills con icono + label.
+ * Visible en todas las resoluciones (mobile + desktop).
  */
 export function SubNav({ items, className }: SubNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className={cn("mb-6 hidden sm:block", className)}>
+    <nav className={cn("mb-6", className)}>
       <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
         {items.map((item) => {
           const isActive =

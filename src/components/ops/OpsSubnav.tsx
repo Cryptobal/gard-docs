@@ -54,30 +54,28 @@ export function OpsSubnav({ className }: { className?: string } = {}) {
 
   return (
     <nav className={cn("mb-6 space-y-2", className)}>
-      {/* Tabs — desktop */}
-      <div className="hidden sm:block">
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
-          {visibleItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname?.startsWith(item.href + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors shrink-0",
-                  isActive
-                    ? "bg-primary/15 text-primary border border-primary/30"
-                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent"
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+      {/* Tabs — mobile + desktop */}
+      <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide">
+        {visibleItems.map((item) => {
+          const isActive =
+            pathname === item.href || pathname?.startsWith(item.href + "/");
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors shrink-0",
+                isActive
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Buscador — siempre debajo de los tabs, nunca en la misma fila */}

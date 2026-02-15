@@ -8,6 +8,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/opai";
+import { FinanceSubnav } from "@/components/finance";
 import { RendicionDetail } from "@/components/finance/RendicionDetail";
 
 interface PageProps {
@@ -153,6 +154,7 @@ export default async function RendicionDetailPage({ params }: PageProps) {
         title={`Rendición ${rendicion.code}`}
         description="Detalle de la rendición de gasto."
       />
+      <FinanceSubnav />
       <RendicionDetail
         rendicion={data}
         permissions={{

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { hasPermission, PERMISSIONS, type Role } from "@/lib/rbac";
 import { AiHelpChatConfigClient } from "@/components/opai/AiHelpChatConfigClient";
 
@@ -19,6 +20,7 @@ export default async function AsistenteIaConfigPage() {
         title="Asistente IA"
         description="Configura acceso por roles y alcance del chat conversacional en la aplicación"
       />
+      <ConfigSubnav role={role} />
       <AiHelpChatConfigClient />
     </div>
   );

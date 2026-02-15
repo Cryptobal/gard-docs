@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { PageHeader } from "@/components/opai";
+import { ConfigSubnav } from "@/components/opai/ConfigSubnav";
 import { resolvePermissions } from "@/lib/permissions-server";
 import { canView, hasModuleAccess } from "@/lib/permissions";
 import Link from "next/link";
@@ -175,11 +176,12 @@ export default async function ConfiguracionPage() {
   })).filter((section) => section.items.length > 0);
 
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         title="Configuración"
         description="Administración global y por módulo"
       />
+      <ConfigSubnav role={role} />
 
       <div className="space-y-6">
         {visibleSections.map((section) => (
@@ -215,6 +217,6 @@ export default async function ConfiguracionPage() {
           </section>
         ))}
       </div>
-    </>
+    </div>
   );
 }
