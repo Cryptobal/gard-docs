@@ -196,6 +196,7 @@ export function GuardEventsTab({
     return (
       <EventDetailView
         event={viewState.event}
+        guardiaName={guardiaName}
         userRole={userRole}
         onBack={() => setViewState({ view: "list" })}
         onApprove={handleApprove}
@@ -618,6 +619,7 @@ function EventCreateForm({
 
 function EventDetailView({
   event,
+  guardiaName,
   userRole,
   onBack,
   onApprove,
@@ -625,6 +627,7 @@ function EventDetailView({
   onCancel,
 }: {
   event: GuardEvent;
+  guardiaName: string;
   userRole: string;
   onBack: () => void;
   onApprove: (event: GuardEvent) => void;
@@ -751,7 +754,7 @@ function EventDetailView({
         <div className="border-t border-border pt-3">
           <a
             href={`/ops/tickets?source=guard_event&sourceId=${event.id}&title=${encodeURIComponent(
-              `${getSubtypeLabel(event.subtype)} — ${event.guardiaName ?? "Guardia"}`
+              `${getSubtypeLabel(event.subtype)} — ${guardiaName}`
             )}`}
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
           >
