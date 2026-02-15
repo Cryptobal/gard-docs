@@ -61,6 +61,7 @@ export const SUBMODULE_KEYS = {
     "guardias",
     "rondas",
     "control_nocturno",
+    "tickets",
   ] as const,
   crm: [
     "leads",
@@ -75,6 +76,7 @@ export const SUBMODULE_KEYS = {
   cpq: [] as readonly string[],
   config: [
     "usuarios",
+    "grupos",
     "integraciones",
     "firmas",
     "categorias",
@@ -83,6 +85,7 @@ export const SUBMODULE_KEYS = {
     "payroll",
     "notificaciones",
     "ops",
+    "tipos_ticket",
     "finanzas",
   ] as const,
   finance: [
@@ -113,6 +116,8 @@ export const CAPABILITY_KEYS = [
   "rendicion_configure",
   "rendicion_view_all",
   "rendicion_export",
+  "ticket_approve",
+  "ticket_manage_types",
 ] as const;
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
@@ -180,6 +185,7 @@ export const SUBMODULE_META: SubmoduleMeta[] = [
   { key: "ops.guardias", module: "ops", submodule: "guardias", label: "Guardias", href: "/personas/guardias" },
   { key: "ops.rondas", module: "ops", submodule: "rondas", label: "Rondas", href: "/ops/rondas" },
   { key: "ops.control_nocturno", module: "ops", submodule: "control_nocturno", label: "Control nocturno", href: "/ops/control-nocturno" },
+  { key: "ops.tickets", module: "ops", submodule: "tickets", label: "Tickets", href: "/ops/tickets" },
   // ── CRM ──
   { key: "crm.leads", module: "crm", submodule: "leads", label: "Leads", href: "/crm/leads" },
   { key: "crm.accounts", module: "crm", submodule: "accounts", label: "Cuentas", href: "/crm/accounts" },
@@ -201,6 +207,7 @@ export const SUBMODULE_META: SubmoduleMeta[] = [
   { key: "finance.configuracion", module: "finance", submodule: "configuracion", label: "Configuración", href: "/opai/configuracion/finanzas" },
   // ── Config ──
   { key: "config.usuarios", module: "config", submodule: "usuarios", label: "Usuarios", href: "/opai/configuracion/usuarios" },
+  { key: "config.grupos", module: "config", submodule: "grupos", label: "Grupos", href: "/opai/configuracion/grupos" },
   { key: "config.integraciones", module: "config", submodule: "integraciones", label: "Integraciones", href: "/opai/configuracion/integraciones" },
   { key: "config.firmas", module: "config", submodule: "firmas", label: "Firmas", href: "/opai/configuracion/firmas" },
   { key: "config.categorias", module: "config", submodule: "categorias", label: "Categorías plantillas", href: "/opai/configuracion/categorias-plantillas" },
@@ -209,6 +216,7 @@ export const SUBMODULE_META: SubmoduleMeta[] = [
   { key: "config.payroll", module: "config", submodule: "payroll", label: "Payroll", href: "/opai/configuracion/payroll" },
   { key: "config.notificaciones", module: "config", submodule: "notificaciones", label: "Notificaciones", href: "/opai/configuracion/notificaciones" },
   { key: "config.ops", module: "config", submodule: "ops", label: "Operaciones", href: "/opai/configuracion/ops" },
+  { key: "config.tipos_ticket", module: "config", submodule: "tipos_ticket", label: "Tipos de ticket", href: "/opai/configuracion/tipos-ticket" },
   { key: "config.finanzas", module: "config", submodule: "finanzas", label: "Finanzas", href: "/opai/configuracion/finanzas" },
 ];
 
@@ -229,6 +237,8 @@ export const CAPABILITY_META: CapabilityMeta[] = [
   { key: "rendicion_configure", label: "Configurar rendiciones", description: "Puede configurar ítems, parámetros y reglas de rendiciones" },
   { key: "rendicion_view_all", label: "Ver todas las rendiciones", description: "Puede ver rendiciones de todos los usuarios, no solo las propias" },
   { key: "rendicion_export", label: "Exportar rendiciones", description: "Puede exportar rendiciones a CSV/Excel" },
+  { key: "ticket_approve", label: "Aprobar tickets", description: "Puede aprobar o rechazar tickets que le correspondan según su grupo" },
+  { key: "ticket_manage_types", label: "Configurar tipos de ticket", description: "Puede crear/editar tipos de solicitud y cadenas de aprobación" },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -318,7 +328,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
       finance: "edit",
     },
     submodules: {},
-    capabilities: { te_approve: true, rondas_resolve_alerts: true, rendicion_submit: true, rendicion_view_all: true },
+    capabilities: { te_approve: true, rondas_resolve_alerts: true, rendicion_submit: true, rendicion_view_all: true, ticket_approve: true },
   },
 
   rrhh: {
@@ -333,7 +343,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
       finance: "view",
     },
     submodules: {},
-    capabilities: { guardias_blacklist: true, rendicion_view_all: true },
+    capabilities: { guardias_blacklist: true, rendicion_view_all: true, ticket_approve: true },
   },
 
   operaciones: {
@@ -348,7 +358,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, RolePermissions> = {
       finance: "edit",
     },
     submodules: { "finance.pagos": "none", "finance.configuracion": "none" },
-    capabilities: { te_approve: true, rondas_configure: true, rondas_resolve_alerts: true, control_nocturno_approve: true, rendicion_submit: true, rendicion_approve: true },
+    capabilities: { te_approve: true, rondas_configure: true, rondas_resolve_alerts: true, control_nocturno_approve: true, rendicion_submit: true, rendicion_approve: true, ticket_approve: true },
   },
 
   finanzas: finanzasPermissions(),
@@ -658,6 +668,7 @@ export function pathToPermission(
   if (pathname.startsWith("/ops/ppc")) return { module: "ops", submodule: "ppc" };
   if (pathname.startsWith("/ops/control-nocturno")) return { module: "ops", submodule: "control_nocturno" };
   if (pathname.startsWith("/ops/rondas")) return { module: "ops", submodule: "rondas" };
+  if (pathname.startsWith("/ops/tickets")) return { module: "ops", submodule: "tickets" };
   if (pathname.startsWith("/personas/guardias") || pathname.startsWith("/personas/lista-negra"))
     return { module: "ops", submodule: "guardias" };
   if (pathname === "/ops" || pathname.startsWith("/ops/")) return { module: "ops" };
@@ -689,6 +700,7 @@ export function pathToPermission(
 
   // Config submodules
   if (pathname.startsWith("/opai/configuracion/usuarios")) return { module: "config", submodule: "usuarios" };
+  if (pathname.startsWith("/opai/configuracion/grupos")) return { module: "config", submodule: "grupos" };
   if (pathname.startsWith("/opai/configuracion/integraciones")) return { module: "config", submodule: "integraciones" };
   if (pathname.startsWith("/opai/configuracion/firmas")) return { module: "config", submodule: "firmas" };
   if (pathname.startsWith("/opai/configuracion/categorias-plantillas")) return { module: "config", submodule: "categorias" };
@@ -697,6 +709,7 @@ export function pathToPermission(
   if (pathname.startsWith("/opai/configuracion/payroll")) return { module: "config", submodule: "payroll" };
   if (pathname.startsWith("/opai/configuracion/notificaciones")) return { module: "config", submodule: "notificaciones" };
   if (pathname.startsWith("/opai/configuracion/ops")) return { module: "config", submodule: "ops" };
+  if (pathname.startsWith("/opai/configuracion/tipos-ticket")) return { module: "config", submodule: "tipos_ticket" };
   if (pathname.startsWith("/opai/configuracion/finanzas")) return { module: "config", submodule: "finanzas" };
   if (pathname.startsWith("/opai/configuracion")) return { module: "config" };
 
@@ -742,6 +755,7 @@ export function apiPathToSubmodule(
   if (pathname.startsWith("/api/ops/marcacion")) return { module: "ops", submodule: "marcaciones" };
   if (pathname.startsWith("/api/ops/control-nocturno")) return { module: "ops", submodule: "control_nocturno" };
   if (pathname.startsWith("/api/ops/rondas")) return { module: "ops", submodule: "rondas" };
+  if (pathname.startsWith("/api/ops/tickets") || pathname.startsWith("/api/ops/ticket-categories")) return { module: "ops", submodule: "tickets" };
   if (pathname.startsWith("/api/te/")) return { module: "ops", submodule: "turnos_extra" };
   if (pathname.startsWith("/api/personas/guardias")) return { module: "ops", submodule: "guardias" };
   // CRM

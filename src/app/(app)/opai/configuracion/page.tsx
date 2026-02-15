@@ -19,6 +19,8 @@ import {
   Bot,
   ClipboardCheck,
   Receipt,
+  Ticket,
+  Shield,
 } from "lucide-react";
 
 type ConfigItem = {
@@ -54,6 +56,13 @@ const CONFIG_SECTIONS: ConfigSection[] = [
         description: "Configurar permisos por módulo y submódulo",
         icon: ShieldCheck,
         adminOnly: true,
+      },
+      {
+        submodule: "grupos",
+        href: "/opai/configuracion/grupos",
+        title: "Grupos",
+        description: "Grupos organizacionales para cadenas de aprobación",
+        icon: Users,
       },
       {
         submodule: "integraciones",
@@ -138,6 +147,13 @@ const CONFIG_SECTIONS: ConfigSection[] = [
         icon: ClipboardList,
       },
       {
+        submodule: "tipos_ticket",
+        href: "/opai/configuracion/tipos-ticket",
+        title: "Tipos de Ticket",
+        description: "Solicitudes, cadenas de aprobación y SLA",
+        icon: Ticket,
+      },
+      {
         submodule: "finanzas",
         href: "/opai/configuracion/finanzas",
         title: "Finanzas",
@@ -214,6 +230,38 @@ export default async function ConfiguracionPage() {
             </div>
           </section>
         ))}
+
+        {/* Portal del Guardia — enlace externo */}
+        {isAdmin && (
+          <section>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
+              Portales Externos
+            </h2>
+            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+              <Link
+                href="/portal/guardia"
+                target="_blank"
+                className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/40 active:bg-accent/60 group"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight">
+                    Portal del Guardia
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    Portal de autoservicio para guardias — tickets, pautas, marcaciones y perfil
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
+              Comparte la URL <code className="bg-muted px-1 py-0.5 rounded">/portal/guardia</code> con tus guardias. Se autentican con RUT + PIN.
+            </p>
+          </section>
+        )}
       </div>
     </>
   );

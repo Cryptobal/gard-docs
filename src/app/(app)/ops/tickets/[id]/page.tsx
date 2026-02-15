@@ -1,0 +1,33 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { resolvePagePerms, canView } from "@/lib/permissions-server";
+import { PageHeader } from "@/components/opai";
+import { OpsSubnav } from "@/components/ops";
+import { TicketDetailClient } from "@/components/ops/tickets";
+
+export default async function TicketDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user) {
+    redirect(`/opai/login?callbackUrl=/ops/tickets/${id}`);
+  }
+  const perms = await resolvePagePerms(session.user);
+  if (!canView(perms, "ops")) {
+    redirect("/hub");
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Detalle de ticket"
+        description="Seguimiento, comentarios y gestión del ticket."
+      />
+      <OpsSubnav />
+      <TicketDetailClient ticketId={id} userRole={session.user.role} />
+    </div>
+  );
+}
