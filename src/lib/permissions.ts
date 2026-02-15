@@ -76,6 +76,7 @@ export const SUBMODULE_KEYS = {
   cpq: [] as readonly string[],
   config: [
     "usuarios",
+    "grupos",
     "integraciones",
     "firmas",
     "categorias",
@@ -84,6 +85,7 @@ export const SUBMODULE_KEYS = {
     "payroll",
     "notificaciones",
     "ops",
+    "tipos_ticket",
     "finanzas",
   ] as const,
   finance: [
@@ -205,6 +207,7 @@ export const SUBMODULE_META: SubmoduleMeta[] = [
   { key: "finance.configuracion", module: "finance", submodule: "configuracion", label: "Configuración", href: "/opai/configuracion/finanzas" },
   // ── Config ──
   { key: "config.usuarios", module: "config", submodule: "usuarios", label: "Usuarios", href: "/opai/configuracion/usuarios" },
+  { key: "config.grupos", module: "config", submodule: "grupos", label: "Grupos", href: "/opai/configuracion/grupos" },
   { key: "config.integraciones", module: "config", submodule: "integraciones", label: "Integraciones", href: "/opai/configuracion/integraciones" },
   { key: "config.firmas", module: "config", submodule: "firmas", label: "Firmas", href: "/opai/configuracion/firmas" },
   { key: "config.categorias", module: "config", submodule: "categorias", label: "Categorías plantillas", href: "/opai/configuracion/categorias-plantillas" },
@@ -213,6 +216,7 @@ export const SUBMODULE_META: SubmoduleMeta[] = [
   { key: "config.payroll", module: "config", submodule: "payroll", label: "Payroll", href: "/opai/configuracion/payroll" },
   { key: "config.notificaciones", module: "config", submodule: "notificaciones", label: "Notificaciones", href: "/opai/configuracion/notificaciones" },
   { key: "config.ops", module: "config", submodule: "ops", label: "Operaciones", href: "/opai/configuracion/ops" },
+  { key: "config.tipos_ticket", module: "config", submodule: "tipos_ticket", label: "Tipos de ticket", href: "/opai/configuracion/tipos-ticket" },
   { key: "config.finanzas", module: "config", submodule: "finanzas", label: "Finanzas", href: "/opai/configuracion/finanzas" },
 ];
 
@@ -696,6 +700,7 @@ export function pathToPermission(
 
   // Config submodules
   if (pathname.startsWith("/opai/configuracion/usuarios")) return { module: "config", submodule: "usuarios" };
+  if (pathname.startsWith("/opai/configuracion/grupos")) return { module: "config", submodule: "grupos" };
   if (pathname.startsWith("/opai/configuracion/integraciones")) return { module: "config", submodule: "integraciones" };
   if (pathname.startsWith("/opai/configuracion/firmas")) return { module: "config", submodule: "firmas" };
   if (pathname.startsWith("/opai/configuracion/categorias-plantillas")) return { module: "config", submodule: "categorias" };
@@ -704,6 +709,7 @@ export function pathToPermission(
   if (pathname.startsWith("/opai/configuracion/payroll")) return { module: "config", submodule: "payroll" };
   if (pathname.startsWith("/opai/configuracion/notificaciones")) return { module: "config", submodule: "notificaciones" };
   if (pathname.startsWith("/opai/configuracion/ops")) return { module: "config", submodule: "ops" };
+  if (pathname.startsWith("/opai/configuracion/tipos-ticket")) return { module: "config", submodule: "tipos_ticket" };
   if (pathname.startsWith("/opai/configuracion/finanzas")) return { module: "config", submodule: "finanzas" };
   if (pathname.startsWith("/opai/configuracion")) return { module: "config" };
 
