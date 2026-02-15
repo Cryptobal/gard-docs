@@ -19,7 +19,7 @@ export async function seedChartOfAccounts(tenantId: string) {
 
     const created = await prisma.financeAccountPlan.upsert({
       where: {
-        uq_finance_account_plan_code: {
+        tenantId_code: {
           tenantId,
           code: account.code,
         },

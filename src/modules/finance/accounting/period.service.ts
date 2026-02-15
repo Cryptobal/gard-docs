@@ -29,7 +29,7 @@ export async function openPeriod(
   // Check no duplicate
   const existing = await prisma.financeAccountingPeriod.findUnique({
     where: {
-      uq_finance_period_tenant_year_month: { tenantId, year, month },
+      tenantId_year_month: { tenantId, year, month },
     },
   });
   if (existing) {

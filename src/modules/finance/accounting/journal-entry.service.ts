@@ -28,7 +28,7 @@ export async function createManualEntry(
 
   const period = await prisma.financeAccountingPeriod.findUnique({
     where: {
-      uq_finance_period_tenant_year_month: { tenantId, year, month },
+      tenantId_year_month: { tenantId, year, month },
     },
   });
   if (!period) {
