@@ -303,6 +303,29 @@ export async function POST(request: NextRequest) {
       data: { guardiaId: body.guardiaId },
     });
 
+    // 5. Auto-sync currentInstallationId on guard profile
+    await prisma.opsGuardia.update({
+      where: { id: body.guardiaId },
+      data: { currentInstallationId: puesto.installationId },
+    });
+
+    // If the displaced guard has no other active assignments, clear their currentInstallationId
+    if (existingSlotAssignment && existingSlotAssignment.guardiaId !== body.guardiaId) {
+      const otherActive = await prisma.opsAsignacionGuardia.findFirst({
+        where: {
+          guardiaId: existingSlotAssignment.guardiaId,
+          tenantId: ctx.tenantId,
+          isActive: true,
+        },
+      });
+      if (!otherActive) {
+        await prisma.opsGuardia.update({
+          where: { id: existingSlotAssignment.guardiaId },
+          data: { currentInstallationId: null },
+        });
+      }
+    }
+
     await createOpsAuditLog(ctx, "ops.asignacion.created", "ops_asignacion", asignacion.id, {
       guardiaId: body.guardiaId,
       puestoId: body.puestoId,
@@ -366,6 +389,21 @@ async function handleDesasignar(ctx: AuthContext, rawBody: unknown) {
     asignacion.guardiaId,
     endDate
   );
+
+  // Auto-sync: if guard has no other active assignments, clear currentInstallationId
+  const otherActive = await prisma.opsAsignacionGuardia.findFirst({
+    where: {
+      guardiaId: asignacion.guardiaId,
+      tenantId: ctx.tenantId,
+      isActive: true,
+    },
+  });
+  if (!otherActive) {
+    await prisma.opsGuardia.update({
+      where: { id: asignacion.guardiaId },
+      data: { currentInstallationId: null },
+    });
+  }
 
   await createOpsAuditLog(ctx, "ops.asignacion.closed", "ops_asignacion", asignacion.id, {
     guardiaId: asignacion.guardiaId,
