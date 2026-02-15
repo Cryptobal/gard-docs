@@ -4,6 +4,7 @@ import { requireAuth, unauthorized, resolveApiPerms } from "@/lib/api-auth";
 import { hasCapability } from "@/lib/permissions";
 import { ensureOpsAccess, createOpsAuditLog } from "@/lib/ops";
 import { sendControlNocturnoEmail } from "@/lib/control-nocturno-email";
+import { generateControlNocturnoSummary } from "@/lib/control-nocturno-ai";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -219,21 +220,32 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (updated && (action === "submit" || action === "resend")) {
       const baseUrl = process.env.NEXTAUTH_URL || "https://opai.gard.cl";
 
-      const emailData = {
-        reporteId: id,
-        date: updated.date.toISOString().slice(0, 10),
-        centralOperatorName: updated.centralOperatorName,
-        centralLabel: updated.centralLabel,
-        totalInstalaciones: updated.instalaciones.length,
-        novedades: updated.instalaciones.filter(
-          (i) => i.statusInstalacion === "novedad",
-        ).length,
-        criticos: updated.instalaciones.filter(
-          (i) => i.statusInstalacion === "critico",
-        ).length,
-        generalNotes: updated.generalNotes,
-        baseUrl,
-      };
+      // Generate AI summary (non-blocking, best-effort)
+      const aiSummaryPromise = generateControlNocturnoSummary(
+        {
+          date: updated.date.toISOString().slice(0, 10),
+          centralOperatorName: updated.centralOperatorName,
+          totalInstalaciones: updated.instalaciones.length,
+          instalaciones: updated.instalaciones.map((inst) => ({
+            installationName: inst.installationName,
+            statusInstalacion: inst.statusInstalacion,
+            notes: inst.notes,
+            guardias: inst.guardias.map((g) => ({
+              guardiaNombre: g.guardiaNombre,
+              horaLlegada: g.horaLlegada,
+            })),
+            rondas: inst.rondas.map((r) => ({
+              rondaNumber: r.rondaNumber,
+              horaEsperada: r.horaEsperada,
+              horaMarcada: r.horaMarcada,
+              status: r.status,
+              notes: r.notes,
+            })),
+          })),
+          generalNotes: updated.generalNotes,
+        },
+        ctx.tenantId,
+      ).catch(() => null);
 
       // Generate PDF inline for attachment
       let pdfBuffer: Uint8Array | undefined;
@@ -251,6 +263,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       } catch (pdfErr) {
         console.warn("[OPS] Could not generate PDF for email attachment:", pdfErr);
       }
+
+      // Wait for AI summary (runs in parallel with PDF)
+      const aiSummary = await aiSummaryPromise;
+
+      const emailData = {
+        reporteId: id,
+        date: updated.date.toISOString().slice(0, 10),
+        centralOperatorName: updated.centralOperatorName,
+        centralLabel: updated.centralLabel,
+        totalInstalaciones: updated.instalaciones.length,
+        novedades: updated.instalaciones.filter(
+          (i) => i.statusInstalacion === "novedad",
+        ).length,
+        criticos: updated.instalaciones.filter(
+          (i) => i.statusInstalacion === "critico",
+        ).length,
+        generalNotes: updated.generalNotes,
+        aiSummary,
+        baseUrl,
+      };
 
       // Send email (don't block response)
       sendControlNocturnoEmail(emailData, pdfBuffer).catch((err) =>

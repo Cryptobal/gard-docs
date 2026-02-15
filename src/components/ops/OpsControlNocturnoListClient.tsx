@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import Link from "next/link";
 import {
   Moon,
   Plus,
@@ -24,6 +25,7 @@ import {
   Clock,
   Building2,
   ChevronRight,
+  BarChart3,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -140,23 +142,32 @@ export function OpsControlNocturnoListClient(_props: Props) {
 
   return (
     <>
-      {/* Header con botón crear */}
+      {/* Header con botón crear + KPIs */}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
           {reportes.length} reporte{reportes.length !== 1 ? "s" : ""}
         </p>
-        {canCreate && (
-          <Button size="sm" onClick={() => {
-            setFormDate(toDateInput(new Date()));
-            setFormOperator("");
-            setFormCentral("");
-            setCreateOpen(true);
-          }}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            <span className="hidden sm:inline">Nuevo reporte</span>
-            <span className="sm:hidden">Nuevo</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <Link href="/ops/control-nocturno/kpis">
+            <Button size="sm" variant="outline">
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              <span className="hidden sm:inline">KPIs</span>
+              <span className="sm:hidden">KPIs</span>
+            </Button>
+          </Link>
+          {canCreate && (
+            <Button size="sm" onClick={() => {
+              setFormDate(toDateInput(new Date()));
+              setFormOperator("");
+              setFormCentral("");
+              setCreateOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-1.5" />
+              <span className="hidden sm:inline">Nuevo reporte</span>
+              <span className="sm:hidden">Nuevo</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Lista de reportes */}

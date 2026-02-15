@@ -18,6 +18,7 @@ interface ControlNocturnoEmailData {
   novedades: number;
   criticos: number;
   generalNotes: string | null;
+  aiSummary?: string | null;
   /** Base URL del sistema (ej: https://opai.gard.cl) */
   baseUrl: string;
 }
@@ -30,6 +31,14 @@ function formatDate(dateStr: string): string {
     month: "long",
     year: "numeric",
   });
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function buildHtml(data: ControlNocturnoEmailData): string {
@@ -53,7 +62,7 @@ function buildHtml(data: ControlNocturnoEmailData): string {
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="padding:4px 0;font-size:13px;color:#64748b;width:140px">Operador</td>
-                <td style="padding:4px 0;font-size:13px;color:#1e293b;font-weight:500">${data.centralOperatorName}${data.centralLabel ? ` · ${data.centralLabel}` : ""}</td>
+                <td style="padding:4px 0;font-size:13px;color:#1e293b;font-weight:500">${escapeHtml(data.centralOperatorName)}${data.centralLabel ? ` · ${escapeHtml(data.centralLabel)}` : ""}</td>
               </tr>
               <tr>
                 <td style="padding:4px 0;font-size:13px;color:#64748b">Instalaciones</td>
@@ -70,13 +79,23 @@ function buildHtml(data: ControlNocturnoEmailData): string {
             </table>
           </td>
         </tr>
+        ${data.aiSummary ? `
+        <!-- AI Analysis -->
+        <tr>
+          <td style="padding:0 32px 16px">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #22c55e;border-radius:6px;padding:12px 16px">
+              <p style="margin:0 0 4px;font-size:11px;color:#15803d;font-weight:600;text-transform:uppercase">Análisis de la jornada</p>
+              <p style="margin:0;font-size:13px;color:#14532d;line-height:1.5">${escapeHtml(data.aiSummary)}</p>
+            </div>
+          </td>
+        </tr>` : ""}
         ${data.generalNotes ? `
         <!-- Notes -->
         <tr>
           <td style="padding:0 32px 16px">
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px 16px">
               <p style="margin:0 0 4px;font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase">Notas generales</p>
-              <p style="margin:0;font-size:13px;color:#334155;white-space:pre-wrap">${data.generalNotes}</p>
+              <p style="margin:0;font-size:13px;color:#334155;white-space:pre-wrap">${escapeHtml(data.generalNotes)}</p>
             </div>
           </td>
         </tr>` : ""}
