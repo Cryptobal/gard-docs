@@ -169,7 +169,7 @@ export function ControlNocturnoKpisCharts({
                     <LabelList
                       dataKey="cumplimiento"
                       position="right"
-                      formatter={(v: number) => `${v}%`}
+                      formatter={(v: string | number) => `${v}%`}
                       style={{
                         fontSize: 10,
                         fill: "rgba(255,255,255,0.5)",
