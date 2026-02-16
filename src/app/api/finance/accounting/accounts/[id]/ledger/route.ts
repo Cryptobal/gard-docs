@@ -27,10 +27,7 @@ export async function GET(
     const dateFrom = searchParams.get("dateFrom") || undefined;
     const dateTo = searchParams.get("dateTo") || undefined;
 
-    const ledger = await getAccountLedger(ctx.tenantId, id, {
-      dateFrom,
-      dateTo,
-    });
+    const ledger = await getAccountLedger(ctx.tenantId, id, dateFrom, dateTo);
     return NextResponse.json({ success: true, data: ledger });
   } catch (error) {
     console.error("[Finance Account Ledger] Error:", error);
