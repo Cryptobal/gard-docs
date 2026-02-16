@@ -35,6 +35,7 @@ import {
   Route,
   Radio,
   Moon,
+  Ticket,
   // TE
   CheckCircle2,
   Layers,
@@ -104,6 +105,7 @@ const OPS_ITEMS: (BottomNavItem & { subKey: string })[] = [
   { key: "ops-ppc", href: "/ops/ppc", label: "PPC", icon: ShieldAlert, subKey: "ppc" },
   { key: "ops-rondas", href: "/ops/rondas", label: "Rondas", icon: Route, subKey: "rondas" },
   { key: "ops-control-nocturno", href: "/ops/control-nocturno", label: "Nocturno", icon: Moon, subKey: "control_nocturno" },
+  { key: "ops-tickets", href: "/ops/tickets", label: "Tickets", icon: Ticket, subKey: "tickets" },
 ];
 
 const RONDAS_ITEMS: BottomNavItem[] = [
@@ -161,11 +163,13 @@ const FINANCE_ITEMS: (BottomNavItem & {
 
 const CONFIG_ITEMS: (BottomNavItem & { subKey: string })[] = [
   { key: "config-users", href: "/opai/configuracion/usuarios", label: "Usuarios", icon: Users, subKey: "usuarios" },
+  { key: "config-groups", href: "/opai/configuracion/grupos", label: "Grupos", icon: Users, subKey: "grupos" },
   { key: "config-integrations", href: "/opai/configuracion/integraciones", label: "Integraciones", icon: Plug, subKey: "integraciones" },
   { key: "config-notifications", href: "/opai/configuracion/notificaciones", label: "Alertas", icon: Bell, subKey: "notificaciones" },
   { key: "config-crm", href: "/opai/configuracion/crm", label: "CRM", icon: TrendingUp, subKey: "crm" },
   { key: "config-cpq", href: "/opai/configuracion/cpq", label: "CPQ", icon: DollarSign, subKey: "cpq" },
   { key: "config-ops", href: "/opai/configuracion/ops", label: "Ops", icon: ClipboardList, subKey: "ops" },
+  { key: "config-ticket-types", href: "/opai/configuracion/tipos-ticket", label: "Tickets", icon: Ticket, subKey: "tipos_ticket" },
 ];
 
 /* ── Module detection ── */

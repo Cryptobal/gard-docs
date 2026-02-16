@@ -17,6 +17,7 @@ import {
   Fingerprint,
   Route,
   Moon,
+  Ticket,
 } from "lucide-react";
 
 /** subKey: clave del submódulo en permissions (null = siempre visible si tiene acceso al módulo) */
@@ -30,6 +31,7 @@ const OPS_ITEMS = [
   { href: "/ops/ppc", label: "PPC", icon: ShieldAlert, subKey: "ppc" as const },
   { href: "/ops/rondas", label: "Rondas", icon: Route, subKey: "rondas" as const },
   { href: "/ops/control-nocturno", label: "Control nocturno", icon: Moon, subKey: "control_nocturno" as const },
+  { href: "/ops/tickets", label: "Tickets", icon: Ticket, subKey: "tickets" as const },
   { href: "/personas/guardias", label: "Guardias", icon: Shield, subKey: "guardias" as const },
 ];
 

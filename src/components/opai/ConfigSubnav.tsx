@@ -13,12 +13,15 @@ import {
   Calculator,
   Bell,
   ClipboardList,
+  Ticket,
+  Shield,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 /** Mapeo de config submodule key → icono */
 const CONFIG_ICONS: Record<string, LucideIcon> = {
   usuarios: Users,
+  grupos: Shield,
   integraciones: Plug,
   firmas: PenLine,
   categorias: FolderTree,
@@ -27,6 +30,7 @@ const CONFIG_ICONS: Record<string, LucideIcon> = {
   payroll: Calculator,
   notificaciones: Bell,
   ops: ClipboardList,
+  tipos_ticket: Ticket,
 };
 
 export function ConfigSubnav({ role }: { role: string }) {
