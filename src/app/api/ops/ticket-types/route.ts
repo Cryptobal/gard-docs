@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     const items: TicketType[] = rows.map(mapTicketType);
 
-    return NextResponse.json({ success: true, data: { items } });
+    return NextResponse.json({ success: true, data: items });
   } catch (error) {
     console.error("[OPS] Error listing ticket types:", error);
     return NextResponse.json(

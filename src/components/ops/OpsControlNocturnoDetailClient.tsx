@@ -1008,7 +1008,7 @@ export function OpsControlNocturnoDetailClient({ reporteId }: Props) {
         setRondaModalOpen(open);
         if (!open) setSelectedRonda(null);
       }}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
           {selectedRonda && (() => {
             const r = selectedRonda.ronda;
             const instId = selectedRonda.instId;

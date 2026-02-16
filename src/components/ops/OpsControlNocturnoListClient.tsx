@@ -237,7 +237,7 @@ export function OpsControlNocturnoListClient(_props: Props) {
 
       {/* Modal crear reporte */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Nuevo reporte nocturno</DialogTitle>
           </DialogHeader>

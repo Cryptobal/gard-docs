@@ -647,7 +647,7 @@ export function TicketTypesConfigClient({
       const res = await fetch("/api/ops/ticket-types");
       const data = await res.json();
       if (data.success) {
-        setTicketTypes(data.data ?? data.data?.items ?? []);
+        setTicketTypes(data.data?.items ?? data.data ?? []);
       }
     } catch {
       toast.error("Error al cargar tipos de ticket");
@@ -659,7 +659,7 @@ export function TicketTypesConfigClient({
       const res = await fetch("/api/ops/groups");
       const data = await res.json();
       if (data.success) {
-        setGroups(data.data ?? data.data?.items ?? []);
+        setGroups(data.data?.items ?? data.data ?? []);
       }
     } catch {
       toast.error("Error al cargar grupos");

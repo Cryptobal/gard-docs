@@ -157,8 +157,22 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: reporte }, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[OPS] Error creating control nocturno:", error);
+
+    // Detect Prisma unique constraint violation
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Ya existe un reporte nocturno para esta fecha y central" },
+        { status: 409 },
+      );
+    }
+
     const msg = error instanceof Error ? error.message : "Error al crear reporte";
     return NextResponse.json(
       { success: false, error: msg },
