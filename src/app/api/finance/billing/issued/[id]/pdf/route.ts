@@ -22,7 +22,7 @@ export async function GET(
 
     const pdf = await getDtePdf(ctx.tenantId, id);
 
-    return new NextResponse(pdf, {
+    return new NextResponse(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="dte-${id}.pdf"`,

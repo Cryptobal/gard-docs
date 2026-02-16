@@ -37,11 +37,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!body.lines || body.lines.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Debe incluir al menos una linea en la nota de débito" },
+        { status: 400 }
+      );
+    }
+
     const result = await issueDte(ctx.tenantId, ctx.userId, {
       dteType: 56,
-      ...body,
       receiverRut: originalDte.receiverRut,
       receiverName: originalDte.receiverName,
+      lines: body.lines,
+      notes: body.reason,
     });
 
     return NextResponse.json({ success: true, data: result }, { status: 201 });

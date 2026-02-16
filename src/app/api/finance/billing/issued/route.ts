@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const dtes = await prisma.financeDte.findMany({
       where: { tenantId: ctx.tenantId },
-      orderBy: { issuedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       take: pageSize,
       skip: (page - 1) * pageSize,
       include: { lines: true },

@@ -31,7 +31,7 @@ export async function POST(
       );
     }
 
-    if (dte.siiStatus === "VOIDED") {
+    if (dte.siiStatus === "ANNULLED") {
       return NextResponse.json(
         { success: false, error: "DTE ya anulado" },
         { status: 400 }
@@ -41,9 +41,7 @@ export async function POST(
     const updated = await prisma.financeDte.update({
       where: { id },
       data: {
-        siiStatus: "VOIDED",
-        voidedAt: new Date(),
-        voidedBy: ctx.userId,
+        siiStatus: "ANNULLED",
       },
     });
 
